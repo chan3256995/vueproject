@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+<script>
+  let market_name_list = [
+    '国投',
+'国大',
+'金富丽',
+'佰润',
+'女人街',
+'大时代',
+'非凡',
+'宝华',
+'新金马',
+'柏美',
+'新潮都',
+'三晟',
+'大西豪',
+'西街',
+'犀牛角',
+'景叶',
+'跨客城',
+'国大金沙',
+'老金马',
+'国泰',
+'拼商城',
+'鸿发',
+'大利广场',
+'国润',
+'国马',
+'东金网批',
+  ];
+  let address = " 金富丽 1楼 1F159      8306_38 浅蓝色尺码：4XL/1 " +
+                 "女人街 4楼E区 E440-A -9067- 26 黑色尺寸：S/1 " +
+                 "柏美 1楼 A112-B  1916#  80  红色格子30/1 ".trim();
+  let tem_address = address;
+  let godds_str_list = [];
+  // let tt = this.isfind_market(address,market_name_list,0)
+
+
+  // let goods_str_list = this.get_goods_str_list(address);
+  // let goods_list = this.get_goods_list(goods_str_list)
+  // let tem_str = "我爱点/ 点， 滴滴， 你ab88bca ，abc";
+  // // let reg = /， /;
+  // let reg = /[， /]{2}|[, /]{2}/;
+  // let tindex = tem_str.match(reg);
+  // console.log(tindex[0])
+  // console.log(tindex)
+  str  = "55姜黄色尺码：XL/"
+  let goods_price = str.match(/\d+\.?\d*/g);
+  console.log(goods_price)
+
+  function find_char() {
+    tem_address = "我爱我#/, 家你--但，，好.#似,@@ #/";
+    let reg = /[-, /#.，@]{2}/;//“， /”四个字符出现两个
+    while (tem_address.match(reg)) {
+      console.log(tem_address)
+      let result = tem_address.match(reg);
+      tem_address = tem_address.replace(result[0], "，")
+    }
+    console.log(tem_address)
+
+    tem_address = "金富丽 5楼 5F037 -6130#-35 黑色尺寸：3XL/1 ";
+    tem_address = "金富丽 4楼 4F098-a-3153-35-黑色尺寸：5XL/1";
+    tem_address = "金富丽 1楼 1F063-C-5871-26黑色尺寸：XL/1";
+    // tem_address = "金富丽 3楼 3F058-2258-55姜黄色尺码：L/1  张国霞";
+    // tem_address = "金富丽 5楼 5F037 -6130#-35 黑色尺寸：3XL/1 ";
+    let index = tem_address.search("-");
+    console.log(index);
+    if (index == -1) {
+      console.log("没有找到横线")
+    }
+    let st = tem_address.substring(index + 1, index + 2);
+    console.log(st);
+    let tindex = st.search(/[a-zA-Z]/);
+    if (tindex == -1) {
+      console.log("横线下一个字符不是字母")
+    }
+    console.log(tindex)
+    let sn = tem_address.substring(index + 2, index + 4);
+    console.log(sn)
+    if (!isNaN(sn) && sn > 0) {
+      console.log("是两位数字")
+    } else {
+      console.log("不是两位大于零的数字，当口号有符号  -")
+      tem_address = tem_address.replace("-", "$");
+
+      console.log(tem_address)
+    }
+  }
+
+
+  function get_goods_list(goods_str_list){
+    let goods_list = [];
+    for(let i=0;i<goods_str_list.length;i++){
+       let goods_info = {"market_name":"","floor":"","stall_no":"","art_no":"","price":"","color_size":"",'count':""}
+       while(goods_str_list[i].search("  ")!== -1){
+         goods_str_list[i] = goods_str_list[i].replace("  "," ");
+       }
+       let goods_pro_list = goods_str_list[i].trim().split(/[/_,， ]/);
+
+          goods_info['market_name'] =typeof (goods_pro_list[0]) === "undefined"?"":goods_pro_list[0];
+          goods_info['floor'] = typeof (goods_pro_list[1]) === "undefined"?"":goods_pro_list[1];
+          goods_info['stall_no'] = typeof (goods_pro_list[2]) === "undefined"?"":goods_pro_list[2];
+          goods_info['art_no'] = typeof (goods_pro_list[3]) === "undefined"?"":goods_pro_list[3];
+          goods_info['price'] =typeof (goods_pro_list[4]) === "undefined"?"":goods_pro_list[4];
+          goods_info['color_size'] =typeof (goods_pro_list[5]) === "undefined"?"":goods_pro_list[5];
+          goods_info['count'] = typeof (goods_pro_list[6]) === "undefined"?"":goods_pro_list[6];
+
+          goods_list.push(goods_info)
+    }
+    return goods_list;
+  }
+
+
+
+
+  function get_goods_str_list(address){
+    let tem_address = address;
+    let goods_str_list = [];
+    while(this.isfind_market(tem_address,market_name_list,0)!==""){
+
+          let goods_start_info = this.isfind_market(tem_address,market_name_list,0);
+          let next_goods_info = this.isfind_market(tem_address,market_name_list,goods_start_info.market_name.length);
+
+          if(next_goods_info !==""){
+             let goods_info = tem_address.substring(0,next_goods_info.index);
+             goods_str_list.push(goods_info);
+             tem_address = tem_address.substring(next_goods_info.index,tem_address.length).trim()
+
+          }else{
+             goods_str_list.push(tem_address);
+             tem_address = "";
+          }
+
+  }
+
+    return goods_str_list;
+  }
+
+
+
+  function isfind_market(address,market_list,start_index) {
+    console.log("find_market")
+    console.log(address)
+    let tem_str = address.substring(start_index,address.length)
+    for(let i = 0; i< market_list.length; i++){
+      let index = tem_str.search(market_list[i])
+
+      if(index !== -1){
+        return {'index':start_index+index,'market_name':market_list[i]};
+      }
+    }
+    return "";
+  }
+</script>
+</body>
+</html>
