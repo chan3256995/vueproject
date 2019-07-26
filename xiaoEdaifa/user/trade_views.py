@@ -118,8 +118,7 @@ class TradeInfoViewSet(mixins.ListModelMixin,GenericViewSet):
     #         return m_serializers.TradeOrderQuerySerializer
     #     elif self.action == "delete":
     #         return m_serializers.TradeOrderQuerySerializer
-    #
-    #     return m_serializers.TradeOrderQuerySerializer
+
     def get_serializer_class(self):
         return m_serializers.QueryTradeInfoSerializer
 
