@@ -4,9 +4,10 @@
         <input v-model="query_q" style="width: 30em; height: 2em ; " placeholder="订单号 ，收货人名，手机号，快递单号"/><button @click='on_orders_query(query_q)' style="margin-left: 0.5em">查询</button>
       </div>
     <ul class = "status_ul" >
-      <li ><a @click="on_order_filter(goods_status2['未付款'])" :class="{status_select:cur_order_status_filter==='未付款'}">未付款</a></li>
-      <li ><a @click="on_order_filter(goods_status2['已发货'])" :class="{status_select:cur_order_status_filter==='已发货'}">已发货</a></li>
-      <li ><a @click="on_order_filter(-1)" :class="{status_select:cur_order_status_filter==='全部订单'}">全部订单</a></li>
+      <li ><a @click="on_order_filter({'status':goods_status2['未付款']},'未付款')" :class="{status_select:cur_order_status_filter==='未付款'}">未付款</a></li>
+      <li ><a @click="on_order_filter({'status':goods_status2['已发货']},'已发货')" :class="{status_select:cur_order_status_filter==='已发货'}">已发货</a></li>
+      <li ><a @click="on_order_filter(-1,'全部订单')" :class="{status_select:cur_order_status_filter==='全部订单'}">全部订单</a></li>
+      <li ><a @click="on_order_filter({'refund_apply_status':'有售后订单'},'售后订单')" :class="{status_select:cur_order_status_filter==='售后订单'}">售后订单</a></li>
 
     </ul>
     <div style="padding-left: 3em" v-if="cur_order_status_filter==='未付款'">
@@ -40,8 +41,8 @@
                          <label>{{goods.refund_apply.value}}</label>
                          <label>{{goods.goods_price}} x {{goods.goods_count}} =  {{goods.goods_price * goods.goods_count}}元 </label>
                           <a  @click="apply_click(goods,item)" class = "refund_apply_btn" v-if="goods_status[goods.status] ==='已发货' ">申请售后</a>
-                          <!--<a  @click="apply_refund(goods.id,refund_apply_type['取消订单'])" class = "refund_apply_btn" v-if="goods_status[goods.status] ==='缺货' ">退款</a>-->
-                          <a  @click="apply_refund(goods.id,refund_apply_type['仅退款'])" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='缺货' || goods_status[goods.status] ==='已付款') &&  refund_apply_status[goods.refund_apply_status] ==='无售后'">申请退款</a>
+                          <a  @click="apply_refund(goods.goods_number,refund_apply_type['拦截发货'],'确定拦截发货吗？申请后不能恢复发货，系统自动转为售后订单')" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='拿货中' ||  goods_status[goods.status] ==='已拿货') &&  refund_apply_status[goods.refund_apply_status] ==='无售后' ">拦截发货</a>
+                          <a  @click="apply_refund(goods.goods_number,refund_apply_type['仅退款'], '确定申请退款吗？')" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='明日有货' ||  goods_status[goods.status] ==='其他状态' || goods_status[goods.status] ==='已付款') &&  refund_apply_status[goods.refund_apply_status] ==='无售后'">申请退款</a>
                           <a  @click="goto_place_order_page(JSON.stringify(goods))" class = "refund_apply_btn">再次下单</a>
                          <!--<select @change="selectVal($event,goods)" >-->
                            <!--<option :value="option.value" v-for="(option,index) in options" :key="index">{{option.text}}</option>-->
@@ -49,7 +50,12 @@
                 </div>
 
                   <div style="float: left" > <label style="width: 5em;float: left" >商品状态:</label>  <label style="width:3em;color: red" >{{goods_status[goods.status]}}  </label> </div>
-                  <div  ><label style="padding-left: 2em">售后状态:</label><label  style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> {{refund_apply_status[goods.refund_apply_status]}}</label> </div>
+                  <div  >
+                    <label style="padding-left: 2em">售后状态:</label>
+                    <label  style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> {{refund_apply_status[goods.refund_apply_status]}}</label>
+                    <label v-if="refund_apply_status[goods.refund_apply_status]!=='无售后' && goods.refund_apply.length === 0 " style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> （已处理）</label>
+                    <label v-else-if="refund_apply_status[goods.refund_apply_status]!=='无售后' && goods.refund_apply.length >0 " style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> （处理中）</label>
+                  </div>
                   <div v-if="goods.return_logistics_name !== null " ><label style="float: left">售后物流:</label><label  > {{goods.return_logistics_name}}:{{goods.return_logistics_number}}  </label> </div>
                  <!--<label style="display:block;color: red" >   下单备注：{{goods.customer_message}}</label>-->
                  <label style="float:none;display:block;color: red">   客服留言:{{goods.customer_service_message}}</label>
@@ -216,9 +222,51 @@
                 console.log("**************************************")
                 console.log(res.data)
 
-                 this.$msgBox.showMsgBox({
+                this.show_order_pay_box(data,this.go_pay_money_totals,res.data.user.balance)
+              }
+            }).catch(error=>{
+                console.log("请求错误")
+            })
+
+             return false
+
+          },
+          to_stop_deliver(data){
+            console.log("///////////////////////////",data)
+
+            this.$msgBox.showMsgBox({
+                  title: '支付',
+                  content: '支付金额 2元 + 1元手续费 = 3元"',
+                  isShowInput: true
+              }).then(async (val) => {
+                   const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/refundApply/";
+                   console.log(val)
+                   if(val ==="" || typeof(val) ==="undefined"){
+                     this.$toast("密码不能为空")
+                     return
+                   }
+                   data['pay_pwd'] = val
+                   axios.post(url,data).then((res)=>{
+                   if(res.data.code === "1000"){
+                        this.$toast("支付成功")
+                       this.refresh_cur_page();
+                   }else if(res.data.code === "1001"){
+                       console.log("支付失败")
+                      alert(res.data.message+" 请刷新")
+                     return false
+                   }
+                    }).catch(error => {
+                         alert("提交失败")
+                    })
+
+              }).catch(() => {
+                  // ...
+              });
+          },
+          show_order_pay_box(data,go_pay_money_totals, user_balance){
+             this.$msgBox.showMsgBox({
                   title: '订单支付',
-                  content: '支付金额'+this.go_pay_money_totals+' ，账户余额'+res.data.user.balance,
+                  content: '支付金额'+go_pay_money_totals+' ，账户余额'+user_balance,
                   isShowInput: true
               }).then(async (val) => {
                    const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/ordersPay/";
@@ -243,21 +291,10 @@
                          alert("提交失败")
                     })
 
-
-
               }).catch(() => {
                   // ...
               });
-              }
-            }).catch(error=>{
-                console.log("请求错误")
-            })
-
-             return false
-
           },
-
-
           // 删除订单(未付款订单)
           delete_order(order_number){
               if(!confirm("确定删除订单吗？删除后不可恢复。")) {
@@ -276,18 +313,10 @@
              alert("访问错误")
         })
           },
-          on_order_filter(goods_status){
-             let query_data ;
-            if("未付款" === this.goods_status[goods_status]){
-               this.cur_order_status_filter="未付款";
-               query_data = {"status":goods_status};
-            }else if("已发货" === this.goods_status[goods_status]){
-              this.cur_order_status_filter="已发货";
-               query_data = {"status":goods_status};
-            }else{
-               this.cur_order_status_filter="全部订单";
+          on_order_filter(query_data,btn_tag){
+             // let query_data ;
+            this.cur_order_status_filter = btn_tag
 
-            }
             this.order_list = []
             const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/orders/";
             this.loadOrderPage(url,query_data)
@@ -301,35 +330,34 @@
             let query_data = {"q":query_keys.trim()};
             this.loadOrderPage(url,query_data)
           },
-            apply_refund(order_goods, refund_apply_type){
-              let alter_message = ""
+            apply_refund(goods_number, refund_apply_type,alter_message){
 
-              if(this.refund_apply_type["仅退款"] === refund_apply_type){
-                alter_message = "确定申请退款吗？"
-              }else if(this.refund_apply_type['取消订单'] === refund_apply_type ){
-                   alter_message = "确定取消订单吗？"
-              }
+
               if(!confirm(alter_message)) {
                 return ;
               }
-            let data_ = {
-              "orderGoods":order_goods,
+              let data_ = {
+              "goods_number":goods_number,
               "refund_apply_type":refund_apply_type,
             }
-            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/refundApply/";
+              if (refund_apply_type === mGlobal.REFUND_APPLY_TYPE["拦截发货"]){
+                  this.to_stop_deliver(data_)
+              }else{
 
-            axios.post(url,data_).then((res)=>{
+                const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/refundApply/";
+                axios.post(url,data_).then((res)=>{
+                 if(res.data.code === "1000"){
+                   this.$toast("提交成功");
+                   console.log("提交成功")
+                    this.refresh_cur_page();
+                 }else if(res.data.code === "1001"){
+                    alert(res.data.message+" 请刷新")
+                 }
+            }).catch(error => {
+                 alert("提交失败")
+            })
+              }
 
-             if(res.data.code === "1000"){
-               this.$toast("提交成功");
-               console.log("提交成功")
-                this.refresh_cur_page();
-             }else if(res.data.code === "1001"){
-                alert(res.data.message+" 请刷新")
-             }
-        }).catch(error => {
-             alert("提交失败")
-        })
        },
         //刷新当前页面
         refresh_cur_page(goods_status){

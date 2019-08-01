@@ -114,7 +114,7 @@
 
 <style scoped>
   .root{
-    width: 100%;
+    width: 1000px;
   }
   .list_table{
     width: 100%;

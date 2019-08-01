@@ -6,6 +6,7 @@ import Vue from 'vue'
  import VueCookies from 'vue-cookies'
  Vue.use(VueCookies)
  Vue.prototype.$cookies2 = VueCookies
+
 // 配置默认的host,假如你的API host是：
 // axios.defaults.baseURL = 'http://192.168.1.100:8080'
 // 添加请求拦截器
@@ -13,7 +14,7 @@ axios.interceptors.request.use(function (config) {
 　　// 在发送请求之前做些什么
         console.log("拦截器--------------------------")
         console.log(config)
-        VueCookies.set("key","8878")
+          Vue.prototype.$nprogress.start()
         console.log(VueCookies.get("access_token"))
         console.log("url")
         console.log(config.url)
@@ -28,8 +29,8 @@ axios.interceptors.request.use(function (config) {
           }
 
         }
-   console.log(config.url)
- console.log("拦截器--------------------------")
+        console.log(config.url)
+        console.log("拦截器--------------------------")
         // console.log(this.$cookies.isKey("access_token"))
 　　　　return config
 }, function (error) {
@@ -42,7 +43,8 @@ axios.interceptors.response.use(function (response) {
 　　// 对响应数据做点什么
         console.log("响应拦截器-------------------------------")
         console.log(response)
-
+      //进度条
+        Vue.prototype.$nprogress.done()
 　　　　return response
 }, function (error) {
 　　// 对响应错误做点什么

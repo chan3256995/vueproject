@@ -11,13 +11,15 @@ import MessageBox from './utils/messagebox/messagbox';
 Vue.use(MessageBox);
 
 import Axios from 'axios'
-
 Vue.prototype.$axios = Axios
 
 Axios.defaults.headers.get['Content-Type'] = 'application/json';
 Axios.defaults.withCredentials = true
 // Axios.defaults.headers.common['token'] = "6666"
 
+ import NProgress from 'nprogress' // 进度条
+import 'nprogress/nprogress.css' //这个样式必须引入
+Vue.prototype.$nprogress = NProgress
 
  //使用vue-cookies
  import VueCookies from 'vue-cookies'

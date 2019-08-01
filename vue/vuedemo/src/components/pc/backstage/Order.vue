@@ -71,8 +71,8 @@
 
 
               <div>
-                <label>订单总价：{{item.logistics_fee}} + {{item.agency_fee}}+ {{item.orderGoodsTotalMoney}} =
-                              {{item.logistics_fee + item.agency_fee + item.orderGoodsTotalMoney}}
+                <label>订单总价：{{item.orderGoodsTotalMoney}}+ {{item.logistics_fee}} + {{item.agency_fee}} + {{item.quality_testing_fee}}  =
+                              {{item.logistics_fee + item.agency_fee + item.orderGoodsTotalMoney + item.quality_testing_fee}}
                 </label>
               </div>
               <div>
@@ -101,7 +101,7 @@
 
 <script>
   import mtime from '../../../utils/mtime.js';
-
+  import pcommon_function   from '../../../utils/pcommon_function.js'
     import  axios  from 'axios'
      //设为true 就会带cookies 访问
     axios.defaults.withCredentials=true;
@@ -130,6 +130,7 @@
       methods:{
           // 加载物流选项信息
           load_logistics(){
+            let return_value = ""
             const url  = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/trade/logistics/"
            //设为true 就会带cookies 访问
            axios.defaults.withCredentials=true
@@ -138,28 +139,18 @@
            ).then((res)=>{
              if("1000" === res.data.code){
                  console.log(res.data)
-                  this.logistics_options = this.analysis_logistics(res.data.data)
+                  this.logistics_options =pcommon_function.analysis_logistics(res.data.data)
                console.log(this.logistics_options)
-               console.log("1111111111111")
+               return_value =  "物流信息"
              }else{
-
+return "物流信息"
              }
               }).catch(error => {
                 console.log(error) ;
-
+return "物流信息"
               })
           },
-     // 解析 数据
-          analysis_logistics(data){
-            let logistics_list = []
-            for(let i = 0;i<data.length;i++){
-              let item = {}
-              item["logistics_name"] = data[i].logistics_name
-              item["logistics_price"] = data[i].logistics_price
-              logistics_list.push(item)
-            }
-            return logistics_list
-          },
+
           item_detail_show: function(index, item){
             let  show = !item.show;
             this.$delete(item,'show')
@@ -268,7 +259,7 @@
       },
 
       created(){
-          this.load_logistics();
+          console.log("返回值：",this.load_logistics())
           const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/orders/";
           this.loadOrderPage(url);
       },

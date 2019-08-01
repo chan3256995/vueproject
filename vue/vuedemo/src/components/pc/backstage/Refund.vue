@@ -33,6 +33,8 @@
                 <div>
                  <label style="color: red" >   下单备注：{{goods.customer_message}}</label>
                  <label style="color: red">   客服留言：{{goods.customer_service_message}}</label>
+                    <input style="" v-model="goods.new_message"/>
+                <button  @click="alter_order_goods_info(goods.id,{'customer_service_message' : goods.customer_service_message + goods.new_message})" >确定修改</button>
                 </div>
               </div>
               <div>
@@ -68,6 +70,7 @@
         name: "MyOrder",
       data(){
           return{
+            customer_service_message:"",
             next_page_url :"",
             selected_op :"",
             options: [
@@ -92,6 +95,24 @@
       },
 
       methods:{
+           //修改商品信息
+        alter_order_goods_info(id ,data){
+          const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/orderGoods/"+id+"/";
+          axios.defaults.withCredentials=true;
+           axios.put(url,data)
+             .then(res=>{
+               if(res.data.code === "1000"){
+               alert("修改成功")
+                 this.refresh_cur_page();
+               }else{
+                 alert("修改失败"+res.data.message)
+               }
+
+              console.log(res.data);
+           }).catch(error =>{
+              alert("修改失败"+error)
+          })
+        },
             check_pass(refund_apply_id){
             const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/goodsRefund/"+refund_apply_id+"/";
              //设为true 就会带cookies 访问
@@ -144,6 +165,7 @@
               let orderGoodsTotalMoney = 0;
                 for(let g = 0; g < item.orderGoods.length;g++){
                     orderGoodsTotalMoney = orderGoodsTotalMoney + item.orderGoods[g].goods_price * item.orderGoods[g].goods_count
+                    item.orderGoods[g]['new_message'] = ""
                 }
                 item['orderGoodsTotalMoney'] = orderGoodsTotalMoney
             }

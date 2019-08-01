@@ -47,7 +47,7 @@
 
 <script>
   import mtime from '../utils/mtime.js';
-
+  import mGlobal from '../utils/mGlobal'
     import  axios  from 'axios'
 
     axios.defaults.withCredentials=true;
@@ -68,15 +68,7 @@
 
             },
 
-              goods_status: {
-              1:"未付款",//未付款
-              2:"已付款",//已付款
-              3:"拿货中",//拿货中
-              4:"已拿货",//已拿货
-              5:"已发货",//已发货
-              6:"已退款",//已退款
-              7:"缺货",//缺货
-            },
+              goods_status: mGlobal.GOODS_STATUS,
             // goods_status: {
             //   "unpaid":1,//未付款
             //   "paid":2,//已付款

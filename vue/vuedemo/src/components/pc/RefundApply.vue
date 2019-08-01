@@ -197,13 +197,13 @@
                   return false;
                 }
 
-                if(this.select_apply_type === mGlobal.REFUND_APPLY_TYPE["仅退款"]  && (this.goods.status !== mGlobal.GOODS_STATUS2['已付款'] &&  this.goods.status !== mGlobal.GOODS_STATUS2['缺货'])){
+                if(this.select_apply_type === mGlobal.REFUND_APPLY_TYPE["仅退款"]  && (this.goods.status !== mGlobal.GOODS_STATUS2['已付款'] &&  this.goods.status !== mGlobal.GOODS_STATUS2['明日有货'])){
                   alert("该商品状态不支持仅退款")
                   return false;
                 }
 
 
-               if(this.select_apply_type == mGlobal.REFUND_APPLY_TYPE["退货退款"]){
+               if(this.select_apply_type === mGlobal.REFUND_APPLY_TYPE["退货退款"]){
                        if(this.selected_logistics_name.trim() === ""){
                         alert("物流名称不能为空")
                         return false;
@@ -229,7 +229,7 @@
              if(this.checkData() == false){
                return;
              }
-            let order_goods = this.goods.id;
+            let goods_number = this.goods.goods_number;
             let refund_apply_type = this.select_apply_type;
             let apply_message = this.message;
             let return_logistics_name = this.selected_logistics_name;
@@ -237,7 +237,7 @@
             let apply_goods_counts = this.apply_goods_counts;
             let pay_pwd = this.pay_pwd;
             let data_ = {
-              "orderGoods":order_goods,
+              "goods_number":goods_number,
               "refund_apply_type":refund_apply_type,
               "apply_message":apply_message,
               "return_logistics_name":return_logistics_name,

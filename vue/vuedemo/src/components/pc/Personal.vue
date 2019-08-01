@@ -35,6 +35,6 @@
 
 }
   .root{
-    width: 90%;
+    width: 1200px;
   }
 </style>
