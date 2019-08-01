@@ -221,18 +221,20 @@ class NahuoUserOrderGoodsAlterView(APIView):
     # (4, '已拿货'),
     # (5, '已发货'),
     # (6, '已退款'),
-    # (7, '缺货'),
+    # (7, '明日有货'),
     # )
     status_choices = mcommon.status_choices
 
     def post(self, request, *args, **kwargs):
         ret = {"code":"1000","message": ""}
-        # 3拿货中 4 已经拿货  5已发货 7,缺货
+        # 3拿货中 4 已经拿货  5已发货 7,明日有货 , 9其他状态
         # 接受拿货人usertype = 2 修改的值
         acp_status = [mcommon.status_choices2.get("拿货中"),
                       mcommon.status_choices2.get("已拿货"),
                       mcommon.status_choices2.get("已发货"),
-                      mcommon.status_choices2.get("缺货"), ]
+                      mcommon.status_choices2.get("明日有货"),
+                      mcommon.status_choices2.get("其他状态"),
+                      ]
         data = self.request.data
         # data['status'] 拿货人 usertype=2 的用户 请求要修改状态值
         if data['status'] not in acp_status:
@@ -246,10 +248,12 @@ class NahuoUserOrderGoodsAlterView(APIView):
             acp_status = []
             order_goods = query.first()
             if order_goods.status == mcommon.status_choices2.get("拿货中"):
-                # 拿货中状态只能修改为 4已拿货 和 5已发货 和 7缺货
+                # 拿货中状态只能修改为 4已拿货 和 5已发货 和 7明日有货 9其他状态
                 acp_status = [mcommon.status_choices2.get("已拿货"),
                               mcommon.status_choices2.get("已发货"),
-                              mcommon.status_choices2.get("缺货"), ]
+                              mcommon.status_choices2.get("明日有货"),
+                              mcommon.status_choices2.get("其他状态"),
+                              ]
             elif order_goods.status == mcommon.status_choices2.get("已拿货"):
                 # 已拿货状态只能修 和 已发货
                 acp_status = [mcommon.status_choices2.get("已发货")]
@@ -303,7 +307,7 @@ class UserOrderGoodsChangeViewSet(APIView):
         #     (4, '已拿货'),
         #     (5, '已发货'),
         #     (6, '已退款'),
-        #     (7, '缺货'),
+        #     (7, '明日有货'),
         # )
         def post(self,request,*args,**kwargs):
             ret = {"code":"1000","message":""}
@@ -354,15 +358,7 @@ class UserOrderGoodsChangeViewSet(APIView):
                         ret["message"] = "更新失败"
                         return Response(ret)
             return Response(ret)
-            # elif data['status'] == 6 :
-            #     # 查询要修改的订单是不是该访问用户的订单
-            #     order = trade_models.Order.objects.filter(order_owner = self.request.user, id = data['order_id']).first()
-            #
-            #     # 说明是该用户的订单
-            #     if order is not None:
-            #         return trade_models.OrderGoods.objects.filter(order=order)
-            #     else:
-            #         return None
+
 
 
 class UsersPagination(PageNumberPagination):
@@ -449,6 +445,9 @@ class UserOrderViewSet(ListModelMixin,DestroyModelMixin, GenericViewSet):
                 print(self.request.query_params)
                 query_keys = self.request.query_params.get("q")
                 status_filter = self.request.query_params.get("status")
+                refund_apply_status = self.request.query_params.get("refund_apply_status")
+
+
                 print("query_keys")
                 print(query_keys)
                 print(status_filter)
@@ -463,10 +462,17 @@ class UserOrderViewSet(ListModelMixin,DestroyModelMixin, GenericViewSet):
                     print("9999999999")
                     print(len(qy))
                     return qy
+                elif refund_apply_status is not None :
+                    if refund_apply_status == "有售后订单":
+                        qy =trade_models.Order.objects.filter(Q(order_owner=self.request.user) & (Q(orderGoods__refund_apply_status = mcommon.refund_apply_choices2.get("拦截发货"))
+                                                                                                  | Q(orderGoods__refund_apply_status = mcommon.refund_apply_choices2.get("退货退款"))
+                                                                                                  | Q(orderGoods__refund_apply_status = mcommon.refund_apply_choices2.get("仅退款"))
+                                                                                                  )).distinct().order_by('-add_time')
+                        return qy
+                else:
+                    return trade_models.Order.objects.filter(order_owner=self.request.user).order_by('-add_time')
             except:
                 traceback.print_exc()
-
-            return trade_models.Order.objects.filter(order_owner=self.request.user).order_by('-add_time')
 
 
         def get_serializer_class(self):
@@ -484,6 +490,64 @@ class UserOrderViewSet(ListModelMixin,DestroyModelMixin, GenericViewSet):
         def get_object(self):
             return self.request.user
 
+
+# 用户拦截发货
+class UserStopDeliverView(APIView):
+    # 商品状态为拿货中，已拿货，可以进行拦截发货
+    def post(self,request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                ret = {"code": "1000", "message": ""}
+                print("拦截发货......")
+                print(request.data)
+                req_data = request.data
+                order_goods_number = req_data.get("goods_number")
+                order_goods = trade_models.OrderGoods.objects.filter(goods_number = order_goods_number).first()
+                # 不是该用户商品不能请求
+                if order_goods is None or request.user != order_goods.order.order_owner:
+                    ret['code'] = "1001"
+                    ret['message'] = '无效参数'
+                    return JsonResponse(ret)
+                order_goods_status = order_goods.status
+                if order_goods_status == mcommon.status_choices2.get("拿货中") or order_goods_status == mcommon.status_choices2.get("已拿货"):
+                    order_goods.is_stop_deliver = True
+                    order_goods.log = "拦截发货--"+mcommon.format_from_time_stamp(time.time()) + "\n"
+                    is_ok = user_utils.check_pay_password(self, self.request.user, req_data.get("pay_pwd"))
+                    if is_ok is True:
+                        trade_money = mcommon.service_fee * order_goods.goods_count
+                        data = {
+                            "user": request.user,
+                            "trade_number": trade_utils.get_trade_number(request.user),
+                            "trade_source": mcommon.trade_source_choices2.get("其他费用"),
+                            "cash_in_out_type": mcommon.cash_in_out_type_choices2.get("支出"),
+                            "user_balance": request.user.balance,
+                            "add_time": time.time() * 1000,
+                            "trade_money": trade_money,
+                            "is_pass": True,
+                            "message": "拦截发货费用，订单编号：" + order_goods.order.order_number + " 商品编号：" + order_goods.goods_number,
+                        }
+
+                        if request.user.balance<trade_money:
+                            ret['code'] = "1001"
+                            ret['message'] = "余额不足"
+                            return Response(ret)
+                        order_goods.save()
+                        request.user.balance = request.user.balance - trade_money
+                        data['user_balance'] = request.user.balance
+                        trade_info = trade_models.TradeInfo.objects.create(**data)
+                        request.user.save()
+                    else:
+                        ret['code'] = "1001"
+                        ret['message'] = "支付密码错误"
+                        return Response(ret)
+
+        except:
+            ret['code'] = "1001"
+            ret['message'] = '查询异常'
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return JsonResponse(ret)
+        return JsonResponse(ret)
 
 
 class UserCheckView(APIView):
@@ -633,12 +697,12 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
     def create(self, request, *args, **kwargs):
         ret = {"code":"1000","message":""}
         req_data = request.data
-        order_goods_id = req_data.get("orderGoods")
-        orderGoods = trade_models.OrderGoods.objects.filter(id=order_goods_id).first()
+        goods_number = req_data.get("goods_number")
+        orderGoods = trade_models.OrderGoods.objects.filter(goods_number=goods_number).first()
         # 商品当前状态
         goods_cur_status = orderGoods.status
         # 用户申请退款的类型 refund_apply_type
-        refund_apply_type = req_data.get("refund_apply_type")
+        refund_apply_type = int(req_data.get("refund_apply_type"))
         # 找到商品归属的订单
         order = orderGoods.order
         if request.user != order.order_owner:
@@ -669,7 +733,7 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
                     ret['message'] = "该状态不允许取消订单"
                     print("该状态不允许取消订单")
                     return Response(ret)
-                is_suc = self.cancel_order_operate(order_goods_id)
+                is_suc = self.cancel_order_operate(goods_number)
                 if is_suc:
                     ret['code'] = "1000"
                     ret['message'] = "取消成功"
@@ -677,8 +741,6 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
                     ret['code'] = "1000"
                     ret['message'] = "取消失败"
                 return Response(ret)
-
-
 
             # 1 申请退货退款
             if refund_apply_type == mcommon.refund_apply_choices2.get("退货退款"):
@@ -691,12 +753,13 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
                         print("该状态不允许申请")
                         return Response(ret)
                     else:
-                        is_ok = user_utils.check_pay_password(self,self.request.user,req_data)
+                        is_ok = user_utils.check_pay_password(self,self.request.user,req_data.get("pay_pwd"))
                         if is_ok is False:
                             ret['code'] = "1001"
                             ret['message'] = "支付密码错误"
                             return Response(ret)
-                        suc = self.apply_goods_operate(req_data, order_goods_id, refund_apply_type)
+                        req_data["orderGoods"] = orderGoods.id
+                        suc = self.apply_goods_operate(req_data, goods_number, refund_apply_type)
                         if suc:
                             req_goods_counts = float(req_data.get("goods_counts"))
                             server_fee = mcommon.service_fee * req_goods_counts
@@ -719,8 +782,10 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
                             return Response(ret)
 
             if refund_apply_type == mcommon.refund_apply_choices2.get("仅退款"):  # 2 申请仅退款
-                # 支持仅退款的状态只有  2已付款 跟 7缺货
-                if orderGoods.status != mcommon.status_choices2.get('已付款') and orderGoods.status != mcommon.status_choices2.get('缺货'):
+                # 支持仅退款的状态只有  2已付款 跟 7明日有货 9其他状态
+                if orderGoods.status != mcommon.status_choices2.get('已付款') \
+                        and orderGoods.status != mcommon.status_choices2.get('明日有货')\
+                        and orderGoods.status != mcommon.status_choices2.get('其他状态'):
                     ret['code'] = "1001"
                     ret['message'] = "该状态不允许申请仅退款"
                     print("该状态不允许申请仅退款")
@@ -735,13 +800,54 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
                         ret['code'] = "1001"
                         ret['message'] = "退款失败"
                         return Response(ret)
+
+            if refund_apply_type == mcommon.refund_apply_choices2.get("拦截发货"):
+                with transaction.atomic():
+                    if orderGoods.status == mcommon.status_choices2.get("拿货中") or orderGoods.status == mcommon.status_choices2.get("已拿货") and  orderGoods.refund_apply_status == mcommon.refund_apply_choices2.get("无售后"):
+                        trade_money = mcommon.service_fee * orderGoods.goods_count
+                        data = {
+                            "user": request.user,
+                            "trade_number": trade_utils.get_trade_number(request.user),
+                            "trade_source": mcommon.trade_source_choices2.get("其他费用"),
+                            "cash_in_out_type": mcommon.cash_in_out_type_choices2.get("支出"),
+                            "user_balance": request.user.balance,
+                            "add_time": time.time() * 1000,
+                            "trade_money": trade_money,
+                            "is_pass": True,
+                            "message": "拦截发货费用，订单编号：" + orderGoods.order.order_number + " 商品编号：" + orderGoods.goods_number,
+                        }
+                        req_data['apply_message'] = "拦截发货"
+                        req_data['return_logistics_name'] = "无"
+                        req_data['return_logistics_number'] = "无"
+                        req_data['goods_counts'] = orderGoods.goods_count
+                        is_ok = user_utils.check_pay_password(self, self.request.user, req_data.get("pay_pwd"))
+                        if is_ok is False:
+                            ret['code'] = "1001"
+                            ret['message'] = "支付密码错误"
+                            return Response(ret)
+                        req_data["orderGoods"] = orderGoods.id
+                        suc = self.apply_goods_operate(req_data, goods_number, refund_apply_type)
+                        if suc:
+                            if request.user.balance < trade_money:
+                                ret['code'] = "1001"
+                                ret['message'] = "余额不足"
+                                return Response(ret)
+
+                            request.user.balance = request.user.balance - trade_money
+                            data['user_balance'] = request.user.balance
+                            trade_info = trade_models.TradeInfo.objects.create(**data)
+                            request.user.save()
+                        return Response(ret)
+                    else:
+                        ret['code'] = "1001"
+                        ret['message'] = "状态异常"
+                        return Response(ret)
         except:
             traceback.print_exc()
             logger.info('%s  数据格式错误 url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
             ret['code'] = "1001"
             ret['message'] = "异常"
             return Response(ret)
-
 
     # 服务费退回
     def return_server_fee(self, user, order_goods, order, other_fee):
@@ -803,35 +909,29 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
         return True
 
     # 申请 退货退款操作
-    def apply_goods_operate(self, req_data, order_goods_id, refund_apply_type):
-        try:
-            self.serializer_class = m_serializers.UserOrderGoodsRefundApplySerializer
-            user_goods_refund_apply_serializer = self.get_serializer(data=req_data)
-            # 进行数据校验
-            user_goods_refund_apply_serializer.is_valid(raise_exception=True)
-            # with transaction.atomic():
-                # 保存到数据库
+    def apply_goods_operate(self, req_data, order_goods_number, refund_apply_type):
 
-            # 更新商品申请退款状态
-            order_goods = trade_models.OrderGoods.objects.filter(id=order_goods_id).first()
-            # 申请退货商品件数
-            apply_goods_counts = req_data.get("goods_counts")
-            if apply_goods_counts is not None and str(apply_goods_counts).isdigit():
-                if int(apply_goods_counts) > order_goods.goods_count:
-                    raise Exception
-            else:
+        self.serializer_class = m_serializers.UserOrderGoodsRefundApplySerializer
+        user_goods_refund_apply_serializer = self.get_serializer(data=req_data)
+        # 进行数据校验
+        user_goods_refund_apply_serializer.is_valid(raise_exception=True)
+        # with transaction.atomic():
+            # 保存到数据库
+
+        # 更新商品申请退款状态
+        order_goods = trade_models.OrderGoods.objects.filter(goods_number=order_goods_number).first()
+        # 申请退货商品件数
+        apply_goods_counts = req_data.get("goods_counts")
+        if apply_goods_counts is not None and str(apply_goods_counts).isdigit():
+            if int(apply_goods_counts) > order_goods.goods_count:
                 raise Exception
+        else:
+            raise Exception
+        refundApply = self.perform_create(user_goods_refund_apply_serializer)
+        order_goods.refund_apply_status = refund_apply_type
+        order_goods.save()
 
-            refundApply = self.perform_create(user_goods_refund_apply_serializer)
-            order_goods.refund_apply_status = refund_apply_type
-            order_goods.save()
 
-        except:
-
-            traceback.print_exc()
-            logger.info('userid->%s ,  url:%s method:%s' % (self.request.user.id, self.request.path, self.request.method))
-            logger.error(traceback.print_exc())
-            return False
 
         return True
 
@@ -894,9 +994,9 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
 
 
     #取消订单操作
-    def cancel_order_operate(self,order_goods_id):
+    def cancel_order_operate(self,goods_number):
         try:
-            rt = trade_models.OrderGoods.objects.filter(id=order_goods_id).update(status=mcommon.status_choices2.get("已取消"))
+            rt = trade_models.OrderGoods.objects.filter(goods_number=goods_number).update(status=mcommon.status_choices2.get("已取消"))
 
             return True
         except:

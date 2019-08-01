@@ -139,6 +139,9 @@ class OrderGoodsViewSet(mixins.UpdateModelMixin,GenericViewSet):
             partial = True
             instance = trade_models.OrderGoods.objects.filter(id=kwargs.get("pk")).first()
             print(instance)
+            # server_message = request.data.get("customer_service_message")
+            # if server_message is not None:
+            #     request.data['customer_service_message'] = instance.customer_service_message+ request.data.get("customer_service_message") + '\n'
             serializer = self.get_serializer(instance, data=request.data, partial=partial)
             serializer.is_valid(raise_exception=True)
             self.perform_update(serializer)
@@ -211,7 +214,7 @@ class SuperUserOrderGoodsAlterView(APIView):
         # (4, '已拿货'),
         # (5, '已发货'),
         # (6, '已退款'),
-        # (7, '缺货'),
+        # (7, '明日有货'),
         # )
         # status_choices = mcommon.status_choices
 
@@ -223,7 +226,9 @@ class SuperUserOrderGoodsAlterView(APIView):
                           mcommon.status_choices2.get("已拿货"),
                           mcommon.status_choices2.get("已发货"),
                           mcommon.status_choices2.get("已退款"),
-                          mcommon.status_choices2.get("缺货"), ]
+                          mcommon.status_choices2.get("明日有货"),
+                          mcommon.status_choices2.get("其他状态"),
+                          ]
             data = self.request.data
             if data['status'] not in acp_status:
                 ret['code'] = "1001"
@@ -277,6 +282,7 @@ class OrderViewSet(mixins.ListModelMixin,mixins.UpdateModelMixin, GenericViewSet
         def get_queryset(self):
             print(self.request.query_params)
             query_keys = self.request.query_params.get("q")
+            status_filter = self.request.query_params.get("status")
             print("query_keys")
             print(query_keys)
             if query_keys is not None:
@@ -285,6 +291,9 @@ class OrderViewSet(mixins.ListModelMixin,mixins.UpdateModelMixin, GenericViewSet
                 if query_keys.isdigit():
                     args = args | Q(consignee_phone=query_keys)
                 return trade_models.Order.objects.filter(args).order_by('add_time')
+            elif status_filter is not None:
+                return trade_models.Order.objects.filter(orderGoods__status=status_filter).distinct().order_by( "-add_time")
+
             else:
                 return trade_models.Order.objects.all().order_by('-add_time')
 
@@ -379,7 +388,26 @@ class OrderGoodsRefundViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, G
                     logistics_num = refund_apply_obj.return_logistics_number
                     order_goods = trade_models.OrderGoods.objects.filter(id=refund_apply_obj.orderGoods_id).first()
                     order_goods.status = mcommon.status_choices2.get("已退款")
-                    order_goods.refund_apply_status = mcommon.refund_apply_choices2.get("无售后")
+                    # order_goods.refund_apply_status = mcommon.refund_apply_choices2.get("无售后")
+                    order_goods.return_logistics_name = logistics_name
+                    order_goods.return_logistics_number = logistics_num
+                    order_goods.save()
+                    order_owner = order_goods.order.order_owner
+                    # 申请退货数量不能大于下单的数量
+                    if refund_apply_obj.goods_counts > order_goods.goods_count:
+                        raise Exception
+                    trade_moneys = order_goods.goods_price * refund_apply_obj.goods_counts
+                    self.log_user_pay_info(order_goods,order_goods.order,trade_moneys)
+                    order_owner.balance = order_owner.balance + trade_moneys
+                    order_owner.save()
+                    refund_apply_obj.delete()
+            elif refund_apply_obj.refund_apply_type == mcommon.refund_apply_choices2.get("拦截发货"):
+                with transaction.atomic():
+                    logistics_name = refund_apply_obj.return_logistics_name
+                    logistics_num = refund_apply_obj.return_logistics_number
+                    order_goods = trade_models.OrderGoods.objects.filter(id=refund_apply_obj.orderGoods_id).first()
+                    order_goods.status = mcommon.status_choices2.get("已退款")
+                    # order_goods.refund_apply_status = mcommon.refund_apply_choices2.get("无售后")
                     order_goods.return_logistics_name = logistics_name
                     order_goods.return_logistics_number = logistics_num
                     order_goods.save()
@@ -399,6 +427,7 @@ class OrderGoodsRefundViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, G
             ret['message'] = "更改失败"
         return Response(ret)
 
+
     def log_user_pay_info(self,order_goods,order,trade_moneys):
         order_owner_balance = order.order_owner.balance + trade_moneys
         message = "商品退货退款" + " 订单编号："+order.order_number +" 商品编号："+order_goods.goods_number
@@ -412,10 +441,11 @@ class OrderGoodsRefundViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, G
                                               is_pass=True,
                                               add_time=time.time()*1000)
 
-    def get_queryset(self):
+    def get_queryset(self,):
         return trade_models.Order.objects.filter(Q(orderGoods__refund_apply_status=mcommon.refund_apply_choices2.get("退货退款")) |
                                                  Q(orderGoods__refund_apply_status=mcommon.refund_apply_choices2.get("仅退款")) |
                                                  Q(orderGoods__refund_apply_status=mcommon.refund_apply_choices2.get("换货")) |
+                                                 Q(orderGoods__refund_apply_status=mcommon.refund_apply_choices2.get("拦截发货")) |
                                                  Q(orderGoods__refund_apply_status=mcommon.refund_apply_choices2.get("取消订单"))
-                                                 ).order_by('-add_time')
+                                                 ).distinct().order_by('-add_time')
 

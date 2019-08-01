@@ -8,9 +8,6 @@ from utils import mcommon
 import time
 
 
-
-
-
 # 保存在本地的商品
 class Goods(models.Model):
     # 货源网址soukw
@@ -40,7 +37,6 @@ class TradeInfo(models.Model):
     trade_number = models.CharField(max_length=30, null=False, unique=True)
     # 用户当前剩下金额
     user_balance = models.FloatField(null = True)
-
     # 交易来源
     trade_source = models.SmallIntegerField(choices=mcommon.trade_source_choices)
     message = models.CharField(max_length=256,null=True)
@@ -88,6 +84,8 @@ class Order(models.Model):
     sender_address = models.CharField(null=False, max_length=140)
     sender_name = models.CharField(max_length=30, null=False)
     sender_phone = models.BigIntegerField(null=False)
+    # 物流单号是否已打印
+    is_logistics_print = models.BooleanField(default=False)
     # 是否删除（逻辑删除）
     is_delete = models.BooleanField(default=False, null=False)
     # 质检服务
@@ -112,17 +110,7 @@ class Order(models.Model):
 # 订单商品
 class OrderGoods(models.Model):
 
-    """
-    status_choices = (
-    (1, '待付款'),
-    (2, '已付款'),
-    (3, '拿货中'),
-    (4, '已拿货'),
-    (5, '已发货'),
-     (6, '已退款'),
-     (7, '缺货'),
-)
-    """
+
     # 订单状态选择
     status_choices = mcommon.status_choices
     # 退款状态
@@ -136,6 +124,12 @@ class OrderGoods(models.Model):
     order = models.ForeignKey(Order,  related_name="orderGoods", on_delete=models.CASCADE)
     # 商品状态
     status = models.IntegerField(choices=status_choices, null=False)
+    # 商品日志
+    log = models.CharField(null=True,max_length=2048)
+    # 是否打印标签
+    is_tag_print = models.BooleanField(default=False)
+    # 是否被拦截
+    is_stop_deliver = models.BooleanField(default=False)
     # 客服留言
     customer_service_message = models.CharField(null=True,max_length=2048)
     # 下单人留言
@@ -163,6 +157,8 @@ class OrderGoods(models.Model):
     is_delete = models.BooleanField(default=False, null=False)
 
 
+
+# 售后申请
 class RefundApply(models.Model):
     orderGoods = models.ForeignKey(OrderGoods,related_name="refund_apply", on_delete=models.CASCADE)
     add_time = models.BigIntegerField(default=time.time())

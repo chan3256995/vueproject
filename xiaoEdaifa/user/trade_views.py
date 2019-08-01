@@ -13,6 +13,7 @@ from rest_framework.viewsets import GenericViewSet
 from rest_framework.pagination import PageNumberPagination
 import time
 from utils import encryptions
+
 class UsersPagination(PageNumberPagination):
     # 指定每一页的个数
     page_size = 10
@@ -118,7 +119,8 @@ class TradeInfoViewSet(mixins.ListModelMixin,GenericViewSet):
     #         return m_serializers.TradeOrderQuerySerializer
     #     elif self.action == "delete":
     #         return m_serializers.TradeOrderQuerySerializer
-
+    #
+    #     return m_serializers.TradeOrderQuerySerializer
     def get_serializer_class(self):
         return m_serializers.QueryTradeInfoSerializer
 

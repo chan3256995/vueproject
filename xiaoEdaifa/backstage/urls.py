@@ -25,6 +25,7 @@ router.register(r'orderGoods', views.OrderGoodsViewSet, base_name='orderGoods')
 router.register(r'orders', views.OrderViewSet, base_name='orders')
 router.register(r'goodsRefund', views.OrderGoodsRefundViewSet, base_name='goodsRefund')
 router.register(r'tradeInfo', trade_views.TradeInfoViewSet, base_name='tradeInfo')
+# router.register(r'tagPrint', trade_views.TagPrintViewSet, base_name='tradeInfo')
 
 
 
@@ -33,5 +34,19 @@ urlpatterns = [
     url(r'static/(?P<path>.*)',serve,{'document_root':settings.STATIC_ROOT}),
     url('outputExcel/', views.OutPutOrdersView.as_view()),
     url('rechargePass/', trade_views.RechargePassView.as_view()),
+    url('stopDeliverPass/', trade_views.StopDeliverPass.as_view()),
+    # 打印标签请求  把商品状态改为打印标签
+    url('tagPrint/', trade_views.TagPrintView.as_view()),
+    # 采购中
+    url('purchaseGoods/', trade_views.PurchaseGoodsView.as_view()),
+    # 采购完成 /已拿货
+    url('purchaseGoodsComplete/', trade_views.PurchasedGoodsCompleteView.as_view()),
+    # 快递单打印
+    url('logisticsPrint/', trade_views.LogisticsPrintView.as_view()),
+    # 发货
+    url('deliverGoods/', trade_views.DeliverGoodsView.as_view()),
+    #  明天有货
+    url('tomorrowGoods/', trade_views.TomorrowGoodsView.as_view()),
+
     url(r'', include(router.urls))
 ]

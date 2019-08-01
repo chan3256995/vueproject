@@ -22,23 +22,33 @@ from rest_framework import routers
 router = routers.DefaultRouter()
 
 router.register(r'reg', user_views.UserRegViewSet, base_name='reg')
+# 用户信息
 router.register(r'details', user_views.UserViewSet, base_name='details')
+# 订单
 router.register(r'orders', user_views.UserOrderViewSet, base_name='orders')
+# 添加多订单
 router.register(r'addOrders', user_views.UserMulOrderSaveViewSet, base_name='addOrders')
 router.register(r'orderChange', user_views.UserOrderGoodsChangeViewSet, base_name='orderChange')
+# 售后申请
 router.register(r'refundApply', user_views.UserRefundApplyViewSet, base_name='refundApply')
+# 商品
 router.register(r'orderGoods', user_views.OrderGoodsViewSet, base_name='orderGoods')
+# 用户交易信息
 router.register(r'tradeInfo', user_trade_views.TradeInfoViewSet, base_name='tradeInfo')
-# router.register(r'orderList', user_views.UserOrderListViewSet, base_name='orderList')
+
 
 urlpatterns = [
     url('login/', LoginView.as_view()),  # new
+    # 修改支付密码
     url('alterPayPwd/', AlterPayPasswordView.as_view()),  # new
+    # 修改登录密码
     url('alterPwd/', AlterPasswordView.as_view()),  # new
     url('ordersPay/', user_trade_views.OrderPayView.as_view()),  # new
+    # 充值
     url('recharge/', user_trade_views.BalanceRecharge.as_view()),  # new
     # 根据穿过来的字段检查用户是否存在
     url('checkUser/', user_views.UserCheckView.as_view()),  # new
+    # url('stopDeliver/', user_views.UserStopDeliverView.as_view()),  # new
     # url('orderGoods/', user_views.OrderGoodsViewSet.as_view()),  # new
     # url('addOrders/', user_views.UserMulOrderSaveView.as_view()),  # new
     # url('order/', UserOrderViewSet.as_view()),  # new

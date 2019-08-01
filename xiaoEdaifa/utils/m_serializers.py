@@ -158,6 +158,7 @@ class TradeOrderGoodsSerializer(serializers.ModelSerializer):
     # refund_apply 做为属性  是在RefundApply模型中关联的 related_name 一致
     refund_apply = UserOrderGoodsRefundApplySerializer(many=True,read_only= True)
 
+
     def validate_goods_number(self,order_number):
         # 当前时间+userid+随机数
         from time import strftime
@@ -212,8 +213,10 @@ class TradeOrderQuerySerializer(serializers.ModelSerializer):
             return obj.order_owner.user_name
         return None
 
+
     # 反向序列化  要在model.OrderGoods 理的对应指向Order的字段 设置 related_name 为 ‘orderGoods’
     orderGoods = TradeOrderGoodsSerializer(many=True,read_only=True)
+
 
     class Meta:
         model = models.Order
