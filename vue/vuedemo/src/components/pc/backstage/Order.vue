@@ -77,6 +77,7 @@
               </div>
               <div>
                 <label style="padding-left: 0.5em">下单时间:{{item.add_time}}</label>
+                <label>物流名{{item.logistics_name}}</label>
               <label>快递：</label>
 
                  <select style="width: 5em" v-model="item.logistics_name">
@@ -123,7 +124,6 @@
             query_q:"",
             logistics_options:mGlobal.LOGISTICS
           }
-
 
       },
 

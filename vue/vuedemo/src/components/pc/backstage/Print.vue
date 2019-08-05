@@ -21,7 +21,10 @@
          <button  :disabled ="cur_order_status_filter!=='已付款'" @click="print_submit(order_list)">打印标签</button>
          <button :disabled ="cur_order_status_filter!=='标签打印'" @click="purchase_goods_submit(order_list)">进行拿货</button>
          <button :disabled ="cur_order_status_filter!=='拿货中'"  @click="purchase_goods_compelted(order_list)">已拿货</button>
+       <button   :disabled ="cur_order_status_filter!=='拿货中'"  @click=" tomorrow_goods(order_list)">明日有货</button>
+         <button   :disabled ="cur_order_status_filter!=='拿货中'"  @click="not_goods(order_list) ">缺货</button>
          <button   :disabled ="cur_order_status_filter!=='已拿货'"  @click="logistics_print(order_list) ">打印快递单</button>
+
          <button   :disabled ="cur_order_status_filter!=='快递打印'"  @click=" deliver_goods(order_list)">发货</button>
     </div>
     <ul class = "items_ul">
@@ -193,6 +196,82 @@
               alert("提交失败")
             })
             },
+
+
+          //明日有货
+          not_goods(order_list){
+             let submit_order_list = []
+            for(let i = 0;i<order_list.length;i++){
+               if(order_list[i].is_checked  === true){
+                 let submit_order_goods_list = []
+                 for(let g = 0;g < order_list[i].orderGoods.length;g++){
+                   if(order_list[i].orderGoods[g]["is_checked"] === true){
+                     submit_order_goods_list.push({"goods_number":order_list[i].orderGoods[g].goods_number,"goods_count":order_list[i].orderGoods[g].goods_count})
+                   }
+                 }
+                  submit_order_list.push({"order_number":order_list[i].order_number,"orderGoods":submit_order_goods_list})
+               }
+            }
+            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/notGoods/";
+             //设为true 就会带cookies 访问
+            axios.defaults.withCredentials=true;
+            axios.post(url,{"no_goods_order_list":submit_order_list}).then((res)=>{
+             if(res.data.code === "1000"){
+               // #状态发生改变的订单
+               let exception_order_list = res.data.exception_order
+
+
+               this.$toast("提交成功")
+             }else{
+                alert("提交失败")
+             }
+        }).catch(error => {
+           this.purchase_goods_btn_disable = false;
+            console.log(error)
+             alert("提交失败")
+        })
+          },
+
+
+
+
+         //明日有货
+          tomorrow_goods(order_list){
+             let submit_order_list = []
+            for(let i = 0;i<order_list.length;i++){
+               if(order_list[i].is_checked  === true){
+                 let submit_order_goods_list = []
+                 for(let g = 0;g < order_list[i].orderGoods.length;g++){
+                   if(order_list[i].orderGoods[g]["is_checked"] === true){
+                     submit_order_goods_list.push({"goods_number":order_list[i].orderGoods[g].goods_number,"goods_count":order_list[i].orderGoods[g].goods_count})
+                   }
+                 }
+                  submit_order_list.push({"order_number":order_list[i].order_number,"orderGoods":submit_order_goods_list})
+               }
+            }
+            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/tomorrowGoods/";
+             //设为true 就会带cookies 访问
+            axios.defaults.withCredentials=true;
+            axios.post(url,{"tomorrow_order_list":submit_order_list}).then((res)=>{
+             if(res.data.code === "1000"){
+               // #状态发生改变的订单
+               let exception_order_list = res.data.exception_order
+
+
+               this.$toast("提交成功")
+             }else{
+                alert("提交失败")
+             }
+        }).catch(error => {
+           this.purchase_goods_btn_disable = false;
+            console.log(error)
+             alert("提交失败")
+        })
+          },
+
+
+
+
           //已拿货
           purchase_goods_compelted(order_list){
 

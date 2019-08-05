@@ -5,6 +5,7 @@
       </div>
     <ul class = "status_ul" >
       <li ><a @click="on_order_filter({'status':goods_status2['未付款']},'未付款')" :class="{status_select:cur_order_status_filter==='未付款'}">未付款</a></li>
+      <li ><a @click="on_order_filter({'status':goods_status2['已付款']},'已付款')" :class="{status_select:cur_order_status_filter==='已付款'}">已付款</a></li>
       <li ><a @click="on_order_filter({'status':goods_status2['已发货']},'已发货')" :class="{status_select:cur_order_status_filter==='已发货'}">已发货</a></li>
       <li ><a @click="on_order_filter(-1,'全部订单')" :class="{status_select:cur_order_status_filter==='全部订单'}">全部订单</a></li>
       <li ><a @click="on_order_filter({'refund_apply_status':'有售后订单'},'售后订单')" :class="{status_select:cur_order_status_filter==='售后订单'}">售后订单</a></li>
@@ -391,6 +392,8 @@
                   query_data = {"status":this.goods_status2["未付款"]}
                 }else if(this.cur_order_status_filter ==="已发货"){
                   query_data = {"status":this.goods_status2["已发货"]}
+                }else if(this.cur_order_status_filter ==="已付款"){
+                  query_data = {"status":this.goods_status2["已付款"]}
                 }else if(this.cur_order_status_filter ==="全部订单"){
 
                 }

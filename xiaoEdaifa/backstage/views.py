@@ -28,6 +28,14 @@ class OutPutOrdersView(APIView):
     permission_classes = [Superpermission]
 
     def post(self, request, *args, **kwargs):
+        data = request.data
+        if data.get("for_315") is not None:
+            return self.out_to_315(request, *args, **kwargs)
+        else:
+            return self.out_to_print(request, *args, **kwargs)
+
+
+    def out_to_print(self,request, *args, **kwargs):
         ret = {"code": "1000", "message": ""}
 
         try:
@@ -42,7 +50,7 @@ class OutPutOrdersView(APIView):
             # 将获取到的datetime对象仅取日期如：2016-8-9
             today_date = datetime.date(today)
             print("ddddd")
-            query_set = trade_models.Order.objects.filter(add_time__gte=zero_point_today).order_by('-add_time')
+            query_set = trade_models.Order.objects.filter( orderGoods__status=mcommon.status_choices2.get("已付款")).distinct().order_by('-add_time')
             # query_set = trade_models.Order.objects.filter(add_time__gte=zero_point_today).values('order_number','logistics_name',
             #                  'consignee_name','consignee_phone','consignee_address','orderGoods__shop_market_name','orderGoods__shop_floor').order_by('-add_time')
 
@@ -65,6 +73,95 @@ class OutPutOrdersView(APIView):
                 # 将每一行的每个元素按行号i,列号j,写入到excel中
                 order = query_set[i]
                 order_number = order.order_number
+                goods_query = trade_models.OrderGoods.objects.filter(order=order)
+                for j in range(len(goods_query)):
+                    if order_goods.status != mcommon.status_choices2.get("已付款"):
+                        continue
+                    cur_row = cur_row + 1
+                    order_goods = goods_query[j]
+
+                    # order_goods = order.orderGoods
+                    sheet.write(cur_row, 0, order.consignee_name)
+                    if len(goods_query) > 1:
+                        tem_str = str(len(goods_query)) + "-" + str(j + 1) + "-"
+                        sheet.write(cur_row, 1, tem_str + str(order.id))
+                    else:
+                        sheet.write(cur_row, 1, str(order.id))
+                    sheet.write(cur_row, 2, mcommon.market_short_name.get(order_goods.shop_market_name))
+                    floor = order_goods.shop_floor
+                    stall_no = order_goods.shop_stalls_no
+                    while floor.find("楼") != -1:
+                        floor = floor.replace("楼", "F")
+
+                    while floor.find("区") != -1:
+                        floor = floor.replace("区", "")
+                    import re
+                    reg_ = '^[0-9]F'
+                    result = re.match(reg_, stall_no)
+                    if result is not None:
+                        stall_no = stall_no.replace(result[0], "")
+                    sheet.write(cur_row, 3, floor)
+                    sheet.write(cur_row, 4, stall_no)
+                    sheet.write(cur_row, 5, order_goods.art_no)
+                    sheet.write(cur_row, 6, order_goods.goods_price)
+                    sheet.write(cur_row, 7, order_goods.goods_color)
+                    sheet.write(cur_row, 8, order_goods.goods_count)
+                    sheet.write(cur_row, 9, order.logistics_name[0:1])
+
+                    sheet.write(cur_row, 10, order.consignee_phone)
+                    sheet.write(cur_row, 11, order.consignee_address)
+                    sheet.write(cur_row, 12, mcommon.format_from_time_stamp(int(str(order.add_time)[0:10])))
+
+            excel_url = mglobal.STATIC_URL_BASE + settings.STATIC_URL + str(today_date) + '.xls'
+            excel_path = settings.STATIC_ROOT + "/" + str(today_date) + '.xls'
+            # 以传递的name+当前日期作为excel名称保存。
+            wbk.save(excel_path)
+            ret['excel_url'] = excel_url
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "生成失败"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+        return Response(ret)
+
+
+
+    def out_to_315(self, request, *args, **kwargs):
+        ret = {"code": "1000", "message": ""}
+        try:
+            zero_point_today = mcommon.get_time_0clock_of_today()
+            print(zero_point_today)
+            # 实例化一个Workbook()对象(即excel文件)
+            wbk = xlwt.Workbook()
+            # 新建一个名为Sheet1的excel sheet。此处的cell_overwrite_ok =True是为了能对同一个单元格重复操作。
+            sheet = wbk.add_sheet('Sheet1', cell_overwrite_ok=True)
+            # 获取当前日期，得到一个datetime对象如：(2016, 8, 9, 23, 12, 23, 424000)
+            today = datetime.today()
+            # 将获取到的datetime对象仅取日期如：2016-8-9
+            today_date = datetime.date(today)
+            print("ddddd")
+            query_set = trade_models.Order.objects.filter(orderGoods__status = mcommon.status_choices2.get("已付款")).distinct().order_by('-add_time')
+
+            sheet.write(1, 0, "城市")
+            sheet.write(1, 1, "市场")
+            sheet.write(1, 2, "楼层")
+            sheet.write(1, 3, "档口号")
+            sheet.write(1, 4, "商品货号")
+            sheet.write(1, 5, "规格（颜色/尺码）")
+            sheet.write(1, 6, "件数")
+            sheet.write(1, 7, "单件价格")
+            sheet.write(1, 8, "图片路径")
+            # sheet.write(0, 8, "尺码")
+            sheet.write(1, 9, "备注")
+            sheet.write(1, 10, "详细地址")
+            cur_row = 1
+            for i in range(len(query_set)):
+
+                # 当前订单行
+                cur_order_row = cur_row+1
+                # 将每一行的每个元素按行号i,列号j,写入到excel中
+                order = query_set[i]
+                order_number = order.order_number
                 goods_query = trade_models.OrderGoods.objects.filter(order = order)
                 for j in range(len(goods_query)):
                     cur_row = cur_row + 1
@@ -73,13 +170,9 @@ class OutPutOrdersView(APIView):
                     print(j)
 
                     # order_goods = order.orderGoods
-                    sheet.write(cur_row, 0, order.consignee_name)
-                    if len(goods_query) > 1:
-                        tem_str = str(len(goods_query)) + "-" + str(j+1) +"-"
-                        sheet.write(cur_row, 1, tem_str+str(order.id))
-                    else:
-                        sheet.write(cur_row, 1, str(order.id))
-                    sheet.write(cur_row, 2,  mcommon.market_short_name.get(order_goods.shop_market_name))
+                    sheet.write(cur_row, 0, "广州")
+                    sheet.write(cur_row, 1, order_goods.shop_market_name)
+
                     floor = order_goods.shop_floor
                     stall_no = order_goods.shop_stalls_no
                     while floor.find("楼") !=-1:
@@ -92,17 +185,20 @@ class OutPutOrdersView(APIView):
                     result = re.match(reg_, stall_no)
                     if result is not  None:
                         stall_no = stall_no.replace(result[0],"")
-                    sheet.write(cur_row, 3, floor)
-                    sheet.write(cur_row, 4, stall_no)
-                    sheet.write(cur_row, 5, order_goods.art_no)
-                    sheet.write(cur_row, 6, order_goods.goods_price)
-                    sheet.write(cur_row, 7, order_goods.goods_color)
-                    sheet.write(cur_row, 8, order_goods.goods_count)
-                    sheet.write(cur_row, 9, order.logistics_name[0:1])
+                    sheet.write(cur_row, 2, floor)
+                    sheet.write(cur_row, 3, stall_no)
+                    sheet.write(cur_row, 4, order_goods.art_no)
+                    sheet.write(cur_row, 5, order_goods.goods_color)
+                    sheet.write(cur_row, 6, order_goods.goods_count)
+                    sheet.write(cur_row, 7, order_goods.goods_price)
+                    sheet.write(cur_row, 8, "")
 
-                    sheet.write(cur_row, 10, order.consignee_phone)
-                    sheet.write(cur_row, 11, order.consignee_address)
-                    sheet.write(cur_row, 12, mcommon.format_from_time_stamp(order.add_time))
+                    sheet.write(cur_row, 9, "")
+                    sheet.write(cur_row, 10, order.consignee_address)
+
+                consignee_address = order.consignee_address.replace(","," ",3)
+                # 合并第1行到第2行的第0列到第3列。
+                sheet.write_merge(cur_order_row, cur_row, 10, 10,order.consignee_name+"，"+str(order.consignee_phone)+"，"+ consignee_address)
 
             excel_url = mglobal.STATIC_URL_BASE + settings.STATIC_URL + str(today_date) + '.xls'
             excel_path = settings.STATIC_ROOT + "/" + str(today_date) + '.xls'
@@ -110,7 +206,7 @@ class OutPutOrdersView(APIView):
             wbk.save(excel_path)
             ret['excel_url'] = excel_url
         except:
-            traceback.format_exc()
+            traceback.print_exc()
             ret['code'] = "1001"
             ret['message'] = "生成失败"
             logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))

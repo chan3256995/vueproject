@@ -111,7 +111,18 @@ class NotHasGoods(APIView):
             logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
             return JsonResponse(ret)
         return JsonResponse(ret)
+    def find_order(self,order_number,req_order_list):
+        for req_order in req_order_list:
+            if order_number == req_order.get("order_number"):
+                return req_order
+        return ""
 
+    # 查找一个商品是在列表里
+    def find_goods(self,goods_number,req_order_goods_list):
+        for i in range(len(req_order_goods_list)):
+            if goods_number == req_order_goods_list[i].get("goods_number"):
+                return req_order_goods_list[i]
+        return ""
 
 
 # 明日有货
@@ -167,8 +178,18 @@ class TomorrowGoodsView(APIView):
             logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
             return JsonResponse(ret)
         return JsonResponse(ret)
+    def find_order(self,order_number,req_order_list):
+        for req_order in req_order_list:
+            if order_number == req_order.get("order_number"):
+                return req_order
+        return ""
 
-#
+# # 查找一个商品是在列表里
+    def find_goods(self,goods_number,req_order_goods_list):
+        for i in range(len(req_order_goods_list)):
+            if goods_number == req_order_goods_list[i].get("goods_number"):
+                return req_order_goods_list[i]
+        return ""
 
 # 发货
 class DeliverGoodsView(APIView):

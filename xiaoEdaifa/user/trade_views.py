@@ -185,7 +185,7 @@ class OrderPayView(APIView):
                 print(request.user.balance)
                 print(type(request.user.balance))
 
-                if request.user.balance > order.total_price:
+                if request.user.balance >= order.total_price:
                     request.user.balance = request.user.balance - order.total_price
                     ser.validated_data['user_balance'] = request.user.balance
                     ser.validated_data['is_pass'] = True
