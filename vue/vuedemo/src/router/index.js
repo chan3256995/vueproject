@@ -9,6 +9,8 @@ import pOrder from '../components/PlaceOrder.vue'
 
 import pLogin from '../components/pc/Login.vue'
 import pRegister from '../components/pc/Register.vue'
+import pForgetPassword from '../components/pc/ForgotPassword'
+import pResetPassword from '../components/pc/ResetPassword'
 import pHome from '../components/pc/Home.vue'
 import ppOrder from '../components/pc/PlaceOrder.vue'
 import pMyOrder from '../components/pc/MyOrder.vue'
@@ -72,10 +74,22 @@ export default new VueRouter({
 
 
 
-    {
+    {//注册
       path:'/pc/register',
       name:'pRegister',
       component:pRegister
+    },
+
+      {//忘记密码
+      path:'/pc/forgotPassword',
+      name:'pForgetPassword',
+      component:pForgetPassword
+    },
+
+      {//重置密码
+      path:'/pc/resetPassword',
+      name:'pResetPassword',
+      component:pResetPassword
     },
     {
       path:'/pc/refund',

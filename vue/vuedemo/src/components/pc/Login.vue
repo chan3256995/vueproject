@@ -17,6 +17,7 @@
     <tr>
       <td> </td>
       <td> <button @click="login" :disabled="submit_btn_disable">登录</button><button @click = 'register'>注册</button></td>
+      <td><a @click="go_forgot_password_page" style="color: black">忘记密码？</a></td>
     </tr>
   </table>
 </div>
@@ -44,6 +45,9 @@
 })
     },
     methods:{
+      go_forgot_password_page(){
+        this.$router.push("/pc/forgotPassword");
+      },
       login(){
         const username = this.username.trim()
         const password = this.password.trim()
