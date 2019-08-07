@@ -1,25 +1,20 @@
 
 from hashlib import sha1
-
-def make_password(password):
-    # 1.加盐,SECRET_KEY为加盐字符串,from ads.settings import SECRET_KEY
-    SECRET_KEY = "2019"
-    password = SECRET_KEY + password
-    # 2.开始加密
-    sha1_obj = sha1()
-    sha1_obj.update(password.encode())
-    ret = sha1_obj.hexdigest()
-    print(ret)  # 437e35e364430921430c063aaba4e993934e6169
-    print(len(ret))  # 40
-
-    # sha1,md5两种加密算法类似,sha1加密后40位,md5加密后32位,sha1相对安全,但速度慢
-    # md5_obj = md5()
-    # md5_obj.update(password.encode())
-    # ret = md5_obj.hexdigest()
-    # print(ret)  # 201812424099946c9c5590be9754b94b
-    # print(len(ret))  # 32
-    return ret
+from xiaoEdaifa import settings
+from django.core.mail import send_mail
+import os,django
 
 
-result = make_password('123456')
-print (result)
+def send(subject, message, sender, receiver, html_message):
+    # 只有加了下面两行  用 send_mail() 函数 才不会出错
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xiaoEdaifa.settings")  # project_name 项目名称 要并写正确
+    django.setup()
+    # subject = '主题'
+    # message = '内容'
+    # sender = settings.EMAIL_FROM		#发送邮箱，已经在settings.py设置，直接导入
+    # receiver = ['80131490@qq.com']		#目标邮箱
+    # html_message = '八嘎牙路'		#发送html格式
+    send_mail(subject=subject, message=message, sender=sender, receiver=receiver, html_message=html_message)
+
+send()	#使用函数)
+

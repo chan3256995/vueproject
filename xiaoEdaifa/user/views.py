@@ -30,7 +30,9 @@ from trade import models as trmodels
 from django.db.models import Q
 from user import trade_views
 from trade import trade_utils
-
+from utils import commom_utils
+from xiaoEdaifa import settings
+from utils import mglobal
 
 def md5(user):
     import  hashlib
@@ -65,7 +67,7 @@ class LoginView(APIView):
                 ret['code'] = "1001"
                 ret['message'] = '用户名或密码错误'
             else:
-                token = md5(name)
+                token = commom_utils.md5(name)
                 models.UserToken.objects.update_or_create(user=user_obj, defaults={'token': token,'add_time':time.time()})
                 user_ser = m_serializers.UserQuerySerializer(instance=user_obj, many=False)
                 ret['code'] = "1000"
@@ -549,6 +551,71 @@ class UserStopDeliverView(APIView):
             return JsonResponse(ret)
         return JsonResponse(ret)
 
+
+# 重置密码
+class ResetPasswordView(APIView):
+    # authentication_classes = []
+    def post(self,request, *args, **kwargs):
+        try:
+            ret = {"code":"1000","message":""}
+            data = request.data
+            pwd = data.get("password")
+            # 判断非游客用户
+            if pwd is not None and isinstance(request.user,models.User) :
+                with transaction.atomic():
+                    print( request.user.password)
+                    e_pwd =  encryptions.get_sha_encryptions(pwd)
+                    token = commom_utils.md5(request.user.user_name)
+                    request.user.password = e_pwd
+                    request.user.save()
+                    models.UserToken.objects.update_or_create(user=request.user,defaults={'token': token, 'add_time': time.time()})
+
+            else:
+                ret['code'] = "1001"
+                ret['message'] = '无效参数'
+
+                return JsonResponse(ret)
+        except:
+
+            ret['code'] = "1001"
+            ret['message'] = '查询异常'
+            traceback.print_exc()
+            return JsonResponse(ret)
+
+        return JsonResponse(ret)
+
+
+# 忘记密码
+class ForgetPasswordView(APIView):
+
+    # 注册时候检查一个一个异步检查是否存在
+    authentication_classes = []
+
+    def post(self,request, *args, **kwargs):
+        try:
+            ret = {"code":"1000","message":""}
+            data = request.data
+            email = data.get("email")
+            if email is not None  :
+                user =models.User.objects.filter(email=email).first()
+                if user is not None:
+                    token = commom_utils.md5(user.user_name)
+                    models.UserToken.objects.update_or_create(user=user,defaults={'token': token, 'add_time': time.time()})
+                    # VUE_BASE_URL
+                    mcommon.send_email(subject= " 17代拿网找回密码",sender=settings.EMAIL_FROM,message="找回密码",html_message=mglobal.STATIC_VUE_URL+"/#/pc/resetPassword/?access_token="+token, receiver=[email])
+            else:
+                ret['code'] = "1001"
+                ret['message'] = '无效参数'
+
+                return JsonResponse(ret)
+        except:
+
+            ret['code'] = "1001"
+            ret['message'] = '查询异常'
+            traceback.print_exc()
+            return JsonResponse(ret)
+
+        return JsonResponse(ret)
 
 class UserCheckView(APIView):
     # 注册时候检查一个一个异步检查是否存在
@@ -1062,7 +1129,7 @@ class UserRegViewSet(CreateModelMixin, GenericViewSet):
             serializer.is_valid(raise_exception=True)
         except:
             ret['code'] = "1001"
-            ret['message'] = serializer.errors
+            ret['message'] =""
             traceback.print_exc()
             logger.debug(traceback.print_exc())
             return Response(ret)

@@ -128,3 +128,19 @@ def format_from_time_stamp(time_stamp):
     time_array = time.localtime(time_stamp)
     other_style_time = time.strftime("%Y-%m-%d %H:%M:%S", time_array)
     return other_style_time
+
+
+# 发送邮件
+def send_email(subject, message, sender, receiver, html_message):
+    from django.core.mail import send_mail
+    import os, django
+    # 只有加了下面两行  用 send_mail() 函数 才不会出错
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xiaoEdaifa.settings")  # project_name 项目名称 要并写正确
+    django.setup()
+    # subject = '主题'
+    # message = '内容'
+    # sender = settings.EMAIL_FROM		#发送邮箱，已经在settings.py设置，直接导入
+    # receiver = ['80131490@qq.com']		#目标邮箱
+    # html_message = '八嘎牙路'		#发送html格式
+    # django 封装了发送邮件函数 再setting 读取邮件配置参数
+    send_mail(subject=subject, message=message, from_email=sender, recipient_list=receiver, html_message=html_message)

@@ -48,6 +48,10 @@ urlpatterns = [
     url('recharge/', user_trade_views.BalanceRecharge.as_view()),  # new
     # 根据穿过来的字段检查用户是否存在
     url('checkUser/', user_views.UserCheckView.as_view()),  # new
+    # 找回密码
+    url('forget_password/', user_views.ForgetPasswordView.as_view()),  # new
+    # 重置密码
+    url('reset_password/', user_views.ResetPasswordView.as_view()),  # new
     # url('stopDeliver/', user_views.UserStopDeliverView.as_view()),  # new
     # url('orderGoods/', user_views.OrderGoodsViewSet.as_view()),  # new
     # url('addOrders/', user_views.UserMulOrderSaveView.as_view()),  # new

@@ -141,7 +141,8 @@ class OutPutOrdersView(APIView):
             today_date = datetime.date(today)
             print("ddddd")
             query_set = trade_models.Order.objects.filter(orderGoods__status = mcommon.status_choices2.get("已付款")).distinct().order_by('-add_time')
-
+            # 合并第1行到第2行的第0列到第3列。
+            sheet.write_merge(0, 0, 0, 10,"666")
             sheet.write(1, 0, "城市")
             sheet.write(1, 1, "市场")
             sheet.write(1, 2, "楼层")
