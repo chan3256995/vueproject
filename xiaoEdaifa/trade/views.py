@@ -46,6 +46,22 @@ class LogisticsView(APIView):
             logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
             ret['code'] = "1001"
             ret['message'] = '查询失败'
+        return Response(ret)# 物流表
+
+
+class RechargeView(APIView):
+    authentication_classes = []
+
+    def post(self, request, *args, **kwargs):
+        print(request.data)
+        try:
+            ret = {'code': "1000", 'message': ""}
+
+        except:
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            ret['code'] = "1001"
+            ret['message'] = '查询失败'
         return Response(ret)
 
 

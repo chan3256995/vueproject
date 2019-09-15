@@ -25,19 +25,33 @@ import time
 
 class OutPutOrdersView(APIView):
     authentication_classes = [BackStageAuthentication,]
-    permission_classes = [Superpermission]
+    # permission_classes = [Superpermission]
 
     def post(self, request, *args, **kwargs):
-        data = request.data
-        if data.get("for_315") is not None:
-            return self.out_to_315(request, *args, **kwargs)
-        else:
-            return self.out_to_print(request, *args, **kwargs)
+        try:
+            ret = {"code": "1000", "message": ""}
+            data = request.data
+            if data.get("for") == "315":
+                return self.out_to_315(request, args, kwargs)
+            elif data.get("for") == "print_tag":
+                return self.out_to_print(request, args, kwargs, data.get("for"))
+            elif data.get("for") == "re_print_tag":
+                return self.out_to_print(request, args, kwargs, data.get("for"))
+        except:
+            print(traceback.print_exc())
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "生成失败"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+        return Response(ret)
 
 
-    def out_to_print(self,request, *args, **kwargs):
+
+    def out_to_print(self,request, args, kwargs, condition):
         ret = {"code": "1000", "message": ""}
-
+        order_goods_status = Q(orderGoods__status=mcommon.status_choices2.get("已付款"))
+        if condition == "re_print_tag":
+            order_goods_status = order_goods_status & Q(orderGoods__status=mcommon.status_choices2.get("标签打印"))
         try:
             zero_point_today = mcommon.get_time_0clock_of_today()
             print(zero_point_today)
@@ -50,7 +64,7 @@ class OutPutOrdersView(APIView):
             # 将获取到的datetime对象仅取日期如：2016-8-9
             today_date = datetime.date(today)
             print("ddddd")
-            query_set = trade_models.Order.objects.filter( orderGoods__status=mcommon.status_choices2.get("已付款")).distinct().order_by('-add_time')
+            query_set = trade_models.Order.objects.filter(order_goods_status).distinct().order_by('-add_time')
             # query_set = trade_models.Order.objects.filter(add_time__gte=zero_point_today).values('order_number','logistics_name',
             #                  'consignee_name','consignee_phone','consignee_address','orderGoods__shop_market_name','orderGoods__shop_floor').order_by('-add_time')
 
@@ -74,11 +88,13 @@ class OutPutOrdersView(APIView):
                 order = query_set[i]
                 order_number = order.order_number
                 goods_query = trade_models.OrderGoods.objects.filter(order=order)
+
                 for j in range(len(goods_query)):
+                    order_goods = goods_query[j]
                     if order_goods.status != mcommon.status_choices2.get("已付款"):
                         continue
                     cur_row = cur_row + 1
-                    order_goods = goods_query[j]
+
 
                     # order_goods = order.orderGoods
                     sheet.write(cur_row, 0, order.consignee_name)
@@ -181,6 +197,7 @@ class OutPutOrdersView(APIView):
 
                     while floor.find("区") !=-1:
                         floor = floor.replace("区","")
+                    floor = floor[0:floor.find('F')+1]
                     import re
                     reg_ = '^[0-9]F'
                     result = re.match(reg_, stall_no)
@@ -197,12 +214,14 @@ class OutPutOrdersView(APIView):
                     sheet.write(cur_row, 9, "")
                     sheet.write(cur_row, 10, order.consignee_address)
 
-                consignee_address = order.consignee_address.replace(","," ",3)
+                consignee_address = order.consignee_address.replace(","," ",3).replace("，"," ").replace("  "," ")
+
                 # 合并第1行到第2行的第0列到第3列。
                 sheet.write_merge(cur_order_row, cur_row, 10, 10,order.consignee_name+"，"+str(order.consignee_phone)+"，"+ consignee_address)
+            excel_name = str(today_date) + '315.xls'
+            excel_path = settings.STATIC_ROOT + "/" + excel_name
+            excel_url = mglobal.STATIC_URL_BASE + settings.STATIC_URL + excel_name
 
-            excel_url = mglobal.STATIC_URL_BASE + settings.STATIC_URL + str(today_date) + '.xls'
-            excel_path = settings.STATIC_ROOT + "/" + str(today_date) + '.xls'
             # 以传递的name+当前日期作为excel名称保存。
             wbk.save(excel_path)
             ret['excel_url'] = excel_url
