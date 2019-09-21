@@ -15,7 +15,7 @@ import time
 from django.db.models import Q
 from utils.auth import BackStageAuthentication
 from utils.permission import Superpermission
-
+from backstage import back_utils
 class UsersPagination(PageNumberPagination):
     # 指定每一页的个数
     page_size = 10
@@ -520,18 +520,14 @@ class RechargePassView(APIView):
     def post(self, request, *args, **kwargs):
         ret = {'code': "1000", 'message': ""}
         try:
-            print("99999999999999")
-            print(request.data)
             trade_number = request.data.get("trade_number")
-            trade_info = trade_models.TradeInfo.objects.filter(trade_number=trade_number).first()
-            if trade_info.cash_in_out_type == mcommon.cash_in_out_type_choices2.get("收入"):
-                with transaction.atomic():
-                    user = user_models.User.objects.filter(id = trade_info.user.id).first()
-                    user.balance = user.balance+trade_info.trade_money
-                    trade_info.user_balance = user.balance
-                    trade_info.is_pass = True
-                    user.save()
-                    trade_info.save()
+            if back_utils.recharge_pass(trade_number):
+                ret['code'] = "1000"
+                ret['message'] = "修改成功"
+            else:
+                ret['code'] = "1001"
+                ret['message'] = "修改失败"
+
         except:
             traceback.print_exc()
             ret['code'] = "1001"

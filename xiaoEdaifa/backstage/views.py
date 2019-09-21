@@ -170,7 +170,8 @@ class OutPutOrdersView(APIView):
             sheet.write(1, 8, "图片路径")
             # sheet.write(0, 8, "尺码")
             sheet.write(1, 9, "备注")
-            sheet.write(1, 10, "详细地址")
+            sheet.write(1, 10, "自定义编码")
+            sheet.write(1, 11, "详细地址")
             cur_row = 1
             for i in range(len(query_set)):
 
@@ -212,12 +213,13 @@ class OutPutOrdersView(APIView):
                     sheet.write(cur_row, 8, "")
 
                     sheet.write(cur_row, 9, "")
-                    sheet.write(cur_row, 10, order.consignee_address)
+                    sheet.write(cur_row, 10, order_goods.id)
+                    sheet.write(cur_row, 11, order.consignee_address)
 
                 consignee_address = order.consignee_address.replace(","," ",3).replace("，"," ").replace("  "," ")
 
                 # 合并第1行到第2行的第0列到第3列。
-                sheet.write_merge(cur_order_row, cur_row, 10, 10,order.consignee_name+"，"+str(order.consignee_phone)+"，"+ consignee_address)
+                sheet.write_merge(cur_order_row, cur_row, 11, 11,order.consignee_name+"，"+str(order.consignee_phone)+"，"+ consignee_address)
             excel_name = str(today_date) + '315.xls'
             excel_path = settings.STATIC_ROOT + "/" + excel_name
             excel_url = mglobal.STATIC_URL_BASE + settings.STATIC_URL + excel_name

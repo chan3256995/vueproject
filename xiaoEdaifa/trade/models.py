@@ -37,6 +37,8 @@ class TradeInfo(models.Model):
     trade_number = models.CharField(max_length=30, null=False, unique=True)
     # 用户当前剩下金额
     user_balance = models.FloatField(null = True)
+    # 标记
+    mark = models.CharField(max_length=30,default="")
     # 交易来源
     trade_source = models.SmallIntegerField(choices=mcommon.trade_source_choices)
     message = models.CharField(max_length=256,null=True)
@@ -53,6 +55,9 @@ class TradeInfo(models.Model):
     add_time = models.BigIntegerField(null=False)
     # 是否删除（逻辑删除）
     is_delete = models.BooleanField(default=False, null=False)
+
+
+
 
 
 # 质检服务

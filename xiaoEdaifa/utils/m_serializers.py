@@ -16,6 +16,40 @@ class UserDetailSerializer(serializers.ModelSerializer):
         fields = ("id","email", "type", "phone", "balance","user_name")
 
 
+# 对 android 监听到（支付宝或其他）提交上来的支付信息进行校验
+class PayInfoSerializer(serializers.ModelSerializer):
+
+    # 充值号 如支付宝 微信充值订单号
+    recharge_number = serializers.CharField(max_length=64)
+
+    # 交易金额
+    trade_money = serializers.FloatField(required=True)
+    # 该交易是否通过
+    is_pass = serializers.BooleanField(default=False)
+    add_time = serializers.CharField(default=time.time()*1000)
+
+    class Meta:
+        model = models.TradeInfo
+        fields = ["user","trade_money","recharge_number","is_pass","add_time"]
+        depth = 0
+
+    def validate_recharge_number(self,recharge_number):
+        if recharge_number == "":
+            raise serializers.ValidationError("充值号不能为空")
+        return recharge_number
+
+    def validate_trade_money(self,trade_money):
+        try:
+            trade_money = float(trade_money)
+            if trade_money < 0 or trade_money == 0:
+                raise serializers.ValidationError("充值金额要大于0")
+        except:
+            raise serializers.ValidationError("非法金额")
+        return trade_money
+
+
+
+# 用户提交充值信息
 class RechargeBalanceSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(
         default=serializers.CurrentUserDefault()
@@ -44,7 +78,7 @@ class RechargeBalanceSerializer(serializers.ModelSerializer):
 
     def validate_trade_money(self,trade_money):
         try:
-            trade_money = int(trade_money)
+            trade_money = float(trade_money)
             if trade_money < 0 or trade_money == 0:
                 raise serializers.ValidationError("充值金额要大于0")
         except:
