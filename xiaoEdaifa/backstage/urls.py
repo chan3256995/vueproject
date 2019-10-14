@@ -47,6 +47,7 @@ urlpatterns = [
     url('deliverGoods/', trade_views.DeliverGoodsView.as_view()),
     #  明天有货
     url('tomorrowGoods/', trade_views.TomorrowGoodsView.as_view()),
+    url('changePurchasingStatus/', trade_views.ChangePurchasingStatus.as_view()),
     url('notGoods/', trade_views.NotHasGoods.as_view()),
 
     url(r'', include(router.urls))

@@ -11,15 +11,17 @@ class VIPPermission(object):
 class Superpermission(object):
 
     def has_permission(self, request, view):
-        print("permission",request.user)
-        print("permission")
+        print("Superpermission",request.user)
+
         if request.user.type == 99:
             return True
         return False
 
+
 class NahuoUserpermission(object):
 
     def has_permission(self, request, view):
-        if request.user.type == 99:
+        print("NahuoUserpermission")
+        if request.user.type == 98 :
             return True
         return False

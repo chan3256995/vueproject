@@ -32,6 +32,7 @@ class Goods(models.Model):
 
 
 class TradeInfo(models.Model):
+    # 所属用户
     user = models.ForeignKey(User,on_delete=models.CASCADE)
     # 交易流水号
     trade_number = models.CharField(max_length=30, null=False, unique=True)
@@ -75,6 +76,8 @@ class Logistics(models.Model):
 # 订单
 class Order(models.Model):
     order_owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    # 订单跟进人
+    order_follower = models.ForeignKey(User,null = True,default=None,on_delete=models.SET_NULL,related_name="orderFollower")
     # 订单号
     order_number = models.CharField(max_length=30, null=False ,unique=True)
     # 付款单号

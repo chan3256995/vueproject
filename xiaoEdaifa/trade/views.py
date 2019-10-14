@@ -17,6 +17,7 @@ from utils import mcommon
 import time
 from trade import trade_utils
 from backstage import back_utils
+from _decimal import Decimal
 # class Authtication(object):
 #     def authenticate(self,request):
 #         token = request._request.GET.get('token')
@@ -72,7 +73,7 @@ class PayInfoView(APIView):
             trade_info = trade_models.TradeInfo.objects.filter(recharge_number=req_data.get("tradeNo")).first()
             # 如果该支付订单存在则自动审核
             if trade_info is not None:
-                if float(trade_info.trade_money) == float(req_data.get("money")) and trade_info.is_pass is False:
+                if Decimal(str(trade_info.trade_money)) == Decimal(str(req_data.get("money"))) and trade_info.is_pass is False:
                     back_utils.recharge_pass(trade_info.trade_number)
                     ret['code'] = "1000"
                     ret['message'] = '提交成功'
@@ -97,9 +98,6 @@ class PayInfoView(APIView):
                 ret['code'] = "1001"
                 ret['message'] = '提交失败'
                 return Response(status=400, data=ret)
-
-
-
 
         except:
             traceback.print_exc()

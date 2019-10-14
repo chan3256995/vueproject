@@ -23,5 +23,6 @@ urlpatterns = [
     url(r'^user/', include('user.urls')),
     url(r'^trade/', include('trade.urls')),
     url(r'^back/', include('backstage.urls')),
+    url(r'^nahuo/', include('nahuo_client.urls')),
     url(r'^docs/', include_docs_urls("运维平台接口API文档"))
 ]

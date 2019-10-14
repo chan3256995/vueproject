@@ -21,6 +21,7 @@ from datetime import datetime
 from xiaoEdaifa import settings
 from utils import mglobal
 from trade import trade_utils
+from backstage import bserializers
 import time
 
 class OutPutOrdersView(APIView):
@@ -284,7 +285,7 @@ class OrderGoodsViewSet(mixins.UpdateModelMixin,GenericViewSet):
 
 class OrderViewSet2(mixins.UpdateModelMixin,GenericViewSet):
     authentication_classes = [BackStageAuthentication, ]
-    serializer_class = m_serializers.TradeOrderQuerySerializer
+    serializer_class = m_serializers.tTradeOrderQuerySerializer
 
     def update(self, request, *args, **kwargs):
         ret = {"code": "1000", "message": ""}
@@ -377,7 +378,7 @@ class OrderPagination(PageNumberPagination):
 class OrderViewSet(mixins.ListModelMixin,mixins.UpdateModelMixin, GenericViewSet):
         authentication_classes = [BackStageAuthentication, ]
         permission_classes = [permission.Superpermission,]
-        serializer_class = m_serializers.TradeOrderQuerySerializer
+        serializer_class = bserializers.BackTradeOrderQuerySerializer
         # 设置分页的class
         pagination_class = OrderPagination
 
@@ -432,10 +433,6 @@ class OrderViewSet(mixins.ListModelMixin,mixins.UpdateModelMixin, GenericViewSet
                 logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
                 return Response(ret)
 
-            # if getattr(instance, '_prefetched_objects_cache', None):
-            #     # If 'prefetch_related' has been applied to a queryset, we need to
-            #     # forcibly invalidate the prefetch cache on the instance.
-            #     instance._prefetched_objects_cache = {}
             ret['code'] = "1000"
             ret['message'] = "更新成功"
             ret['data'] = serializer.data
@@ -443,15 +440,15 @@ class OrderViewSet(mixins.ListModelMixin,mixins.UpdateModelMixin, GenericViewSet
 
         def get_serializer_class(self):
             if self.action == "retrieve":
-                return m_serializers.TradeOrderQuerySerializer
+                return m_serializers.tTradeOrderQuerySerializer
             elif self.action == "create":
-                return m_serializers.TradeOrderQuerySerializer
+                return m_serializers.tTradeOrderQuerySerializer
             elif self.action == "update":
-                return m_serializers.TradeOrderQuerySerializer
+                return m_serializers.tTradeOrderQuerySerializer
             elif self.action == "delete":
-                return m_serializers.TradeOrderQuerySerializer
+                return m_serializers.tTradeOrderQuerySerializer
 
-            return m_serializers.TradeOrderQuerySerializer
+            return bserializers.BackTradeOrderQuerySerializer
 
         def get_object(self):
             return self.request.user
@@ -470,7 +467,7 @@ class OrderGoodsRefundViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, G
     pagination_class = OrderPagination
 
     def list(self, request, *args, **kwargs):
-        self.serializer_class = m_serializers.TradeOrderQuerySerializer
+        self.serializer_class = m_serializers.tTradeOrderQuerySerializer
 
         ret = {"code": "1000", "message": ""}
         try:
@@ -550,7 +547,7 @@ class OrderGoodsRefundViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, G
         order_owner_balance = order.order_owner.balance + trade_moneys
         message = "商品退货退款" + " 订单编号："+order.order_number +" 商品编号："+order_goods.goods_number
         trade_models.TradeInfo.objects.create(user = order.order_owner,
-                                              trade_number=trade_utils.get_trade_number(self.request.user),
+                                              trade_number=trade_utils.get_trade_number(self,self.request.user.id),
                                               user_balance=order_owner_balance,
                                               trade_source=mcommon.trade_source_choices2.get("商品"),
                                               message=message,

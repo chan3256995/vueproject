@@ -236,7 +236,7 @@ class TradeOrderCreateSerializer(serializers.ModelSerializer):
         depth = 0
 
 
-class TradeOrderQuerySerializer(serializers.ModelSerializer):
+class tTradeOrderQuerySerializer(serializers.ModelSerializer):
     order_owner = serializers.HiddenField(
         default=serializers.CurrentUserDefault()
     )
@@ -249,7 +249,7 @@ class TradeOrderQuerySerializer(serializers.ModelSerializer):
 
 
     # 反向序列化  要在model.OrderGoods 理的对应指向Order的字段 设置 related_name 为 ‘orderGoods’
-    orderGoods = TradeOrderGoodsSerializer(many=True,read_only=True)
+    orderGoods = TradeOrderGoodsSerializer(many=True, read_only=True)
 
 
     class Meta:
@@ -304,7 +304,7 @@ class TradeAddOrdersSerializer(serializers.ModelSerializer):
             return obj.order_owner.user_name
         return None
     # 反向序列化
-    orderGoods = TradeOrderGoodsSerializer(many=True,read_only=True)
+    orderGoods = TradeOrderGoodsSerializer(many=True, read_only=True)
 
     def validate_order_number(self,order_number):
         print("validate_order_numbervalidate_order_numbervalidate_order_numbervalidate_order_number")

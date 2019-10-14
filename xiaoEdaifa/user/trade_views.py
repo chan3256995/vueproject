@@ -13,6 +13,7 @@ from rest_framework.viewsets import GenericViewSet
 from rest_framework.pagination import PageNumberPagination
 import time
 from utils import encryptions
+from _decimal import Decimal
 
 class UsersPagination(PageNumberPagination):
     # 指定每一页的个数
@@ -181,13 +182,10 @@ class OrderPayView(APIView):
                 ser.validated_data['user_balance'] = request.user.balance
                 ser.validated_data['add_time'] = time.time()*1000
                 ser.validated_data['message'] = "订单："+order.order_number
-                print("balance")
-                print(request.user.balance)
-                print(type(request.user.balance))
 
                 if request.user.balance >= order.total_price:
-                    request.user.balance = request.user.balance - order.total_price
-                    ser.validated_data['user_balance'] = request.user.balance
+                    request.user.balance = Decimal(str(request.user.balance)) - Decimal(str(order.total_price))
+                    ser.validated_data['user_balance'] = Decimal(str(request.user.balance))
                     ser.validated_data['is_pass'] = True
                     with transaction.atomic():
                         for order_gooods in order_goods_query:

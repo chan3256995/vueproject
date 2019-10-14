@@ -13,8 +13,8 @@ from rest_framework.viewsets import GenericViewSet
 from utils import m_serializers
 import time
 from django.db.models import Q
-from utils.auth import BackStageAuthentication
-from utils.permission import Superpermission
+from utils.auth import BackStageAuthentication,BackStageNahuoAuthentication
+from utils.permission import Superpermission,NahuoUserpermission
 from backstage import back_utils
 class UsersPagination(PageNumberPagination):
     # 指定每一页的个数
@@ -111,6 +111,7 @@ class NotHasGoods(APIView):
             logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
             return JsonResponse(ret)
         return JsonResponse(ret)
+
     def find_order(self,order_number,req_order_list):
         for req_order in req_order_list:
             if order_number == req_order.get("order_number"):
@@ -125,13 +126,89 @@ class NotHasGoods(APIView):
         return ""
 
 
-# 明日有货
-class TomorrowGoodsView(APIView):
-    authentication_classes = [BackStageAuthentication, ]
-    permission_classes = [Superpermission]
+# 修改拿货中状态商品 统一用这个接口（如 拿货中状态 改为 明日有货  2-5天有货 已拿货  其他）
+class ChangePurchasingStatus(APIView):
+    authentication_classes = [BackStageAuthentication, BackStageNahuoAuthentication]
 
     def post(self, request, *args, **kwargs):
-        print("tag print''''''''''''''")
+        # {'order_list': [{'order_number': 'os20191007141753133698', 'orderGoods': [{'goods_number': 'gs20191007141753153630', 'goods_count': 1}]}]}
+        print(" TomorrowGoodsView''''''''''''''")
+        print(request.data)
+        try:
+            with transaction.atomic():
+                ret = {'code': "1000", 'message': ""}
+                req_status_type =  request.data.get("status_type")
+
+                req_order_list = request.data.get("order_list")
+                req_order_number_list = []
+                # 异常状态订单
+                exception_order_list = []
+                for req_order_object in req_order_list:
+                    req_order_number_list.append(req_order_object.get("order_number"))
+                order_queryset = trade_models.Order.objects.filter(Q(order_number__in = req_order_number_list)).distinct()
+                for sql_order in order_queryset:
+                    tem_exceptions_order_goods = []
+                    sql_order_goods_query = trade_models.OrderGoods.objects.filter(order = sql_order)
+                    req_order = self.find_order(sql_order.order_number,req_order_list)
+                    for sql_order_goods in sql_order_goods_query:
+                        # 请求列表找商品
+                        req_goods = self.find_goods(sql_order_goods.goods_number, req_order.get("orderGoods"))
+                        # 提交上来的数据没有该商品
+                        if req_goods == "":
+                            continue
+                        # 商品状态已经改变了 比如改为拦截发货  并且 客户端提交了该商品
+                        if sql_order_goods.status != mcommon.status_choices2.get("拿货中") and req_goods != "":
+                            tem_exceptions_order_goods.append(sql_order_goods.goods_number)
+                        elif sql_order_goods.status == mcommon.status_choices2.get("拿货中") and req_goods !="" \
+                                and sql_order_goods.refund_apply_status != mcommon.refund_apply_choices2.get("无售后"):
+                            # 状态正常  者有售后申请
+                            tem_exceptions_order_goods.append(sql_order_goods.goods_number)
+                        elif sql_order_goods.status == mcommon.status_choices2.get("拿货中") and sql_order_goods.refund_apply_status == mcommon.refund_apply_choices2.get("无售后"):
+                            if req_status_type == mcommon.status_choices2.get("明日有货") or req_status_type == mcommon.status_choices2.get("2-5天有货")\
+                                or  req_status_type == mcommon.status_choices2.get("已下架") or req_status_type == mcommon.status_choices2.get("已拿货"):
+
+                                sql_order_goods.status = req_status_type
+                                sql_order_goods.save()
+                            elif req_status_type == mcommon.status_choices2.get("其他"):
+                                sql_order_goods.status = req_status_type
+                                sql_order_goods.log = req_goods.get("message")
+                                sql_order_goods.save()
+                            pass
+
+                    if len(tem_exceptions_order_goods) != 0:
+                        exception_order_list.append({"order_number": sql_order.order_number, 'orderGoods':tem_exceptions_order_goods})
+                ret['exception_order'] = exception_order_list
+                return JsonResponse(ret)
+
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "查询异常"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return JsonResponse(ret)
+        return JsonResponse(ret)
+
+    def find_order(self,order_number,req_order_list):
+        for req_order in req_order_list:
+            if order_number == req_order.get("order_number"):
+                return req_order
+        return ""
+
+# # 查找一个商品是在列表里
+    def find_goods(self,goods_number,req_order_goods_list):
+        for i in range(len(req_order_goods_list)):
+            if goods_number == req_order_goods_list[i].get("goods_number"):
+                return req_order_goods_list[i]
+        return ""
+
+
+# 明日有货
+class TomorrowGoodsView(APIView):
+    authentication_classes = [BackStageAuthentication, BackStageNahuoAuthentication]
+
+    def post(self, request, *args, **kwargs):
+        # {'tomorrow_order_list': [{'order_number': 'os20191007141753133698', 'orderGoods': [{'goods_number': 'gs20191007141753153630', 'goods_count': 1}]}]}
+        print(" TomorrowGoodsView''''''''''''''")
         print(request.data)
         try:
             with transaction.atomic():
@@ -157,9 +234,8 @@ class TomorrowGoodsView(APIView):
                         if sql_order_goods.status != mcommon.status_choices2.get("拿货中") and req_goods != "":
                             tem_exceptions_order_goods.append(sql_order_goods.goods_number)
                         elif sql_order_goods.status == mcommon.status_choices2.get("拿货中") and req_goods !="" \
-                                and req_goods.get("goods_count") != sql_order_goods.goods_count \
-                                or sql_order_goods.refund_apply_status != mcommon.refund_apply_choices2.get("无售后"):
-                            # 状态正常  数量对不上或者有售后申请
+                                and sql_order_goods.refund_apply_status != mcommon.refund_apply_choices2.get("无售后"):
+                            # 状态正常  者有售后申请
                             tem_exceptions_order_goods.append(sql_order_goods.goods_number)
                         elif sql_order_goods.status == mcommon.status_choices2.get("拿货中"):
                             sql_order_goods.status = mcommon.status_choices2.get("明日有货")
@@ -178,6 +254,7 @@ class TomorrowGoodsView(APIView):
             logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
             return JsonResponse(ret)
         return JsonResponse(ret)
+
     def find_order(self,order_number,req_order_list):
         for req_order in req_order_list:
             if order_number == req_order.get("order_number"):
@@ -190,6 +267,7 @@ class TomorrowGoodsView(APIView):
             if goods_number == req_order_goods_list[i].get("goods_number"):
                 return req_order_goods_list[i]
         return ""
+
 
 # 发货
 class DeliverGoodsView(APIView):
@@ -217,10 +295,11 @@ class DeliverGoodsView(APIView):
 
                         if sql_order_goods.status == mcommon.status_choices2.get("已退款") :
                             pass
-                        elif sql_order_goods.status == mcommon.status_choices2.get("快递打印") and sql_order_goods.refund_apply_status == mcommon.refund_apply_choices2.get("无售后"):
+                        elif (sql_order_goods.status == mcommon.status_choices2.get("快递打印") or sql_order_goods.status == mcommon.status_choices2.get("已拿货")) and sql_order_goods.refund_apply_status == mcommon.refund_apply_choices2.get("无售后"):
                             tem_nomal_order_goods.append(sql_order_goods)
                         else:
                             # 商品状态已经改变了 比如改为拦截发货  并且 客户端提交了该商品
+                            # 有异常状态商品 该订单都不能发货
                             tem_exceptions_order_goods.append(sql_order_goods.goods_number)
                             break
                     req_order = self.find_order(sql_order.order_number, req_order_list)
@@ -392,11 +471,10 @@ class PurchasedGoodsCompleteView(APIView):
         return ""
 
 
-
 #  采购/拿货
 class PurchaseGoodsView(APIView):
-    authentication_classes = [BackStageAuthentication, ]
-    permission_classes = [Superpermission]
+    authentication_classes = [BackStageAuthentication, BackStageNahuoAuthentication]
+    # permission_classes = [Superpermission,NahuoUserpermission]
 
     def post(self, request, *args, **kwargs):
 
@@ -412,7 +490,7 @@ class PurchaseGoodsView(APIView):
                     order_goods_query = trade_models.OrderGoods.objects.filter(order = order)
                     tem_exceptions_order_goods = []
                     for order_goods in order_goods_query:
-                        if order_goods.status != mcommon.status_choices2.get("标签打印"):
+                        if order_goods.status != mcommon.status_choices2.get("标签打印") and order_goods.status != mcommon.status_choices2.get("已付款"):
                             tem_exceptions_order_goods.append(order_goods.goods_number)
                         else:
                             order_goods.status = mcommon.status_choices2.get("拿货中")
@@ -457,6 +535,9 @@ class TagPrintView(APIView):
                             order_goods.save()
                     if len(tem_exceptions_order_goods) != 0:
                         exception_order_list.append({"order_number": order.order_number, 'orderGoods':tem_exceptions_order_goods})
+                    # 订单跟进人
+                    order.order_follower = request.user
+                    order.save()
 
                 ret['exception_order'] = exception_order_list
                 return JsonResponse(ret)

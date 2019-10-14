@@ -33,7 +33,7 @@ from trade import trade_utils
 from utils import commom_utils
 from xiaoEdaifa import settings
 from utils import mglobal
-
+from _decimal import Decimal
 def md5(user):
     import  hashlib
     import time
@@ -374,7 +374,7 @@ class UsersPagination(PageNumberPagination):
 
 class UserOrderViewSet(ListModelMixin,DestroyModelMixin, GenericViewSet):
         # authentication_classes = []
-        serializer_class = m_serializers.TradeOrderQuerySerializer
+        serializer_class = m_serializers.tTradeOrderQuerySerializer
         # 设置分页的class
         pagination_class = UsersPagination
         # def create(self, request, *args, **kwargs):
@@ -479,15 +479,15 @@ class UserOrderViewSet(ListModelMixin,DestroyModelMixin, GenericViewSet):
 
         def get_serializer_class(self):
             if self.action == "retrieve":
-                return m_serializers.TradeOrderQuerySerializer
+                return m_serializers.tTradeOrderQuerySerializer
             elif self.action == "create":
-                return m_serializers.TradeOrderQuerySerializer
+                return m_serializers.tTradeOrderQuerySerializer
             elif self.action == "update":
-                return m_serializers.TradeOrderQuerySerializer
+                return m_serializers.tTradeOrderQuerySerializer
             elif self.action == "delete":
-                return m_serializers.TradeOrderQuerySerializer
+                return m_serializers.tTradeOrderQuerySerializer
 
-            return m_serializers.TradeOrderQuerySerializer
+            return m_serializers.tTradeOrderQuerySerializer
 
         def get_object(self):
             return self.request.user
@@ -519,7 +519,7 @@ class UserStopDeliverView(APIView):
                         trade_money = mcommon.service_fee * order_goods.goods_count
                         data = {
                             "user": request.user,
-                            "trade_number": trade_utils.get_trade_number(request.user),
+                            "trade_number": trade_utils.get_trade_number(self,request.user.id),
                             "trade_source": mcommon.trade_source_choices2.get("其他费用"),
                             "cash_in_out_type": mcommon.cash_in_out_type_choices2.get("支出"),
                             "user_balance": request.user.balance,
@@ -742,7 +742,7 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
                     refund_apply_object = refund_apply_query.first()
                     apply_goods_counts = refund_apply_object.goods_counts
                     # 退回服务费
-                    return_server_fee = mcommon.service_fee * apply_goods_counts
+                    return_server_fee = Decimal(str(mcommon.service_fee)) * Decimal(str(apply_goods_counts))
                     is_suc = self.return_server_fee( self.request.user, orderGoods, orderGoods.order, return_server_fee)
                     if is_suc is False:
                         raise Exception
@@ -829,7 +829,7 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
                         suc = self.apply_goods_operate(req_data, goods_number, refund_apply_type)
                         if suc:
                             req_goods_counts = float(req_data.get("goods_counts"))
-                            server_fee = mcommon.service_fee * req_goods_counts
+                            server_fee = Decimal(str(mcommon.service_fee)) * Decimal(str(req_goods_counts))
                             if self.request.user.balance < server_fee:
                                 ret['code'] = "1001"
                                 ret['message'] = "余额不足"
@@ -852,7 +852,9 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
                 # 支持仅退款的状态只有  2已付款 跟 7明日有货 9其他状态
                 if orderGoods.status != mcommon.status_choices2.get('已付款') \
                         and orderGoods.status != mcommon.status_choices2.get('明日有货')\
-                        and orderGoods.status != mcommon.status_choices2.get('其他状态'):
+                        and orderGoods.status != mcommon.status_choices2.get('已下架') \
+                        and orderGoods.status != mcommon.status_choices2.get('2-5天有货') \
+                        and orderGoods.status != mcommon.status_choices2.get('其他'):
                     ret['code'] = "1001"
                     ret['message'] = "该状态不允许申请仅退款"
                     print("该状态不允许申请仅退款")
@@ -874,7 +876,7 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
                         trade_money = mcommon.service_fee * orderGoods.goods_count
                         data = {
                             "user": request.user,
-                            "trade_number": trade_utils.get_trade_number(request.user),
+                            "trade_number": trade_utils.get_trade_number(self,request.user.id),
                             "trade_source": mcommon.trade_source_choices2.get("其他费用"),
                             "cash_in_out_type": mcommon.cash_in_out_type_choices2.get("支出"),
                             "user_balance": request.user.balance,
@@ -927,7 +929,7 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
 
         data = {
             "user": user,
-            "trade_number": trade_utils.get_trade_number(user),
+            "trade_number": trade_utils.get_trade_number(self,user.id),
             "trade_source": mcommon.trade_source_choices2.get("其他费用"),
             "cash_in_out_type": mcommon.cash_in_out_type_choices2.get("收入"),
             "user_balance": user.balance,
@@ -958,7 +960,7 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
             return False
         data = {
             "user":user,
-            "trade_number": trade_utils.get_trade_number(user),
+            "trade_number": trade_utils.get_trade_number(self,user.id),
             "trade_source": mcommon.trade_source_choices2.get("其他费用"),
             "cash_in_out_type": mcommon.cash_in_out_type_choices2.get("支出"),
             "user_balance":user.balance,
@@ -1021,7 +1023,7 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
                 orderGoods.refund_apply_status = 0
                 orderGoods.save()
 
-                data = {"trade_money": orderGoods.goods_price + mcommon.service_fee, "add_time": time.time() * 1000}
+                data = {"trade_money": Decimal(str(orderGoods.goods_price)) + Decimal(str(mcommon.service_fee)), "add_time": time.time() * 1000}
                 ser = m_serializers.OrderGoodsRefundBalanceSerializer(data=data, context={'request': self.request})
                 ser.is_valid(raise_exception=True)
                 ser.validated_data['trade_number'] = trade_views.BaseTrade(self.request.user).get_trade_number()
@@ -1034,13 +1036,15 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
                 if is_return_fee:
                     return_logistics_fee = order.logistics_fee
 
-                goods_moneys = orderGoods.goods_price * orderGoods.goods_count
+                goods_moneys = Decimal(str(orderGoods.goods_price)) * Decimal(str(orderGoods.goods_count))
                 # 质检服务费
-                quality_fee = trade_models.QualityTest.objects.filter(
-                    quality_testing_name=order.quality_testing_name).first().quality_testing_price
-                trade_moneys = goods_moneys + mcommon.service_fee + return_logistics_fee + quality_fee
+                quality_fee = order.quality_testing_fee
+
+                # 代拿费
+                service_fee = order.agency_fee
+                trade_moneys = Decimal(str(goods_moneys)) + Decimal(str(service_fee)) + Decimal(str(return_logistics_fee)) + Decimal(str(quality_fee))
                 ser.validated_data['trade_money'] = trade_moneys
-                money = self.request.user.balance + trade_moneys
+                money = Decimal(str(self.request.user.balance)) + Decimal(str(trade_moneys))
                 ser.validated_data['message'] = "商品退款，订单编号：" + order.order_number + " 商品编号：" + str(
                     orderGoods.goods_number) + " 商品金额：" + str(goods_moneys) + " 代拿费：" + str(
                     mcommon.service_fee) + "物流费：" + str(return_logistics_fee) + "质检费：" + str(quality_fee)

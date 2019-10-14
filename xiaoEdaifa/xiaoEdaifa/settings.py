@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'user',
     'trade',
+    'nahuo_client',
     'rest_framework',
 ]
 
