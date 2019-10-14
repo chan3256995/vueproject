@@ -1,11 +1,18 @@
 <template style="width: 100%; ">
+  <div>
   <div style="width:50em; text-align: center">
     <label>只生成当天00:00 到当前时间的订单</label>
-     <button id="excel_btn" @click="out_put_order_for_excel" v-text="produce_excel_btn" :disabled="submit_btn_disable">生成excel</button>
-     <button id="" @click="out_put_order_for_excel({'for_315':true})"  :disabled="submit_btn_disable">生成315格式excel</button>
+     <button id="excel_btn" @click="out_put_order_for_excel({'for':'print_tag'})" v-text="produce_excel_btn" :disabled="submit_btn_disable">生成excel</button>
+
     <a :href="down_excel_url" v-show="down_excel_url!==''">下载</a>
   </div>
+  <div style="width:50em; text-align: center">
+    <label>生成已付款订单</label>
 
+     <button id="" @click="out_put_order_for_excel({'for':'315'})"  :disabled="submit_btn_disable">生成315格式excel</button>
+    <a :href="down_315excel_url" v-show="down_315excel_url!==''">下载</a>
+  </div>
+    </div>
 </template>
 
 <script>
@@ -15,6 +22,7 @@
         data(){
           return{
              down_excel_url:"",
+            down_315excel_url:"",
             produce_excel_btn:"生成excel",
             submit_btn_disable :false
           }
@@ -30,7 +38,12 @@
              if(res.data.code === "1000"){
                this.submit_btn_disable = false;
                alert("生成成功")
-               this.down_excel_url = res.data.excel_url
+               if (params.for === "315"){
+                 this.down_315excel_url = res.data.excel_url
+               }else{
+                 this.down_excel_url = res.data.excel_url
+               }
+
                 console.log(res.data.excel_url)
              }else{
                this.submit_btn_disable = false;

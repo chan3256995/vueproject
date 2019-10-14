@@ -5,7 +5,7 @@
     <ul >
       <li > <router-link class="nav"  to = "/pc/personal/userDetails" >个人资料</router-link></li>
       <li > <router-link class="nav"  to = "/pc/personal/capitalAccount" >账户记录</router-link></li>
-      <li > <router-link class="nav"  to = "/pc/personal/recharge" >充值</router-link></li>
+      <li > <router-link class="nav"  to = "/pc/personal/recharge2" >充值</router-link></li>
 
     </ul>
       </div>

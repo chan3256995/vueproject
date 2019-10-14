@@ -86,22 +86,22 @@
                 </select>
     </div>
 
-    <!--<div class="mul_add_div"  style="display: none">-->
-                  <!--<div style="margin: 0.5em" ><label style="background: darkgrey; width: 200px ;padding: 0.4em" >批量添加订单</label></div>-->
+    <div class="mul_add_div"  style="display: block" v-if="raw_goods_txt==='656'">
+                  <div style="margin: 0.5em" ><label style="background: darkgrey; width: 200px ;padding: 0.4em" >批量添加订单</label></div>
 
-                  <!--<div style="text-align: left; font-size: 0.6em;padding-top: 0.5em;padding-left: 0.5em">-->
+                  <div style="text-align: left; font-size: 0.6em;padding-top: 0.5em;padding-left: 0.5em">
 
-                    <!--<li>市场名 楼层 档口号 货号 价格 颜色尺码 /件数@    <label style="color: red">商品1(注：每个商品用 "@" 结束)</label></li>-->
-                    <!--<li>市场名 楼层 档口号 货号 价格 颜色尺码 /件数@    <label style="color: red">商品2(注：每个商品用 "@" 结束)</label></li>-->
-                    <!--<li> 熊**，86-15808*****，四川省 南充市 高坪区 清溪街道 **路3小区 ，000000； <label style="color: red">（注：每个地址用"；"结束）</label></li>-->
+                    <li>市场名 楼层 档口号 货号 价格 颜色尺码 /件数@    <label style="color: red">商品1(注：每个商品用 "@" 结束)</label></li>
+                    <li>市场名 楼层 档口号 货号 价格 颜色尺码 /件数@    <label style="color: red">商品2(注：每个商品用 "@" 结束)</label></li>
+                    <li> 熊**，86-15808*****，四川省 南充市 高坪区 清溪街道 **路3小区 ，000000； <label style="color: red">（注：每个地址用"；"结束）</label></li>
 
-                  <!--</div>-->
-                <!--<textarea v-model="order_text"   id="order_text" placeholder="-->
-            <!--市场名 楼层 档口号 货号 价格 颜色尺码 /件数@-->
-            <!--市场名 楼层 档口号 货号 价格 颜色尺码 /件数@-->
-            <!--熊**，86-15808*****，四川省 南充市 高坪区 清溪街道 **路3小区 ，000000；"> </textarea>-->
-                <!--<button class="match_btn" @click="match_btn" style="display:block">批量添加</button>-->
-            <!--</div>-->
+                  </div>
+                <textarea v-model="order_text"   id="order_text" placeholder="
+            市场名 楼层 档口号 货号 价格 颜色尺码 /件数@
+            市场名 楼层 档口号 货号 价格 颜色尺码 /件数@
+            熊**，86-15808*****，四川省 南充市 高坪区 清溪街道 **路3小区 ，000000；"> </textarea>
+                <button class="match_btn" @click="match_btn" style="display:block">批量添加</button>
+            </div>
 
   </div>
 
@@ -457,8 +457,7 @@
           },
          //
           check_data(order_list){
-            console.log("order_list11111111111111111111111111111");
-            console.log(order_list)
+
             for(let i=0;i<order_list.length;i++){
 
               for(let z = 0; z< order_list[i].orderGoods.length;z++){
@@ -574,7 +573,7 @@
               let goods_list = marketData.get_goods_list(goods_str);
 
 
-              let orderObj = {"logistics":logistics,"address":addressObj,"orderGoods":goods_list};
+              let orderObj = {"quality_test":this.selected_quality_test,"logistics":logistics,"address":addressObj,"orderGoods":goods_list};
              return orderObj
          },
 
@@ -739,9 +738,9 @@
           for(let i = 0;i< orderList.length;i++){
             orderList[i] = orderList[i].trim();
             if(orderList[i] ==="")
-              continue;
+                continue;
                 let orderItem = this.analysis_address_goods(orderList[i]);
-                  order_list.push(orderItem)
+                order_list.push(orderItem)
           }
 
 

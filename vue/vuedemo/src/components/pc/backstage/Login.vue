@@ -55,7 +55,7 @@
           console.log("token",res.data.token)
           this.submit_btn_disable = false;
          if(res.data.code === "1000"){
-            this.$router.push("/pc/back/home/order");
+
             this.$cookies.set("access_token_bk" ,res.data.token)
             this.$router.push("/pc/back/home/order");
          }else{

@@ -1,3 +1,5 @@
+import mGlobal from '../utils/mGlobal';
+import  axios  from 'axios'
 export default {
  // 解析物流数据
 analysis_logistics(data){
@@ -10,6 +12,12 @@ analysis_logistics(data){
   }
   return logistics_list
 },
+
+   // 加载用户信息
+ load_user(){
+            const url = mGlobal.DJANGO_SERVER_BASE_URL+"/user/details/-1/"
+            return axios.get(url)
+          },
 }
 
 

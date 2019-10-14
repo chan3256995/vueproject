@@ -19,11 +19,14 @@ import pPersonal from '../components/pc/Personal'
 import pUserDetails from '../components/pc/UserDetails'
 import pCapitalAccount from '../components/pc/CapitalAccount'
 import pRecharge from '../components/pc/Recharge'
+import pRecharge2 from '../components/pc/Recharge2'
 import pbkHome from '../components/pc/backstage/Home'
 import pbkLogin from '../components/pc/backstage/Login'
+import pbkQR from '../components/pc/backstage/qrtest.vue'
 import pbkOrder from '../components/pc/backstage/Order'
 import pbRefund from '../components/pc/backstage/Refund'
 import pOutPutOrdersForExcel from '../components/pc/backstage/OutPutOrderForExcel'
+import pExcelToString from '../components/pc/backstage/ExcelToString'
 import pPrint from '../components/pc/backstage/Print'
 import pTradeInfo from '../components/pc/backstage/TradeInfo'
 import pPrintFormat from '../components/pc/backstage/printFormatPage'
@@ -34,7 +37,7 @@ export default new VueRouter({
   routes:[
 
     //根目录默认地址
-    {path: '/', redirect: '/pc/login'},
+    {path: '/', redirect: '/pc/home'},
     {
       path:'/register',
       name:'Register',
@@ -122,6 +125,12 @@ export default new VueRouter({
           name:'pRecharge',
           component:pRecharge
         },
+
+        {
+          path:'/pc/personal/recharge2',
+          name:'pRecharge2',
+          component:pRecharge2
+        },
       ]
     } ,
     {
@@ -146,6 +155,12 @@ export default new VueRouter({
 
 
     //后台路由
+
+       {
+      path:'/pc/back/qr',
+      name:'pbkQR',
+      component:pbkQR
+    } ,
     {
       path:'/pc/back/login',
       name:'pbkLogin',
@@ -178,6 +193,11 @@ export default new VueRouter({
           path:'/pc/back/home/outPutExcel',
           name:'pOutPutOrdersForExcel',
           component:pOutPutOrdersForExcel
+         },       
+        {
+          path:'/pc/back/home/excelToString',
+          name:'pExcelToString',
+          component:pExcelToString
          },
 
         {
