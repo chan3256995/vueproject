@@ -20,8 +20,10 @@ axios.interceptors.request.use(function (config) {
         console.log("url")
         console.log(config.url)
 
+        if(config.url.search("access_token_nh")=== -1){
+          config.url = config.url+"?access_token_nh="+cookiesUtils.getCookies("access_token_nh")
+        }
 
-        config.url = config.url+"?access_token_nh="+cookiesUtils.getCookies("access_token_nh")
 
 
         console.log(config.url)
