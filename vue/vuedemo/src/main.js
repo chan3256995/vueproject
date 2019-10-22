@@ -9,6 +9,8 @@ import m_global from './utils/mGlobal'
  Vue.prototype.mGLOBAL = m_global
 import MessageBox from './utils/messagebox/messagbox';
 Vue.use(MessageBox);
+import QRBox from './utils/qrbox/qrbox';
+Vue.use(QRBox);
 
 import Axios from 'axios'
 Vue.prototype.$axios = Axios

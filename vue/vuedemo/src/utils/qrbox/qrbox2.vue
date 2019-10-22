@@ -7,16 +7,14 @@
       <svg class="icon" aria-hidden="true" @click="cancel">
         <use xlink:href="#icon-delete"></use>
       </svg>
+
       <h3 class="title">{{ title }}</h3>
+      <div>
+        <vue-qr   :text="qr_value" :margin="0" colorDark="black" colorLight="#fff" :logoSrc="qr_logo" :logoScale="0.3" :size="200" :dotScale="0.8"></vue-qr>
+      </div>
+
       <p class="content">{{ content }}</p>
-      <table style="text-align: center">
-        <tr>
-          <td> <label style="float: left">支付密码：</label></td>
-          <td> <input style="width:15em;" type="password" v-model="inputValue" v-if="isShowInput" ref="input" @keyup.enter="confirm"></td>
-        </tr>
 
-
-      </table>
       <div class="btn-group">
         <button class="btn-default" @click="cancel" v-show="isShowCancelBtn">{{ cancelBtnText }}</button>
         <button class="btn-primary btn-confirm" @click="confirm" v-show="isShowConfimrBtn">{{ confirmBtnText }}</button>
@@ -26,7 +24,11 @@
 </template>
 
 <script>
-  export default {
+  import VueQr from 'vue-qr'
+  export default{
+    components: {
+          VueQr,
+    },
     props: {
       title: {
         type: String,
@@ -53,14 +55,27 @@
       confirmBtnText: {
         type: String,
         default: '确定'
-      }
+      },
+      qr_value: {
+                type: String,
+           　　 default: '',
+
+        　　} ,
+      qr_logo: {
+                type: String,
+           　　 default: require('../../assets/logo.png'),
+
+        　　},
+
+
     },
     data () {
       return {
         isShowMessageBox: false,
         resolve: '',
         reject: '',
-        promise: '' // 保存promise对象
+        promise: '', // 保存promise对象
+
       };
     },
     methods: {
@@ -104,6 +119,7 @@
 </script>
 
 <style lang="less" scoped>
+
   .message-box {
     width:30em;
     position: relative;
@@ -119,6 +135,7 @@
     .message-content {
       width: 30em;
       position: fixed;
+      text-align: center;
       box-sizing: border-box;
       padding: 1em;
       left: 50%;
@@ -145,10 +162,9 @@
         margin-bottom: 1em;
       }
       .content {
-        width: 300px;
         font-size: 1em;
         line-height: 2em;
-        color: #555;
+        color: red;
       }
       input {
         width: 30em;

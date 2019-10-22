@@ -20,6 +20,7 @@
       <td><a @click="go_forgot_password_page" style="color: black">忘记密码？</a></td>
     </tr>
   </table>
+  <button @click="test">test</button>
 </div>
 </template>
 
@@ -37,14 +38,31 @@
     },
     created(){
       this.$axios.get("/api333/cityjson")
-.then(res=>{
-	console.log(res)
-})
-.catch(err=>{
-	console.log(err)
-})
+      .then(res=>{
+        console.log(res)
+      })
+      .catch(err=>{
+        console.log(err)
+      })
     },
     methods:{
+      test(){
+        this.$qrBox2.showMsgBox({
+                  title: '扫码',
+                  content: '扫当前二维码获得快递单号"',
+                  isShowInput: true,
+                  isShowConfimrBtn :true,
+                  confirmBtnText :"关闭",
+                  isShowCancelBtn :false,
+              }).then(async (val) => {
+
+                   console.log(val)
+
+
+              }).catch(() => {
+                  // ...
+              });
+      },
       go_forgot_password_page(){
         this.$router.push("/pc/forgotPassword");
       },

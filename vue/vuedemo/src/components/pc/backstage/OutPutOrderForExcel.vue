@@ -1,13 +1,13 @@
 <template style="width: 100%; ">
   <div>
   <div style="width:50em; text-align: center">
-    <label>只生成当天00:00 到当前时间的订单</label>
+    <label>生成标签打印状态订单</label>
      <button id="excel_btn" @click="out_put_order_for_excel({'for':'print_tag'})" v-text="produce_excel_btn" :disabled="submit_btn_disable">生成excel</button>
 
     <a :href="down_excel_url" v-show="down_excel_url!==''">下载</a>
   </div>
   <div style="width:50em; text-align: center">
-    <label>生成已付款订单</label>
+    <label>生成标签打印状态订单（315格式）</label>
 
      <button id="" @click="out_put_order_for_excel({'for':'315'})"  :disabled="submit_btn_disable">生成315格式excel</button>
     <a :href="down_315excel_url" v-show="down_315excel_url!==''">下载</a>

@@ -1,5 +1,5 @@
 <template>
-  <div style="width: 960px;margin: 0 auto">
+  <div style="width: 100%;margin: 0 auto; ">
 
     <div class="top">
       <ul>
@@ -8,13 +8,12 @@
     </ul>
     </div>
 
-    <ul>
-
+    <div class="nav_div">
       <router-link class="nav" to = "/pc/home/porder" >下订单</router-link>
       <router-link class="nav" to = "/pc/home/myorder" >我的订单</router-link>
-    </ul>
-    <div>
-      <router-view></router-view>
+    </div>
+    <div style="width: 100%; " >
+      <router-view style="width: 100%"></router-view>
     </div>
   </div>
 </template>
@@ -50,7 +49,14 @@
 </script>
 
 <style scoped>
+  .nav_div{
+    width: 100%;
+    text-align: center;
+    height: 5em;
+
+  }
   .top{
+    width: 100%;
     height: 2em;
   }
   .top ul{
@@ -64,11 +70,8 @@
   }
 .nav{
  text-decoration:none;
-  padding-left: 3em;
-  padding-right: 3em;
-  padding-bottom: 0.5em;
-  padding-top: 0.5em;
-    border-radius: 4px;
+  border-radius: 4px;
   font-weight: bold;
+  padding: 5px;
 }
 </style>

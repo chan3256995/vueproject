@@ -2,6 +2,11 @@
   <div class="container">
     <div style="padding-left: 5em">
         <input v-model="query_q" style="width: 30em; height: 2em ; " placeholder="订单号 ，收货人名，手机号，快递单号"/><button @click='on_orders_query(query_q)' style="margin-left: 0.5em">查询</button>
+
+    </div>
+    <div style = "padding-left: 5em">
+      <input type="file" ref="upload" accept=".xls,.xlsx"  > <label style="color: red; display: block" >选择ecxel导入315物流单号发货</label>
+      <button @click="fahuo_goods(fahuo_list)">确定发货</button>
     </div>
     <div>
         <ul class = "status_ul" >
@@ -87,13 +92,15 @@
   import pcommon_function from '../../../utils/pcommon_function';
   import mGlobal from '../../../utils/mGlobal';
     import  axios  from 'axios'
-
+  import XLSX from 'xlsx'
      //设为true 就会带cookies 访问
     axios.defaults.withCredentials=true;
     export default {
         name: "MyOrder",
         data(){
           return{
+            // 315excel导入的发货表格的数据
+            fahuo_list:[],
             query_q :"",
             next_page_url :"",
             selected_op :"",
@@ -125,7 +132,65 @@
       },
 
       methods:{
-                    // 加载物流选项信息
+
+
+          // #  读取excel 内容
+            readExcel(e) {//表格导入
+            var that = this;
+            const files = e.target.files;
+            console.log(files);
+            if(files.length<=0){//如果没有文件名
+            return false;
+            }else if(!/\.(xls|xlsx)$/.test(files[0].name.toLowerCase())){
+            this.$toast('上传格式不正确，请上传xls或者xlsx格式');
+            return false;
+            }
+
+            const fileReader = new FileReader();
+            fileReader.onload = (ev) => {
+            try {
+                const data = ev.target.result;
+                const workbook = XLSX.read(data, {
+                type: 'binary'
+                });
+                const wsname = workbook.SheetNames[0];//取第一张表
+                const ws = XLSX.utils.sheet_to_json(workbook.Sheets[wsname]);//生成json表格内容
+                console.log(ws);
+                // that.outputs = [];//清空接收数据
+                // that.data_string = ""
+                //编辑数据
+                for(let i= 0;i<ws.length;i++){
+                    let order_umber_315 = ws[i].订单号
+                    let name = ws[i].收件人
+                    let phone = ws[i].电话
+                    let address = ws[i].收货地址
+                    let logistics_name = ws[i].快递
+                    let logisitcs_number = ws[i].单号
+                    let my_number = ws[i].自定义编码
+                    let order_id = my_number.split('-')[0]
+                    if(logisitcs_number !== undefined){
+                      this.fahuo_list.push({"order_number":order_id,"logistics_name":logistics_name,"logistics_number":logisitcs_number})
+                    }
+
+
+                  // that.outputs.push(sheetData);
+                }
+                console.log(this.fahuo_list)
+                // console.log(this.data_string)
+
+                // this.$refs.upload.value = '';
+
+            } catch (e) {
+
+                return false;
+            }
+            };
+            fileReader.readAsBinaryString(files[0]);
+},
+
+
+
+          // 加载物流选项信息
           load_logistics(){
             const url  = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/trade/logistics/"
            //设为true 就会带cookies 访问
@@ -146,6 +211,27 @@
 
               })
           },
+        // 发货，这个接口转为数据来源为315的快递单发货
+           fahuo_goods(fahuo_list){
+
+            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/deliverFrom315/";
+             //设为true 就会带cookies 访问
+              axios.defaults.withCredentials=true;
+              axios.post(url,{"deliver_order_list":fahuo_list}).then((res)=>{
+             if(res.data.code === "1000"){
+               // #状态发生改变的订单
+               let exception_order_list = res.data.exception_order
+               this.$toast("提交成功")
+             }else{
+                alert("提交失败")
+             }
+            }).catch(error => {
+
+              console.log(error)
+              alert("提交失败")
+            })
+          },
+
           // 发货
           deliver_goods(order_list){
             let deliver_order_list = []
@@ -554,6 +640,11 @@
           const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/orders/";
           this.loadOrderPage(url);
       },
+      mounted(){
+            this.$refs.upload.addEventListener('change', e => {//绑定监听表格导入事件
+            this.readExcel(e);
+    })
+      }
 
     }
 </script>

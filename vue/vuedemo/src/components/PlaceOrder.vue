@@ -1,4 +1,4 @@
-<template>
+<template style="width: 100%">
   <div class="root">
     <div class="orders_str_div" style="display:block; background: aqua">
  <img class="tip_img" src="../assets/1.jpg">
@@ -415,7 +415,7 @@
 .root{
   margin:0 auto;
   text-align: center;
-  margin: 0 auto;
+
   width: 100%;
 
 

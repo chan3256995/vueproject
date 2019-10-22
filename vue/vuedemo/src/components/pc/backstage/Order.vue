@@ -7,6 +7,7 @@
         <li class="item_order" v-for="(item,index) in order_list" :key="index">
           <div  class="order_div" >
               <label  class="order_label" >订单号：{{item.order_number}}</label>
+             <label v-if="item.order_follower !==null">跟单人：{{item.order_follower.user_name}}</label>
               <label> {{item.consignee_name}} {{item.consignee_phone}} {{item.consignee_address}}</label>
           </div>
           <div style="display: inline-block;width: 100%" ><button @click="item_detail_show(index,item)" style="float: right">显示/隐藏</button></div>

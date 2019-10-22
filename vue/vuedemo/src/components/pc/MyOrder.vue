@@ -1,7 +1,7 @@
 <template>
   <div class="container">
     <div style="padding-left: 5em">
-        <input v-model="query_q" style="width: 30em; height: 2em ; " placeholder="订单号 ，收货人名，手机号，快递单号"/><button @click='on_orders_query(query_q)' style="margin-left: 0.5em">查询</button>
+        <input v-model="query_q" style="width: 85%;height: 2em;max-width: 40em; " placeholder="订单号 ，收货人名，手机号，快递单号"/><button @click='on_orders_query(query_q)' style="margin-left: 0.5em">查询</button>
       </div>
     <ul class = "status_ul" >
       <li ><a @click="on_order_filter({'status':goods_status2['未付款']},'未付款')" :class="{status_select:cur_order_status_filter==='未付款'}">未付款</a></li>
@@ -16,10 +16,10 @@
       <button @click="orders_pay(go_pay_order_list)" v-if="cur_order_status_filter==='未付款'">合并付款</button><label style="color: red"> 总计: {{go_pay_money_totals}} 元</label>
 
     </div>
-    <ul class = "items_ul">
-        <li class="item_order" v-for="(item,index) in order_list" :key="index">
-          <div  class="order_div" >
-            <table>
+    <div class = "items_ul">
+        <li class="item_order " v-for="(item,index) in order_list" :key="index">
+          <div  class="global_background order_div" >
+            <table  >
               <tr>
                 <td style="width:90%">
                    <input style="width: 1.2em;height: 1.2em" @change="check_box_change(item)" type="checkbox" v-model="item.is_order_selected" v-if="cur_order_status_filter==='未付款'"/>
@@ -71,12 +71,13 @@
                 <label style="padding-left: 0.5em">下单时间:{{item.add_time}}</label>
                 <label>快递：{{item.logistics_name}}</label>
                <label>单号：{{item.logistics_number}}</label>
+                <button @click="show_logistics_qr(item.logistics_number)" v-if="item.logistics_number!==''">二维码单号</button>
               </div>
         </li>
-    </ul>
+    </div>
     <table class="page_table">
       <tr>
-        <td style=" cursor:pointer;"><a >首页</a></td>
+        <td style=" cursor:pointer;"><a @click="firstPage">首页</a></td>
         <td style=" cursor:pointer;" v-if="prePageShow"><a  @click="prePage" style="">上一页</a></td>
         <td  style=" cursor:pointer;" v-if="nextPageShow"><a @click="nextPage">下一页</a></td>
 
@@ -103,7 +104,6 @@
             go_pay_money_totals :0,
             go_pay_order_list:[],
             query_q :"",
-            next_page_url :"",
             selected_op :"",
 
             options: [
@@ -123,20 +123,35 @@
             prePageShow:true,
             nextPageShow:true,
             order_list:[],
+            firstPageUrl:this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/orders/",
             prePageUrl:"",
             nextPageUrl:"",
           }
       },
 
       methods:{
+
+          // 用二维码显示物理单号
+          show_logistics_qr(logistics_number){
+            if(logistics_number.toString().trim() === ""){
+              alert("单号不能为空")
+              return
+            }
+            this.$qrBox2.showMsgBox({
+                  title: '二维码',
+                  qr_value: logistics_number,
+
+                  content: '扫当前二维码获得快递单号"',
+                  isShowInput: true,
+                  isShowConfimrBtn :true,
+                  confirmBtnText :"关闭",
+                  isShowCancelBtn :false,
+              }).then(async (val) => {
+            })
+
+          },
           check_box_change(item){
-            // if(item.is_order_selected){
-            //   this.go_pay_order_list.push(item)
-            // }else{
-            //   this.go_pay_order_list.splice(item)
-            // }
-            //
-            // console.log(this.go_pay_order_list)
+
              this.go_pay_order_list = this.get_unpay_order_list();
             this.go_pay_money_totals = this.calc_unpay_order_moneys(this.go_pay_order_list)
           },
@@ -414,7 +429,7 @@
 
           replaceData() {
             for(let i = 0;i<this.order_list.length;i++){
-              let item =  this.order_list[i];
+               let item =  this.order_list[i];
                let  mdate = mtime.formatDateStrFromTimeSt(item.add_time);
               console.log(mdate)
               item.add_time =mdate;
@@ -437,6 +452,12 @@
             this.loadOrderPage(this.nextPageUrl)
           },
 
+          firstPage(){
+            if(this.firstPageUrl!==""){
+              this.loadOrderPage(this.firstPageUrl)
+            }
+
+          },
         loadOrderPage(url,query_data){
 
            axios.defaults.withCredentials=true;
@@ -487,6 +508,7 @@
 </script>
 
 <style scoped>
+  @import "../../../static/css/PGLOBALCSS.css";
   .status_ul{
       display: block;
       height: 1.5em;
@@ -509,7 +531,6 @@
   }
   .item_order{
     margin-top: 3em;
-    background: #f0f0f0;
     padding-bottom: 0.5em;
     border-top:1px solid gray;
   }
@@ -534,9 +555,9 @@
 
   .order_div {
     width: 100%;
-    background: darkgray;
     padding-top: 0.5em;
     padding-bottom: 0.5em;
+    color: #000;
   }
   /*.item_goods label{*/
     /*display: block; padding-bottom: 0.4em*/
@@ -546,7 +567,9 @@
   .item_goods{
     margin-bottom: 0.5em;
 
+    background: #f0f0f0;
     padding-left: 1.5em
+
   ;
   }
   .order_div label{
@@ -555,6 +578,7 @@
   display: inline-block;
 
 }
+
   .refund_apply_btn{
     cursor:pointer;
     width: 4em;

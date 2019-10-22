@@ -1,4 +1,4 @@
-<template>
+<template >
  <div class="root">
   <div class="orders_str_div" >
     <div class="review_order_div" >
@@ -27,29 +27,26 @@
         </div>
       <button class = "default_button" @click="onHandAddGoodsClick">添加商品</button>
       <div>
-            <table>
-                    <tr>
-                        <td><input placeholder="市场名_楼层_档口号_货号_价格_颜色尺码_件数" class = "defalut_input auto_goods_input" v-model="raw_goods_txt"/></td>
-                        <td><button class = "default_button" @click="onAddGoodsClick">识别添加商品</button></td>
-                    </tr>
-                     <tr>
-
-                       <td><label style="color: red" class = "defalut_input auto_goods_input" v-model="raw_goods_txt">市场名_楼层_档口号_货号_价格_颜色尺码_件数(用空格 逗号 下划线 隔开)</label></td>
-                        <td></td>
-                    </tr>
-
-            </table>
+        <div>
+          <input placeholder="市场名_楼层_档口号_货号_价格_颜色尺码_件数" class = "defalut_input auto_goods_input" v-model="raw_goods_txt"/>
+         <button class = "default_button" @click="onAddGoodsClick">识别添加商品</button>
         </div>
-      <div style="padding-top: 3em">
+
+
+        <label style="color: red" class = "defalut_input auto_goods_input" v-model="raw_goods_txt">市场名_楼层_档口号_货号_价格_颜色尺码_件数(用空格 逗号 下划线 隔开)</label>
+
+
+        </div>
+      <div style="padding-top: 3em; text-align: center">
+
            <table class="address">
              <tr >
-                <td> 姓名：<input :class="{'input_tip':(processed_address_object.name===''  && is_tip === true )} " class = "defalut_input" v-model="processed_address_object.name" /></td>
-               <td>电话：<input  :class="{'input_tip':(processed_address_object.phone===''  && is_tip === true )} " class = "defalut_input" v-model="processed_address_object.phone" type="number" oninput="if(value.length>11) value=value.slice(0,11)"    /></td>
-             </tr>
-           </table>
-           <table class="address">
 
+             </tr>
               <tr >
+                  <td> 姓名：<input :class="{'input_tip':(processed_address_object.name===''  && is_tip === true )} " class = "defalut_input" v-model="processed_address_object.name" /></td>
+                <td>电话：<input  :class="{'input_tip':(processed_address_object.phone===''  && is_tip === true )} " class = "defalut_input" v-model="processed_address_object.phone" type="number" oninput="if(value.length>11) value=value.slice(0,11)"    /></td>
+
                  <td>   省份：<input type="text" :class="{'input_tip':(processed_address_object.province===''  && is_tip === true )} " class = "defalut_input" v-model="processed_address_object.province"   /></td>
                  <td>    城市：<input :class="{'input_tip':(processed_address_object.city===''  && is_tip === true )} " class = "defalut_input" v-model="processed_address_object.city"  /></td>
                  <td>   地区：<input   class = "defalut_input" v-model="processed_address_object.area" /></td>
@@ -57,32 +54,32 @@
 
             </table>
            <div class="detailed_address_div">
-               <label>详细地址：</label>
+                <label style="display: block">详细地址</label>
                <textarea  :class="{'input_tip':(processed_address_object.address_detail===''  && is_tip === true )} "   v-model="processed_address_object.address_detail" ></textarea>
+
             </div>
           <div >
-                 <label style="color:red; float: right"></label>
-                 <div style=" text-align: left">
-                   <textarea class = "defalut_input auto_address_input" v-text="raw_address" v-model="raw_address"></textarea>
-                  <button class = "default_button " @click="onAddAddressClick">识别地址</button>
 
+                 <div style=" text-align: left;margin-top: 0.4em">
+                   <textarea placeholder="把地址粘贴到此处进行识别（也可以把商品跟地址一起粘贴到此处智能势识别）" class = "defalut_input auto_address_input" v-text="raw_address" v-model="raw_address"></textarea>
+                  <button class = "default_button " @click="onAddAddressClick">识别地址</button>
                 </div>
                 <div><button class = "match_btn" @click="onAddOrderOk">确认添加</button></div>
-
-
 
            </div>
       </div>
     </div>
+
+
 
     <div style="margin-top: 2em;margin-bottom: 2em">
                 <select class="logistic_select" v-model="selected_logistics">
                   <option :value="option" v-for="(option,index) in logistics_options" :key="index">{{option.logistics_name}}</option>
                 </select>
                 <label style="margin-left: 0.5em">{{selected_logistics.logistics_price}}元</label>
-
                    <select class="logistic_select" v-model="selected_quality_test">
                   <option :value="option" v-for="(option,index) in quality_test_options" :key="index">{{option.quality_testing_name}}</option>
+                      <label style="margin-left: 0.5em">{{selected_quality_test.quality_testing_price}}元 </label>
                 </select>
     </div>
 
@@ -106,11 +103,22 @@
   </div>
 
 
-   <div>
+
+
+
+
+
+
+   <div    style="font-size:1.5em; text-align: left">
+      <label>共</label>
+      <label style="color:red">{{order_obj.order_list.length}}</label>
+      <label>件</label>
+    </div>
+   <div   >
       <li class = "items_li" v-for="(item,index) in order_obj['order_list']" >
        <div class="review_order_div" >
-         <div class = "order_div">
-            <label class = "">订单：{{index+1}}</label>
+         <div class = "order_div global_background ">
+            <label style="color:black">订单：{{index+1}}</label>
           <button style=" width:4em;height:2em;float: right; margin-right: 2em" @click="onDeleteRawGoods(index,order_obj['order_list'])">删除</button>
          </div>
 
@@ -136,15 +144,16 @@
             </tr>
 
             </table>
-      <div style="padding-top: 3em">
-           <table class="address">
-             <tr >
+      <div style="padding-top:5px">
+
+            <table class="address">
+              <tr>
+
+             </tr>
+              <tr >
                 <td> 姓名：<input :class="{'input_tip':item.address.name===''}"  v-model="item.address.name" /></td>
                <td>电话：<input :class="{'input_tip':item.address.phone===''}"  type="number" oninput="if(value.length>11) value=value.slice(0,11)"    v-model="item.address.phone"/></td>
-             </tr>
-           </table>
-            <table class="address">
-              <tr >
+
                  <td>省份：<input   :class="{'input_tip':item.address.province===''}"  v-model="item.address.province" /></td>
                  <td>城市：<input  :class="{'input_tip':item.address.city.trim()===''}"  v-model="item.address.city"/></td>
                  <td>地区：<input    v-model="item.address.area"/></td>
@@ -152,8 +161,9 @@
 
             </table>
         <div class="detailed_address_div">
-          <label>详细地址：</label>
-            <textarea  v-model="item.address.address_detail" ></textarea>
+          <textarea  v-model="item.address.address_detail" ></textarea>
+          <!--<label>详细地址：</label>-->
+
         </div>
         <div style="display: block;height: 3em">
           <label>快递：{{item.logistics.logistics_name}}</label>
@@ -171,7 +181,7 @@
 
       </li>
    </div>
-   <div style="margin-top: 2em">
+   <div   style="margin-top: 2em">
      <label style="font-weight: bold; color: red;margin-left: 3em">总价格：{{order_obj.allPrice}} 元</label></div>
      <button class="submit_btn" @click="submit" :disabled="submit_btn_disable" v-text="submit_btn"></button>
   </div>
@@ -770,6 +780,7 @@
 </script>
 
 <style scoped>
+  @import "../../../static/css/PGLOBALCSS.css";
 .default_button{
   padding: 0.5em;
   margin-bottom: 0.5em;
@@ -780,11 +791,11 @@
 }
 
 .auto_goods_input{
-  width:30em;
+  width:50%;
   height: 1.8em;
 }
 .auto_address_input{
-  width:40em;
+  width:70%;
   height: 5em;
 }
   .input_tip{
@@ -825,16 +836,29 @@
 .items_li{
   list-style: none;
 }
-.address td{
-  padding-left: 1em;
+.address{
+  width: 95%;
 
 }
-.address input{
-  width: 10em;
+.address tr{
+  width: 100%;
 }
+.address td{
+  width: 18%;
+  max-width: 8em;
+  padding-left: 1%;
+
+}
+
+.address input{
+  width:100%;
+
+}
+
+
 
 .orders_str_div{
-  width: 900px;
+  width: 100%;
   height: auto;
     margin: 0 auto;
 
@@ -858,20 +882,21 @@
     padding-top: 0.5em;
   }
   .detailed_address_div textarea{
-    width: 20em;
-    height: 4em;
+    width: 70%;
+    height: 6em;
   }
-  .detailed_address_div label{
-    margin-bottom: 3em;
-  }
+
 .review_order_div{
   border: darkgrey solid 1px;
   display: block;
   width:auto;
   height: auto;
   background: #f0f0f0;
+  margin-bottom: 1em;
+
 
 }
+
 #order_text{
 
     padding: 0px;
@@ -881,18 +906,26 @@
   }
 
 .market_table {
+   width: 100%;
    text-align: left;
 }
-  .market_table input{
-    width: 7em;
+.market_table tr {
+   width: 100%;
+   text-align: left;
+}
+ .market_table td{
+    width: 12%;
+    height: 1.5em;
+
+  }
+  .market_table td  input{
+    width :95%;
     height: 1.5em;
 
   }
 .order_div{
   text-align: left;
-  background: darkgray;
   width: 100%;
-
   display: inline-block;
   padding-top: 0.5em;
   padding-bottom: 0.5em;

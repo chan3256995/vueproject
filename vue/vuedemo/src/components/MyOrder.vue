@@ -1,4 +1,4 @@
-<template>
+<template style="width: 100%" >
   <div class="container">
     <ul class = "items_ul">
         <li class="item_order" v-for="(item,index) in order_list" :key="index">
@@ -184,7 +184,6 @@
 
   .order_div {
     width: 100%;
-    background: darkgray;
     padding-top: 0.5em;
     padding-bottom: 0.5em;
   }
@@ -195,7 +194,8 @@
 
   .item_goods{
     margin-bottom: 0.5em;
-    background: beige;
+
+    background: #f0f0f0;
     padding-left: 1.5em
   ;
   }

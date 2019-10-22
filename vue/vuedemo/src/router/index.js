@@ -37,7 +37,7 @@ export default new VueRouter({
   routes:[
 
     //根目录默认地址
-    {path: '/', redirect: '/pc/home'},
+    {path: '/', redirect: '/pc/home/porder'},
     {
       path:'/register',
       name:'Register',
