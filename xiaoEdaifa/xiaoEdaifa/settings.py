@@ -141,6 +141,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+TEMP_FILE_DIRS = os.path.join(BASE_DIR, 'static/temp')
 # 解决跨域设置
 CORS_ORIGIN_ALLOW_ALL  = True
 CORS_ALLOW_CREDENTIALS = True

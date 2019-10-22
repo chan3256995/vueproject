@@ -27,8 +27,6 @@ router.register(r'goodsRefund', views.OrderGoodsRefundViewSet, base_name='goodsR
 router.register(r'tradeInfo', trade_views.TradeInfoViewSet, base_name='tradeInfo')
 # router.register(r'tagPrint', trade_views.TagPrintViewSet, base_name='tradeInfo')
 
-
-
 urlpatterns = [
     # url(r'^static/(?P<path>.*)$', my_view.serve),
     url(r'static/(?P<path>.*)',serve,{'document_root':settings.STATIC_ROOT}),
@@ -45,6 +43,7 @@ urlpatterns = [
     url('logisticsPrint/', trade_views.LogisticsPrintView.as_view()),
     # 发货
     url('deliverGoods/', trade_views.DeliverGoodsView.as_view()),
+    url('deliverFrom315/', trade_views.DeliverFrom315View.as_view()),
     #  明天有货
     url('tomorrowGoods/', trade_views.TomorrowGoodsView.as_view()),
     url('changePurchasingStatus/', trade_views.ChangePurchasingStatus.as_view()),

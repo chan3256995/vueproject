@@ -36,19 +36,20 @@ class BackStageAuthentication(BaseAuthentication):
             token = request._request.COOKIES.get("access_token_bk")
         print("access_token_bk:",token)
 
-        if token is None or token == "":
-            token = request._request.GET.get('access_token_nh')
-            if token is None or token == "":
-                token = request._request.COOKIES.get("access_token_nh")
-            print("access_token_nh:", token)
+        # if token is None or token == "":
+        #     token = request._request.GET.get('access_token_nh')
+        #     if token is None or token == "":
+        #         token = request._request.COOKIES.get("access_token_nh")
+        #     print("access_token_nh:", token)
         if token is None or token == "":
             logger.info('%s url:%s method:%s'%("用户认证失败token is Nosne", request.path, request.method))
-            raise exceptions.AuthenticationFailed("用户认证失败")
+            return None
+            # raise exceptions.AuthenticationFailed("用户认证失败")
 
         print('token{}'.format(token))
         token_obj = models.UserToken.objects.filter(token=token).first()
 
-        if  token_obj is None:
+        if token_obj is None:
             logger.info('%s url:%s method:%s' % ("用户认证失败token:"+token, request.path, request.method))
             raise exceptions.AuthenticationFailed("用户认证失败")
         # zai rest  framework 内部会将两字段复制给request（request.user,request.util），
@@ -67,6 +68,7 @@ class BackStageNahuoAuthentication(BaseAuthentication):
         print("access_token_nh:",token)
         if token is None or token == "":
             logger.info('%s url:%s method:%s'%("用户认证失败token is Nosne", request.path, request.method))
+            # return None
             raise exceptions.AuthenticationFailed("用户认证失败")
 
         print('token{}'.format(token))

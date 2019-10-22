@@ -1,32 +1,36 @@
-import logging
-logger = logging.getLogger('stu')
+
 from utils import permission
 from rest_framework.views import APIView
 from utils import mcommon
-# Create your views here.
 from rest_framework import mixins
 from utils import m_serializers
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
-import traceback
 from django.db.models import Q
 from utils.permission import Superpermission
 from utils.auth import BackStageAuthentication
+from utils import mIP_utils
 from django.db import transaction
 from rest_framework  import serializers
 from trade import models as trade_models
-import xlwt
+from utils import mfile_utils
 from datetime import datetime
 from xiaoEdaifa import settings
 from utils import mglobal
 from trade import trade_utils
 from backstage import bserializers
 import time
+import xlwt
+import traceback
+import logging
+logger = logging.getLogger('stu')
 
+
+# 导出标签打印状态的订单
 class OutPutOrdersView(APIView):
     authentication_classes = [BackStageAuthentication,]
-    # permission_classes = [Superpermission]
+    permission_classes = [Superpermission]
 
     def post(self, request, *args, **kwargs):
         try:
@@ -46,16 +50,12 @@ class OutPutOrdersView(APIView):
             logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
         return Response(ret)
 
-
-
     def out_to_print(self,request, args, kwargs, condition):
         ret = {"code": "1000", "message": ""}
-        order_goods_status = Q(orderGoods__status=mcommon.status_choices2.get("已付款"))
-        if condition == "re_print_tag":
-            order_goods_status = order_goods_status & Q(orderGoods__status=mcommon.status_choices2.get("标签打印"))
+
+        args =   Q(orderGoods__status=mcommon.status_choices2.get("标签打印"))
         try:
-            zero_point_today = mcommon.get_time_0clock_of_today()
-            print(zero_point_today)
+
             # 实例化一个Workbook()对象(即excel文件)
             wbk = xlwt.Workbook()
             # 新建一个名为Sheet1的excel sheet。此处的cell_overwrite_ok =True是为了能对同一个单元格重复操作。
@@ -65,9 +65,7 @@ class OutPutOrdersView(APIView):
             # 将获取到的datetime对象仅取日期如：2016-8-9
             today_date = datetime.date(today)
             print("ddddd")
-            query_set = trade_models.Order.objects.filter(order_goods_status).distinct().order_by('-add_time')
-            # query_set = trade_models.Order.objects.filter(add_time__gte=zero_point_today).values('order_number','logistics_name',
-            #                  'consignee_name','consignee_phone','consignee_address','orderGoods__shop_market_name','orderGoods__shop_floor').order_by('-add_time')
+            query_set = trade_models.Order.objects.filter(args).distinct().order_by('-add_time')
 
             sheet.write(0, 0, "收件人")
             sheet.write(0, 1, "单号")
@@ -88,19 +86,22 @@ class OutPutOrdersView(APIView):
                 # 将每一行的每个元素按行号i,列号j,写入到excel中
                 order = query_set[i]
                 order_number = order.order_number
-                goods_query = trade_models.OrderGoods.objects.filter(order=order)
-
-                for j in range(len(goods_query)):
-                    order_goods = goods_query[j]
-                    if order_goods.status != mcommon.status_choices2.get("已付款"):
+                order_goods_query = trade_models.OrderGoods.objects.filter(order=order)
+                # 有效打印商品总数（ps: 状态为  标签打印 为有效打印商品）
+                order_goods_avail_counts = self.get_curr_order_avail_tag_goods_count(order_goods_query)
+                print(order.consignee_name)
+                print("order_goods_avail_counts:" + str(order_goods_avail_counts))
+                cur_avail_goods_index = 0
+                for j in range(len(order_goods_query)):
+                    order_goods = order_goods_query[j]
+                    if order_goods.status != mcommon.status_choices2.get("标签打印"):
                         continue
+                    cur_avail_goods_index = cur_avail_goods_index + 1
                     cur_row = cur_row + 1
-
-
                     # order_goods = order.orderGoods
                     sheet.write(cur_row, 0, order.consignee_name)
-                    if len(goods_query) > 1:
-                        tem_str = str(len(goods_query)) + "-" + str(j + 1) + "-"
+                    if order_goods_avail_counts > 1:
+                        tem_str = str(order_goods_avail_counts) + "-" + str(cur_avail_goods_index) + "-"
                         sheet.write(cur_row, 1, tem_str + str(order.id))
                     else:
                         sheet.write(cur_row, 1, str(order.id))
@@ -129,8 +130,14 @@ class OutPutOrdersView(APIView):
                     sheet.write(cur_row, 11, order.consignee_address)
                     sheet.write(cur_row, 12, mcommon.format_from_time_stamp(int(str(order.add_time)[0:10])))
 
-            excel_url = mglobal.STATIC_URL_BASE + settings.STATIC_URL + str(today_date) + '.xls'
-            excel_path = settings.STATIC_ROOT + "/" + str(today_date) + '.xls'
+            excel_name = str(today_date) + '.xls'
+            excel_path = settings.TEMP_FILE_DIRS + "/bk/" + excel_name
+            excel_url = mglobal.STATIC_URL_BK + settings.STATIC_URL + "temp/bk/" + excel_name
+
+            # 保存之前把之前生成的文件都删除了 以免时间长了存留太多文件
+            file_list = mfile_utils.get_file_list(settings.TEMP_FILE_DIRS + "/bk/")
+            for file in file_list:
+                mfile_utils.delete_file(settings.TEMP_FILE_DIRS + "/bk/"+file)
             # 以传递的name+当前日期作为excel名称保存。
             wbk.save(excel_path)
             ret['excel_url'] = excel_url
@@ -141,13 +148,10 @@ class OutPutOrdersView(APIView):
             logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
         return Response(ret)
 
-
-
     def out_to_315(self, request, *args, **kwargs):
         ret = {"code": "1000", "message": ""}
         try:
-            zero_point_today = mcommon.get_time_0clock_of_today()
-            print(zero_point_today)
+            ip = mIP_utils.get_windows_local_ip()
             # 实例化一个Workbook()对象(即excel文件)
             wbk = xlwt.Workbook()
             # 新建一个名为Sheet1的excel sheet。此处的cell_overwrite_ok =True是为了能对同一个单元格重复操作。
@@ -157,7 +161,7 @@ class OutPutOrdersView(APIView):
             # 将获取到的datetime对象仅取日期如：2016-8-9
             today_date = datetime.date(today)
             print("ddddd")
-            query_set = trade_models.Order.objects.filter(orderGoods__status = mcommon.status_choices2.get("已付款")).distinct().order_by('-add_time')
+            query_set = trade_models.Order.objects.filter(orderGoods__status = mcommon.status_choices2.get("标签打印")).distinct().order_by('-add_time')
             # 合并第1行到第2行的第0列到第3列。
             sheet.write_merge(0, 0, 0, 10,"666")
             sheet.write(1, 0, "城市")
@@ -214,7 +218,10 @@ class OutPutOrdersView(APIView):
                     sheet.write(cur_row, 8, "")
 
                     sheet.write(cur_row, 9, "")
-                    sheet.write(cur_row, 10, order_goods.id)
+                    if ip.find('172.17.1.38') != -1:
+                        sheet.write(cur_row, 10, "r"+str(order.id)+"-"+str(order_goods.id))
+                    else:
+                        sheet.write(cur_row, 10, str(order.id) + "-" + str(order_goods.id))
                     sheet.write(cur_row, 11, order.consignee_address)
 
                 consignee_address = order.consignee_address.replace(","," ",3).replace("，"," ").replace("  "," ")
@@ -222,9 +229,13 @@ class OutPutOrdersView(APIView):
                 # 合并第1行到第2行的第0列到第3列。
                 sheet.write_merge(cur_order_row, cur_row, 11, 11,order.consignee_name+"，"+str(order.consignee_phone)+"，"+ consignee_address)
             excel_name = str(today_date) + '315.xls'
-            excel_path = settings.STATIC_ROOT + "/" + excel_name
-            excel_url = mglobal.STATIC_URL_BASE + settings.STATIC_URL + excel_name
+            excel_path = settings.TEMP_FILE_DIRS + "/bk/" + excel_name
+            excel_url = mglobal.STATIC_URL_BK + settings.STATIC_URL + "temp/bk/" + excel_name
 
+            # 保存之前把之前生成的文件都删除了 以免时间长了存留太多文件
+            file_list = mfile_utils.get_file_list(settings.TEMP_FILE_DIRS + "/bk/")
+            for file in file_list:
+                mfile_utils.delete_file(settings.TEMP_FILE_DIRS + "/bk/"+file)
             # 以传递的name+当前日期作为excel名称保存。
             wbk.save(excel_path)
             ret['excel_url'] = excel_url
@@ -234,6 +245,15 @@ class OutPutOrdersView(APIView):
             ret['message'] = "生成失败"
             logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
         return Response(ret)
+
+    # 统计一个订单有效标签打印的商品数量
+    def get_curr_order_avail_tag_goods_count(self,order_goods_query):
+        avail_counts = 0
+        for order_goods in order_goods_query:
+            if order_goods.status == mcommon.status_choices2.get("标签打印") and order_goods.refund_apply_status == mcommon.refund_apply_choices2.get("无售后"):
+                avail_counts = avail_counts + 1
+        return avail_counts
+
 
 
 class OrderGoodsViewSet(mixins.UpdateModelMixin,GenericViewSet):
@@ -405,10 +425,13 @@ class OrderViewSet(mixins.ListModelMixin,mixins.UpdateModelMixin, GenericViewSet
             print("query_keys")
             print(query_keys)
             if query_keys is not None:
+
                 args = Q(order_number=query_keys) | Q(consignee_name=query_keys) | Q(logistics_number=query_keys)
                 # 手机字段为数字 用字符查询会报错
                 if query_keys.isdigit():
                     args = args | Q(consignee_phone=query_keys)
+                print("args++++++++++++")
+                print(args)
                 return trade_models.Order.objects.filter(args).order_by('add_time')
             elif status_filter is not None:
                 return trade_models.Order.objects.filter(orderGoods__status=status_filter).distinct().order_by( "-add_time")
@@ -541,7 +564,6 @@ class OrderGoodsRefundViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, G
             ret['code'] = "1001"
             ret['message'] = "更改失败"
         return Response(ret)
-
 
     def log_user_pay_info(self,order_goods,order,trade_moneys):
         order_owner_balance = order.order_owner.balance + trade_moneys

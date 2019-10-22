@@ -22,6 +22,6 @@ class NahuoUserpermission(object):
 
     def has_permission(self, request, view):
         print("NahuoUserpermission")
-        if request.user.type == 98 :
+        if request.user.type == 98 or request.user.type == 99:
             return True
         return False

@@ -22,9 +22,6 @@ router = routers.DefaultRouter()
 router.register(r'orders', nahuo_views.OrderViewSet, base_name='orders')
 
 
-
-
-
 urlpatterns = [
     # 把上面的router引用进来  上面的router才能用
     url(r'', include(router.urls)),
@@ -32,5 +29,6 @@ urlpatterns = [
 
     # 选取已付款的订单
     url('selectOrders/', nahuo_views.SelectOrderView.as_view()),  # new
+    url('outputExcel/', nahuo_views.OutPutOrdersView.as_view()),  # new
 
 ]

@@ -11,6 +11,7 @@ from rest_framework import mixins
 from django.db import transaction
 from rest_framework.viewsets import GenericViewSet
 from utils import m_serializers
+from utils import mIP_utils
 import time
 from django.db.models import Q
 from utils.auth import BackStageAuthentication,BackStageNahuoAuthentication
@@ -31,8 +32,8 @@ class TradeInfoViewSet(mixins.ListModelMixin,GenericViewSet):
     # serializer_class = m_serializers.TradeOrderQuerySerializer
     # 设置分页的class
     pagination_class = UsersPagination
-    authentication_classes = []
-    permission_classes = []
+    authentication_classes = [BackStageAuthentication]
+    permission_classes = [Superpermission]
 
     def list(self, request, *args, **kwargs):
         try:
@@ -55,7 +56,6 @@ class TradeInfoViewSet(mixins.ListModelMixin,GenericViewSet):
             logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
             return JsonResponse(ret)
         return JsonResponse(ret)
-
 
 
 # 缺货
@@ -129,10 +129,11 @@ class NotHasGoods(APIView):
 # 修改拿货中状态商品 统一用这个接口（如 拿货中状态 改为 明日有货  2-5天有货 已拿货  其他）
 class ChangePurchasingStatus(APIView):
     authentication_classes = [BackStageAuthentication, BackStageNahuoAuthentication]
+    permission_classes = [NahuoUserpermission]
 
     def post(self, request, *args, **kwargs):
         # {'order_list': [{'order_number': 'os20191007141753133698', 'orderGoods': [{'goods_number': 'gs20191007141753153630', 'goods_count': 1}]}]}
-        print(" TomorrowGoodsView''''''''''''''")
+        print(" ChangePurchasingStatus''''''''''''''")
         print(request.data)
         try:
             with transaction.atomic():
@@ -271,8 +272,8 @@ class TomorrowGoodsView(APIView):
 
 # 发货
 class DeliverGoodsView(APIView):
-    authentication_classes = [BackStageAuthentication, ]
-    permission_classes = [Superpermission]
+    authentication_classes = [BackStageAuthentication,BackStageNahuoAuthentication ]
+    permission_classes = [NahuoUserpermission]
 
     def post(self, request, *args, **kwargs):
         print("tag print''''''''''''''")
@@ -295,7 +296,7 @@ class DeliverGoodsView(APIView):
 
                         if sql_order_goods.status == mcommon.status_choices2.get("已退款") :
                             pass
-                        elif (sql_order_goods.status == mcommon.status_choices2.get("快递打印") or sql_order_goods.status == mcommon.status_choices2.get("已拿货")) and sql_order_goods.refund_apply_status == mcommon.refund_apply_choices2.get("无售后"):
+                        elif (sql_order_goods.status == mcommon.status_choices2.get("快递打印") ) and sql_order_goods.refund_apply_status == mcommon.refund_apply_choices2.get("无售后"):
                             tem_nomal_order_goods.append(sql_order_goods)
                         else:
                             # 商品状态已经改变了 比如改为拦截发货  并且 客户端提交了该商品
@@ -334,10 +335,87 @@ class DeliverGoodsView(APIView):
         return ""
 
 
+# 这个接口只为315物流来源发货
+class DeliverFrom315View(APIView):
+    authentication_classes = [BackStageAuthentication,BackStageNahuoAuthentication ]
+    permission_classes = [NahuoUserpermission]
+
+    def post(self, request, *args, **kwargs):
+        print("tag print''''''''''''''")
+        print(request.data)
+        try:
+            ip = mIP_utils.get_windows_local_ip()
+            with transaction.atomic():
+                ret = {'code': "1000", 'message': ""}
+                req_order_list = request.data.get("deliver_order_list")
+                req_order_id_list = []
+                # 异常状态订单
+                exception_order_list = []
+                for req_order_object in req_order_list:
+                    order_number = req_order_object.get("order_number")
+                    if ip.find('172.17.1.38') != -1:
+                        if order_number.startswith("r") is False:
+                            ret['code'] = "1001"
+                            ret['message'] = "数据异常"
+                            return JsonResponse(ret)
+                        else:
+                            order_number = order_number.replace('r', '')
+                    req_order_id_list.append(order_number)
+
+                order_queryset = trade_models.Order.objects.filter(Q(id__in=req_order_id_list)).distinct()
+                for sql_order in order_queryset:
+                    tem_exceptions_order_goods = []
+                    tem_nomal_order_goods = []
+                    sql_order_goods_query = trade_models.OrderGoods.objects.filter(order=sql_order)
+                    for sql_order_goods in sql_order_goods_query:
+
+                        if sql_order_goods.status == mcommon.status_choices2.get("已退款") :
+                            pass
+                        elif (sql_order_goods.status == mcommon.status_choices2.get("快递打印") or
+                              sql_order_goods.status == mcommon.status_choices2.get("已拿货") or
+                              sql_order_goods.status == mcommon.status_choices2.get("拿货中") ) and sql_order_goods.refund_apply_status == mcommon.refund_apply_choices2.get("无售后"):
+                            tem_nomal_order_goods.append(sql_order_goods)
+                        else:
+                            # 商品状态已经改变了 比如改为拦截发货  并且 客户端提交了该商品
+                            # 有异常状态商品 该订单都不能发货
+                            tem_exceptions_order_goods.append(sql_order_goods.goods_number)
+                            break
+                    req_order = self.find_order(sql_order.id, req_order_list)
+                    req_order_logistic_name = req_order.get("logistics_name")
+                    req_order_logistic_number = req_order.get("logistics_number")
+                    if len(tem_exceptions_order_goods) != 0 or req_order_logistic_name == "" or req_order_logistic_number == "" :
+                        exception_order_list.append(
+                            {"order_number": sql_order.id, 'orderGoods': tem_exceptions_order_goods})
+                    else:
+                        for nomal_order_goods in tem_nomal_order_goods:
+                            nomal_order_goods.status = mcommon.status_choices2.get("已发货")
+                            nomal_order_goods.save()
+                        sql_order.logistics_number = req_order_logistic_number
+                        sql_order.logistics_name = req_order_logistic_name
+                        sql_order.save()
+                ret['exception_order'] = exception_order_list
+                return JsonResponse(ret)
+
+        #
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "查询异常"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return JsonResponse(ret)
+        return JsonResponse(ret)
+
+    def find_order(self,order_number,req_order_list):
+        for req_order in req_order_list:
+            if str(order_number) == str(req_order.get("order_number")):
+                return req_order
+        return ""
+
+
 # 打印物流单
 class LogisticsPrintView(APIView):
-    authentication_classes = [BackStageAuthentication, ]
-    permission_classes = [Superpermission]
+    authentication_classes = [BackStageAuthentication,BackStageNahuoAuthentication ]
+    permission_classes = [NahuoUserpermission]
 
     def post(self, request, *args, **kwargs):
         print("LogisticsPrintView print''''''''''''''")
@@ -511,8 +589,8 @@ class PurchaseGoodsView(APIView):
 
 # 打印标签
 class TagPrintView(APIView):
-    authentication_classes = [BackStageAuthentication, ]
-    permission_classes = [Superpermission]
+    authentication_classes = [BackStageAuthentication,BackStageNahuoAuthentication ]
+    permission_classes = [NahuoUserpermission]
 
     def post(self, request, *args, **kwargs):
         print("tag print''''''''''''''")
