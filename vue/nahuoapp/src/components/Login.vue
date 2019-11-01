@@ -1,7 +1,9 @@
 <template>
 
 <div class="login">
-
+  <div>
+    <label style="color: red">可用 admin 账号登录</label>
+  </div>
   <table style="margin: 0 auto">
     <tr>
       <td>用户名：</td>

@@ -48,20 +48,22 @@
               '其他': 14,
             },
       GOODS_STATUS_OPTIONS:[
-              {text:"未付款",value:1},
+              // {text:"未付款",value:1},
+              {text:"其他",value:14},
               {text:"已付款",value:2},
+              {text:"标签打印",value:10},
               {text:"拿货中",value:3},
               {text:"已拿货",value:4},
+              {text:"快递打印",value:11},
               {text:"已发货",value:5},
               {text:"已退款",value:6},
               {text:"明日有货",value:7},
-              {text:"已取消",value:8},
-              {text:"缺货",value:9},
-              {text:"标签打印",value:10},
-              {text:"快递打印",value:11},
               {text:"已下架",value:12},
               {text:"2-5天有货",value:13},
-              {text:"其他",value:14},
+              {text:"已取消",value:8},
+              {text:"缺货",value:9},
+
+
             ],
 
          REFUND_APPLY_STATUS: {

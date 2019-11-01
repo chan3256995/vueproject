@@ -1,6 +1,5 @@
 export default {
-  formatDateStrFromTimeSt(timeStm)
-{
+  formatDateStrFromTimeSt(timeStm) {
 
   if( timeStm.toString().length === 10){
        timeStm = parseInt(timeStm)*1000

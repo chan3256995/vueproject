@@ -1,12 +1,16 @@
 <template>
   <div>
+    <div class="top" v-show="is_scan_show" >
+      <div  class="top2" id="bcid" v-show="is_scan_show">
+        <!--<div ></div>-->
+        <p class="tip">...载入中...</p>
+      </div>
+      <div style="position: absolute;bottom: 0; width: 100%"><button style="height: 22px;" @click="mcloseScan">关闭</button></div>
 
-    <div class="top" v-show="is_scan_show" id="bcid">
-      <!--<div ></div>-->
-      <p class="tip">...载入中...</p>
-      <div style="position: absolute;bottom: 0; width: 100%"><button @click="mcloseScan">关闭</button></div>
     </div>
-
+    <div>
+      <label style="margin-bottom: 0.2em;color: blue" @click="log_out">退出登录</label>
+    </div>
     <div>
 
        <select  v-model="market_name_selected">
@@ -16,22 +20,25 @@
        <select  v-model="goods_status_selected">
           <option :value="goods_status_option.value" v-for="(goods_status_option,index) in goods_status_options" :key="index">{{goods_status_option.text}}</option>
       </select>
-    <button @click="on_order_filter_load()"> 查询</button>
+    <button @click="on_order_filter_load()"> 查询</button><button @click="un_delivered_order">未发货订单</button>
     </div>
     <div style="text-align: left; margin-bottom: 10px;" v-for="(order,index) in order_list" :key="index">
       <div style="background: paleturquoise">
           <label style="width: 40% ;font-size: smaller">订单号：{{order.order_number}}</label>
          <label  >订单ID{{order.id}}</label>
+         <label style="  padding-left: 0.2em" >{{order.consignee_name}}</label>
+         <label style="  padding-left: 0.2em;font-size: 0.8em" >{{order.add_time}}</label>
       </div>
       <div style="padding-left: 4%; padding-bottom: 5px" v-for="(order_goods,goods_index) in order.orderGoods">
         id:{{order_goods.id}}
         {{order_goods.shop_market_name}}
         {{order_goods.shop_floor}}
         {{order_goods.shop_stalls_no}}
-        {{order_goods.art_no}}
+        <label style="color:red ">{{order_goods.art_no}}</label>
         {{order_goods.goods_color}}
         <div>
           <label style="color: red;">{{goods_status[order_goods.status]}}</label>
+          <label v-if="order_goods.status == goods_status2['其他']">({{order_goods.log}})</label>
           <label style="color: deepskyblue;">{{refund_apply_status[order_goods.refund_apply_status]}}</label>
            <label style="color: red;">{{order_goods.goods_price}}元</label>
         </div>
@@ -55,6 +62,7 @@
           <label v-text="order.logistics_name">单号</label>
 
           <input v-model="order.logistics_number"/>
+          <button v-if="order.is_delivered === true" @click="modify_logistics(order,order.logistics_number)">修改快递</button>
         </div>
         <button  :disabled="print_tag_btn_disable" @click="print_tag([order_list[index].order_number])" >打印标签</button>
         <button :disabled="print_logistics_btn_disable" @click="print_logistics([order_list[index].order_number])" >打印物流单</button>
@@ -78,6 +86,8 @@
 <script>
     import pGlobal from '../utils/pGlobal'
       import mscan from '../utils/mscan.js'
+    import mtime from '../utils/mtime';
+    import cookieUtis from '../utils/cookieUtil';
   import  axios  from 'axios'
     export default {
       name: "My",
@@ -134,6 +144,50 @@
            this.goods_status_options.unshift({text:"全部",value:"全部"},)
            this.market_name_selected = this.market_name_options[0];
            this.goods_status_selected = this.goods_status_options[0].value
+
+        },
+
+        replace_data(order_list){
+          for(let i = 0;i<order_list.length;i++){
+              let item =  order_list[i];
+              let  mdate = mtime.formatDateStrFromTimeSt(item.add_time);
+              mdate=mdate.substr(5,11)
+              console.log(mdate)
+              item.add_time =mdate;
+            }
+            return order_list
+        },
+        // 修改物流
+        modify_logistics(order,new_logistics_number){
+            if(!confirm("该订单已发货，确定修改物流信息吗？")) {
+                return ;
+              }
+              let new_logistics_name = order.logistics_name
+               if(order.logistics_selected !==""  && order.logistics_selected.logistics_name !=="请选择" && order.logistics_selected.logistics_name !== order.logistics_name) {
+                 if (!confirm("确定更改物流吗？")) {
+                   return;
+                 } else {
+                   new_logistics_name = order.logistics_selected.logistics_name
+                 }
+               }
+              let new_order = {
+              "order_number":order.order_number,
+              "logistics_name":new_logistics_name,
+              "logistics_number":new_logistics_number,
+              }
+           const url = pGlobal.DJANGO_SERVER_BASE_URL + "/nahuo/modifyLogistics/";
+           axios.post(url, {"order": new_order}).then((res) => {
+            if (res.data.code === "1000") {
+              // #状态发生改变的订单
+
+              this.$toast("提交成功")
+            } else {
+              alert("提交失败")
+            }
+          }).catch(error => {
+            console.log(error)
+            alert("提交失败")
+          })
         },
         //  全部
         all_btn_disable(){
@@ -194,9 +248,13 @@
           this.print_logistics_btn_disable=true;
           this.purchase_goods_btn_disable=true;
           this.scan_qr_code_btn_disable=false;
-          this.deliver_ok_btn_disable=false;
+          this.deliver_ok_btn_disable=true;
         },
-
+        //
+        log_out(){
+          cookieUtis.deleteCookies("access_token_nh")
+          this.$router.push("/login");
+        },
         // 打印标签
         print_tag(order_number_list){
           const url = pGlobal.DJANGO_SERVER_BASE_URL + "/back/tagPrint/";
@@ -242,7 +300,6 @@
           let submit_order_list = []
 
           for (let i = 0; i < order_list.length; i++) {
-
             let submit_order_goods_list = []
             for (let g = 0; g < order_list[i].order_goods_list.length; g++) {
               if(type === this.goods_status2["其他"] && order_list[i].order_goods_list[g].message === ""){
@@ -378,14 +435,10 @@
         },
 
         fill_logistics_number(logistics_number2, order_list, index) {
-          alert(index)
-          alert(order_list[index].order_number)
+
           this.$delete(order_list[index], 'logistics_number');
           this.$set(order_list[index], 'logistics_number', logistics_number2);
 
-
-          alert(order_list[index].order_number)
-          alert(order_list[index].logistics_number)
         },
         // 扫码回到函数
         onmarked(type, result, file) {
@@ -404,27 +457,29 @@
               type = "其它" + type;
               break;
           }
-          alert(type)
+
           result = result.replace(/\n/g, "");
           this.cur_scan_code = result;
           this.fill_logistics_number(this.cur_scan_code, this.order_list, this.cur_scan_item_index)
           // window.localStorage.codeUrl = result;
-          alert(result);
+
           this.mcloseScan()
 
         },
 
+        // 开始扫码
         mstartRecognize(item_index) {
           this.is_scan_show = true
           this.cur_scan_item_index = item_index
           let that = this
           setTimeout(function () {
             mscan.startRecognize(that.onmarked)
-          }, 1000);
+          }, 100);
 
 
         },
 
+        // 关闭扫码
         mcloseScan() {
           this.is_scan_show = false
           mscan.closeScan()
@@ -460,6 +515,7 @@
           console.log(res.data)
           this.order_list = res.data.results;
           this.order_list = this.analysis_order_data(this.order_list)
+          this.order_list = this.replace_data(this.order_list)
 
           if (res.data.previous == null) {
             this.prePageShow = false;
@@ -481,6 +537,15 @@
         })
       },
 
+        un_delivered_order(){
+          let query_data = {'status_list':this.goods_status2['已付款']+','+this.goods_status2['标签打印']+','+this.goods_status2['拿货中']+','+this.goods_status2['已拿货']+','+this.goods_status2['明日有货']+','+this.goods_status2['2-5天有货']+','+this.goods_status2['其他']}
+           this.order_list = []
+            const url = this.firstPageUrl
+            Object.assign(query_data,this.default_query_params)
+            this.loadOrderPage(url,query_data)
+        },
+
+        //按选择状态过滤订单查询
       on_order_filter_load(){
            // let query_data ;
                let market_name = null;
@@ -513,12 +578,10 @@
                   this.is_print_logistics_status_btn_disable()
                 }
                  let query_data={'market':market_name,'status':goods_status}
-          this.order_list = []
-          const url = this.firstPageUrl
-
+            this.order_list = []
+            const url = this.firstPageUrl
             Object.assign(query_data,this.default_query_params)
-            console.log("query_data---",query_data)
-          this.loadOrderPage(url,query_data)
+            this.loadOrderPage(url,query_data)
         },
       },
 
@@ -557,6 +620,17 @@
   width:  100%;
   border-top:  1px solid #C0C0C0;
   background: white;
-  height: 300px;
+  height: 370px;
+}
+
+  .top2{
+  position: fixed;
+  top:  0;
+  z-index:  999;
+  max-width:  1080px;
+  width:  100%;
+  border-top:  1px solid #C0C0C0;
+  background: white;
+  height: 350px;
 }
 </style>
