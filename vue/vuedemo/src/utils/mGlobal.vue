@@ -3,17 +3,17 @@
 </template>
 
 <script>
-  // const DJANGO_SERVER_BASE_URL = "http://39.96.69.115:8089"
-    const DJANGO_SERVER_BASE_URL = "http://192.168.1.110:8009"
+  const DJANGO_SERVER_BASE_URL = "http://39.96.69.115:8089"
+    // const DJANGO_SERVER_BASE_URL = "http://192.168.1.110:8009"
     export default {
         DJANGO_SERVER_BASE_URL,
       SERVER_FEE:2.0,
-       LOGISTICS: [
-            { logistics_name: '圆通', price: '4.0' },
-            { logistics_name: '韵达', price: '4.0' },
-            { logistics_name: '中通', price: '5.0' },
-
-          ],
+       // LOGISTICS: [
+       //      { logistics_name: '圆通', price: '4.0' },
+       //      { logistics_name: '韵达', price: '4.0' },
+       //      { logistics_name: '中通', price: '5.0' },
+       //
+       //    ],
       //商品状态
         GOODS_STATUS:{
               1:"未付款",//未付款
@@ -27,6 +27,9 @@
                9:"缺货",
                10:"标签打印",
                11:"快递打印",
+              12: '已下架',
+              13: '2-5天有货',
+              14:'其他',
             },
       GOODS_STATUS2:{
               "未付款":1,//未付款
@@ -40,6 +43,9 @@
                "缺货":9,
                "标签打印":10,
                "快递打印":11,
+              '已下架': 12,
+               '2-5天有货': 13,
+              '其他': 14,
             },
       GOODS_STATUS_OPTIONS:[
               {text:"未付款",value:1},
@@ -53,6 +59,9 @@
               {text:"缺货",value:9},
               {text:"标签打印",value:10},
               {text:"快递打印",value:11},
+              {text:"已下架",value:12},
+              {text:"2-5天有货",value:13},
+              {text:"其他",value:14},
             ],
 
          REFUND_APPLY_STATUS: {

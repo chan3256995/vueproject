@@ -2,11 +2,16 @@
   <div class="container">
     <div style="padding-left: 5em">
         <input v-model="query_q" style="width: 30em; height: 2em ; " placeholder="订单号 ，收货人名，手机号，快递单号"/><button @click='on_orders_query(query_q)' style="margin-left: 0.5em">查询</button>
+      <button  @click='tomorrow_status_reset' style="margin-left: 2em">明日有货状态修改为已付款</button>
+      <label>定时器</label>
+      <button @click="timer_switch('ON')">开</button>
+      <button @click="timer_switch('OFF')">关</button>
 
     </div>
-    <div style = "padding-left: 5em">
-      <input type="file" ref="upload" accept=".xls,.xlsx"  > <label style="color: red; display: block" >选择ecxel导入315物流单号发货</label>
-      <button @click="fahuo_goods(fahuo_list)">确定发货</button>
+    <div style = "padding-left: 5em; ">
+      <input type="file" ref="upload" accept=".xls,.xlsx"  > <button @click="fahuo_goods(fahuo_list)">{{fahuo_list.length}}确定发货</button>
+      <label style="color: red; display: block" >选择ecxel导入315物流单号发货</label>
+
     </div>
     <div>
         <ul class = "status_ul" >
@@ -168,6 +173,9 @@
                     let logisitcs_number = ws[i].单号
                     let my_number = ws[i].自定义编码
                     let order_id = my_number.split('-')[0]
+                   if (order_id === undefined){
+                     continue
+                   }
                     if(logisitcs_number !== undefined){
                       this.fahuo_list.push({"order_number":order_id,"logistics_name":logistics_name,"logistics_number":logisitcs_number})
                     }
@@ -536,6 +544,48 @@
             const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/orders/";
             this.loadOrderPage(url,query_data)
           },
+
+        // 自动把明日有货的状态该为已付款 定时器开关
+        timer_switch(switch_on){
+              const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/timeSwitch/";
+              let data = {"switch":switch_on}
+             axios.post(url,data
+
+           ).then((res)=>{
+             if("1000" === res.data.code){
+                   this.$toast("操作成功")
+
+             }else{
+               this.$toast("操作失败")
+             }
+              }).catch(error => {
+                console.log(error) ;
+                this.$toast("操作失败")
+              })
+        },
+
+        // 把明日有货的状态该为已付款
+             tomorrow_status_reset(){
+              if(!confirm("确定不是误点？这很重要！")) {
+                return ;
+              }
+            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/tomorrowStatusReset/";
+             axios.post(url,
+
+           ).then((res)=>{
+             if("1000" === res.data.code){
+                   this.$toast("操作成功")
+
+             }else{
+               this.$toast("操作失败")
+             }
+              }).catch(error => {
+                console.log(error) ;
+                this.$toast("操作失败")
+              })
+
+          },
+
            on_orders_query(query_keys){
              console.log("99999999999999999999999999")
              console.log(query_keys)

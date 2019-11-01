@@ -3901,10 +3901,17 @@ export default {
       let phone = "";
       let name = "";
       let phone_arr = address.match(/\d{11}/ig);
+      let name_str = ""
       if(phone_arr !== null){
           phone = phone_arr[0];
+          name_str= address.substring(0,address.search(phone))
+      }else{
+        // 没有找到 11位数的手机号码 可能固话
+        let tem_str_arr = address.trim().split(/[，  ]/)
+            phone = tem_str_arr[1]
+            name_str= tem_str_arr[0]
       }
-      let name_str = address.substring(0,address.search(phone))
+      
 
       if(name_str.match("86-")){
         name_str = name_str.replace("86-","")

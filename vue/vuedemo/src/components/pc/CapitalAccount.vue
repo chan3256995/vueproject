@@ -112,7 +112,9 @@
     }
 </script>
 
-<style scoped>
+<style lang="less" scoped>
+@import "../../../static/css/PGLOBALCSS.css";
+@import "../../../static/css/PGLOBALLESS.less";
   .root{
     width: 1000px;
   }

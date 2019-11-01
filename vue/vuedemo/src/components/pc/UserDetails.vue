@@ -7,50 +7,52 @@
 
           </tr>
           <tr>
-            <td>邮箱：</td><td><input v-model="user.email"/></td>
+            <td>邮箱：</td><td><input class="global_input_default_style" v-model="user.email"/></td>
           </tr>
           <tr>
-          <td>手机号：</td><td><input v-model="user.phone"/></td>
+          <td>手机号：</td><td><input class="global_input_default_style" v-model="user.phone"/></td>
           </tr>
           <tr>
-          <td>QQ：</td><td><input v-model="user.qq"/></td>
+          <td>QQ：</td><td><input class="global_input_default_style" v-model="user.qq"/></td>
           </tr>
         </table>
-        <button @click="alter_user_detail(user.email,user.phone,user.qq)">确认修改</button>
+        <button class="global_btn_normal_style" @click="alter_user_detail(user.email,user.phone,user.qq)">确认修改</button>
         </div>
         <div class="comm_div">
+          <label style="color: red; padding-bottom: 1em">修改登录密码</label>
           <table>
             <tr>
-                <td>原登录密码</td><td style="text-align: left"><input   @focus="password_input_focus()" v-model="old_password" type="password" /></td>
+                <td>原登录密码</td><td style="text-align: left"><input  class="global_input_default_style"  @focus="password_input_focus()" v-model="old_password" type="password" /></td>
 
               </tr>
 
               <tr>
-                <td>新登录密码</td><td style="text-align: left"><input   @focus="password_input_focus()" v-model="new_password" type="password" /><label v-if="new_password_tip===true" style="color: red">密码不能为空</label></td>
+                <td>新登录密码</td><td style="text-align: left"><input  class="global_input_default_style"  @focus="password_input_focus()" v-model="new_password" type="password" /><label v-if="new_password_tip===true" style="color: red">密码不能为空</label></td>
 
               </tr>
               <tr>
-                <td> 再次输入密码：</td><td><input type="password" @focus="password_input_focus()"  v-model="new_re_password" /><label v-if="new_re_password_tip===true" style="color: red">密码不一致</label></td>
+                <td> 再次输入密码：</td><td><input class="global_input_default_style" type="password" @focus="password_input_focus()"  v-model="new_re_password" /><label v-if="new_re_password_tip===true" style="color: red">密码不一致</label></td>
               </tr>
             </table>
-          <button @click="alter_passwrod(new_password,old_password)">确认修改</button>
+          <button  class = "global_btn_normal_style" @click="alter_passwrod(new_password,old_password)">确认修改</button>
         </div>
 
-              <div class="comm_div">
+        <div class="comm_div">
+           <label style="color: red; padding-bottom: 1em">修改支付密码</label>
           <table>
                   <tr>
-                <td>登录密码</td><td style="text-align: left"><input   @focus="password_input_focus()" v-model="old_password2" type="password" /></td>
+                <td>登录密码</td><td style="text-align: left"><input   class="global_input_default_style" @focus="password_input_focus()" v-model="old_password2" type="password" /></td>
 
               </tr>
               <tr>
-                <td>新支付密码</td><td style="text-align: left"><input   @focus="password_input_focus()" v-model="new_pay_password" type="password" /><label v-if="new_pay_password_tip===true" style="color: red">密码不能为空</label></td>
+                <td>新支付密码</td><td style="text-align: left"><input class="global_input_default_style"   @focus="password_input_focus()" v-model="new_pay_password" type="password" /><label v-if="new_pay_password_tip===true" style="color: red">密码不能为空</label></td>
 
               </tr>
               <tr>
-                <td> 再次输入支付密码：</td><td><input type="password" @focus="password_input_focus()"  v-model="re_new_pay_password" /><label v-if="re_new_pay_password_tip===true" style="color: red">密码不一致</label></td>
+                <td> 再次输入支付密码：</td><td><input class="global_input_default_style" type="password" @focus="password_input_focus()"  v-model="re_new_pay_password" /><label v-if="re_new_pay_password_tip===true" style="color: red">密码不一致</label></td>
               </tr>
             </table>
-          <button @onfocus="password_input_focus()" @click="alter_pay_passwrod(old_password2,new_pay_password)">确认修改</button>
+          <button class = "global_btn_normal_style" @onfocus="password_input_focus()" @click="alter_pay_passwrod(old_password2,new_pay_password)">确认修改</button>
         </div>
     </div>
 
@@ -192,7 +194,9 @@
     }
 </script>
 
-<style scoped>
+<style lang="less" scoped>
+@import "../../../static/css/PGLOBALCSS.css";
+@import "../../../static/css/PGLOBALLESS.less";
 .comm_div{
    border: darkgrey 1px solid; width: 30em;  border-radius: 4px;
    margin-top: 1em;

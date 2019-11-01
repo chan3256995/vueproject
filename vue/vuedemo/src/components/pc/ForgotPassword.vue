@@ -1,15 +1,15 @@
 <template>
 
 
-  <table style="margin: 0 auto">
+  <table style="margin: 0 auto ; margin-top: 10em">
     <tr>
       <td>邮箱：</td>
-      <td><input v-model="email"/></td>
+      <td><input  class="global_input_default_style"  v-model="email"/></td>
     </tr>
 
     <tr>
       <td> </td>
-      <td> <button @click="submit_email(email)" :disabled="submit_btn_disable">提交</button> </td>
+      <td> <button @click="submit_email(email)" :class="{'global_btn_normal_style':!submit_btn_disable , 'global_btn_clicked_style':submit_btn_disable }" :disabled="submit_btn_disable">提交</button> </td>
     </tr>
   </table>
 </template>
@@ -58,6 +58,7 @@
     }
 </script>
 
-<style scoped>
-
+<style lang="less" scoped>
+@import "../../../static/css/PGLOBALCSS.css";
+@import "../../../static/css/PGLOBALLESS.less";
 </style>

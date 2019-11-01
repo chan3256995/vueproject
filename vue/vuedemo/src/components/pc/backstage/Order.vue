@@ -123,7 +123,7 @@
             prePageUrl:"",
             nextPageUrl:"",
             query_q:"",
-            logistics_options:mGlobal.LOGISTICS
+            logistics_options:[]
           }
 
       },

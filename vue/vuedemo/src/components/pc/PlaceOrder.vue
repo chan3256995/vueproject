@@ -14,22 +14,22 @@
                  <td>件数</td>
             </tr>
             <tr v-for="(goodsitem,index) in processed_goods_list">
-                 <td><input    :class="{'input_tip':(goodsitem.shop_market_name===''  && is_tip === true )}" v-model="goodsitem.shop_market_name" /></td>
-                 <td><input    :class="{'input_tip':(goodsitem.shop_floor==='' && is_tip === true)}" v-model="goodsitem.shop_floor" /></td>
-                 <td><input    :class="{'input_tip':goodsitem.shop_stalls_no==='' && is_tip === true }"  v-model="goodsitem.shop_stalls_no"/></td>
-                 <td><input    :class="{'input_tip':goodsitem.art_no==='' && is_tip === true}" v-model="goodsitem.art_no"/></td>
-                 <td><input    :class="{'input_tip':goodsitem.goods_price==='' && is_tip === true}"  v-model="goodsitem.goods_price" type="number" /></td>
-                 <td><input    :class="{'input_tip':goodsitem.goods_color==='' && is_tip === true}" v-model="goodsitem.goods_color"/></td>
-                 <td><input    :class="{'input_tip':goodsitem.goods_count==='' && is_tip === true}" v-model="goodsitem.goods_count" type="number" /> </td>
+                 <td><input  class="global_input_default_style defalut_input "    :class="{'input_tip':(goodsitem.shop_market_name===''  && is_tip === true )}" v-model="goodsitem.shop_market_name" /></td>
+                 <td><input  class="global_input_default_style defalut_input "   :class="{'input_tip':(goodsitem.shop_floor==='' && is_tip === true)}" v-model="goodsitem.shop_floor" /></td>
+                 <td><input   class="global_input_default_style defalut_input "  :class="{'input_tip':goodsitem.shop_stalls_no==='' && is_tip === true }"  v-model="goodsitem.shop_stalls_no"/></td>
+                 <td><input   class="global_input_default_style defalut_input "  :class="{'input_tip':goodsitem.art_no==='' && is_tip === true}" v-model="goodsitem.art_no"/></td>
+                 <td><input  class="global_input_default_style defalut_input "   :class="{'input_tip':goodsitem.goods_price==='' && is_tip === true}"  v-model="goodsitem.goods_price" type="number" /></td>
+                 <td><input   class="global_input_default_style defalut_input "  :class="{'input_tip':goodsitem.goods_color==='' && is_tip === true}" v-model="goodsitem.goods_color"/></td>
+                 <td><input   class="global_input_default_style defalut_input "  :class="{'input_tip':goodsitem.goods_count==='' && is_tip === true}" v-model="goodsitem.goods_count" type="number" /> </td>
                   <td><button @click="onDeleteRawGoods(index,processed_goods_list)">删除</button></td>
             </tr>
             </table>
         </div>
-      <button class = "default_button" @click="onHandAddGoodsClick">添加商品</button>
+      <button class = "default_button global_btn_normal_style" @click="onHandAddGoodsClick">添加商品</button>
       <div>
         <div>
-          <input placeholder="市场名_楼层_档口号_货号_价格_颜色尺码_件数" class = "defalut_input auto_goods_input" v-model="raw_goods_txt"/>
-         <button class = "default_button" @click="onAddGoodsClick">识别添加商品</button>
+          <input placeholder="市场名_楼层_档口号_货号_价格_颜色尺码_件数" class="global_input_default_style defalut_input  auto_goods_input" v-model="raw_goods_txt"/>
+         <button style="height: 2.8em" class = "default_button global_btn_normal_style" @click="onAddGoodsClick">识别商品</button>
         </div>
 
 
@@ -44,12 +44,12 @@
 
              </tr>
               <tr >
-                  <td> 姓名：<input :class="{'input_tip':(processed_address_object.name===''  && is_tip === true )} " class = "defalut_input" v-model="processed_address_object.name" /></td>
-                <td>电话：<input  :class="{'input_tip':(processed_address_object.phone===''  && is_tip === true )} " class = "defalut_input" v-model="processed_address_object.phone" type="number" oninput="if(value.length>11) value=value.slice(0,11)"    /></td>
+                <td> 姓名：<input class="global_input_default_style defalut_input " :class="{'input_tip':(processed_address_object.name===''  && is_tip === true )} "   v-model="processed_address_object.name" /></td>
+                <td>电话： <input  :class="{'input_tip':(processed_address_object.phone===''  && is_tip === true )} " class="global_input_default_style defalut_input "  v-model="processed_address_object.phone" type="number" oninput="if(value.length>11) value=value.slice(0,11)"    /></td>
 
-                 <td>   省份：<input type="text" :class="{'input_tip':(processed_address_object.province===''  && is_tip === true )} " class = "defalut_input" v-model="processed_address_object.province"   /></td>
-                 <td>    城市：<input :class="{'input_tip':(processed_address_object.city===''  && is_tip === true )} " class = "defalut_input" v-model="processed_address_object.city"  /></td>
-                 <td>   地区：<input   class = "defalut_input" v-model="processed_address_object.area" /></td>
+                 <td>   省份：<input type="text" :class="{'input_tip':(processed_address_object.province===''  && is_tip === true )} " class="global_input_default_style defalut_input "  v-model="processed_address_object.province"   /></td>
+                 <td>    城市：<input :class="{'input_tip':(processed_address_object.city===''  && is_tip === true )} " class="global_input_default_style defalut_input "  v-model="processed_address_object.city"  /></td>
+                 <td>   地区：<input   class="global_input_default_style defalut_input "  v-model="processed_address_object.area" /></td>
               </tr>
 
             </table>
@@ -61,8 +61,14 @@
           <div >
 
                  <div style=" text-align: left;margin-top: 0.4em">
-                   <textarea placeholder="把地址粘贴到此处进行识别（也可以把商品跟地址一起粘贴到此处智能势识别）" class = "defalut_input auto_address_input" v-text="raw_address" v-model="raw_address"></textarea>
-                  <button class = "default_button " @click="onAddAddressClick">识别地址</button>
+                   <textarea placeholder="
+       把地址粘贴到此处进行识别，也可以把商品跟地址一起粘贴到此处智能势识别
+
+                    下面为格式样例：
+                    女人街 3F 324 889 60 黑色2xl 1
+                    金富丽 4F 4F057-114-39  白色均码 1
+                    熊**，86-15808*****，四川省 南充市 高坪区 清溪街道 **路3小区" class="global_input_default_style defalut_input auto_address_input" v-text="raw_address" v-model="raw_address"></textarea>
+                  <button class = "default_button global_btn_normal_style" @click="onAddAddressClick">智能识别</button>
                 </div>
                 <div><button class = "match_btn" @click="onAddOrderOk">确认添加</button></div>
 
@@ -79,32 +85,38 @@
                 <label style="margin-left: 0.5em">{{selected_logistics.logistics_price}}元</label>
                    <select class="logistic_select" v-model="selected_quality_test">
                   <option :value="option" v-for="(option,index) in quality_test_options" :key="index">{{option.quality_testing_name}}</option>
-                      <label style="margin-left: 0.5em">{{selected_quality_test.quality_testing_price}}元 </label>
+
                 </select>
+              <label style="margin-left: 0.5em">{{selected_quality_test.quality_testing_price}}元 </label>
+    </div>
+        <div style="margin-top: 2em;margin-bottom: 2em">
+              <div style="cursor:pointer;background: darkgrey;width:10em;margin: 0 auto" @click="on_multi_add_div_clicked" >
+                 <label style="cursor:pointer; " >批量添加订单</label><label v-if="is_multi_add">▼</label><label v-if="!is_multi_add">▲</label>
+              </div>
     </div>
 
-    <div class="mul_add_div"  style="display: block" v-if="raw_goods_txt==='656'">
+    <div class="mul_add_div"  style="display: block" v-if="is_multi_add" >
                   <div style="margin: 0.5em" ><label style="background: darkgrey; width: 200px ;padding: 0.4em" >批量添加订单</label></div>
 
                   <div style="text-align: left; font-size: 0.6em;padding-top: 0.5em;padding-left: 0.5em">
 
-                    <li>市场名 楼层 档口号 货号 价格 颜色尺码 /件数@    <label style="color: red">商品1(注：每个商品用 "@" 结束)</label></li>
-                    <li>市场名 楼层 档口号 货号 价格 颜色尺码 /件数@    <label style="color: red">商品2(注：每个商品用 "@" 结束)</label></li>
+                    <li>市场名 楼层 档口号 货号 价格 颜色尺码 件数    <label style="color: red">商品1</label></li>
+                    <li>市场名 楼层 档口号 货号 价格 颜色尺码 件数    <label style="color: red">商品2</label></li>
                     <li> 熊**，86-15808*****，四川省 南充市 高坪区 清溪街道 **路3小区 ，000000； <label style="color: red">（注：每个地址用"；"结束）</label></li>
 
                   </div>
                 <textarea v-model="order_text"   id="order_text" placeholder="
-            市场名 楼层 档口号 货号 价格 颜色尺码 /件数@
-            市场名 楼层 档口号 货号 价格 颜色尺码 /件数@
-            熊**，86-15808*****，四川省 南充市 高坪区 清溪街道 **路3小区 ，000000；"> </textarea>
+            女人街 3F 324 889 60 黑色2xl 1
+            金富丽 4F 4F057-114-39  白色均码 1
+            熊**，86-15808*****，四川省 南充市 高坪区 清溪街道 **路3小区 ，000000；
+
+            大西豪-3F-320-A-#8185-59  黑色3xl 1
+            小花，17808*****，广东省 广州市 天河区  ***街道 **路小区 ，000000；
+"> </textarea>
                 <button class="match_btn" @click="match_btn" style="display:block">批量添加</button>
             </div>
 
   </div>
-
-
-
-
 
 
 
@@ -133,13 +145,13 @@
                  <td>件数</td>
             </tr>
             <tr   v-for="(goodsitem,index) in item.orderGoods ">
-                 <td><input    :class="{'input_tip':goodsitem.shop_market_name===''}" v-model="goodsitem.shop_market_name"/></td>
-                 <td><input    :class="{'input_tip':goodsitem.shop_floor===''}" v-model="goodsitem.shop_floor"/></td>
-                 <td><input    :class="{'input_tip':goodsitem.shop_stalls_no===''}" v-model="goodsitem.shop_stalls_no" /></td>
-                 <td><input    :class="{'input_tip':goodsitem.art_no===''}" v-model="goodsitem.art_no"/></td>
-                 <td><input   :class="{'input_tip':goodsitem.goods_price===''}" type="number" v-model="goodsitem.goods_price"/></td>
-                 <td><input   :class="{'input_tip':goodsitem.goods_color===''}"    v-model="goodsitem.goods_color"/></td>
-                 <td><input   :class="{'input_tip':goodsitem.goods_count===''}" type="number"   v-model="goodsitem.goods_count"/> </td>
+                 <td><input  class="global_input_default_style defalut_input "   :class="{'input_tip':goodsitem.shop_market_name===''}" v-model="goodsitem.shop_market_name"/></td>
+                 <td><input   class="global_input_default_style defalut_input " :class="{'input_tip':goodsitem.shop_floor===''}" v-model="goodsitem.shop_floor"/></td>
+                 <td><input   class="global_input_default_style defalut_input " :class="{'input_tip':goodsitem.shop_stalls_no===''}" v-model="goodsitem.shop_stalls_no" /></td>
+                 <td><input  class="global_input_default_style defalut_input "  :class="{'input_tip':goodsitem.art_no===''}" v-model="goodsitem.art_no"/></td>
+                 <td><input  class="global_input_default_style defalut_input " :class="{'input_tip':goodsitem.goods_price===''}" type="number" v-model="goodsitem.goods_price"/></td>
+                 <td><input  class="global_input_default_style defalut_input " :class="{'input_tip':goodsitem.goods_color===''}"    v-model="goodsitem.goods_color"/></td>
+                 <td><input  class="global_input_default_style defalut_input " :class="{'input_tip':goodsitem.goods_count===''}" type="number"   v-model="goodsitem.goods_count"/> </td>
 
             </tr>
 
@@ -151,17 +163,17 @@
 
              </tr>
               <tr >
-                <td> 姓名：<input :class="{'input_tip':item.address.name===''}"  v-model="item.address.name" /></td>
-               <td>电话：<input :class="{'input_tip':item.address.phone===''}"  type="number" oninput="if(value.length>11) value=value.slice(0,11)"    v-model="item.address.phone"/></td>
+                <td> 姓名：<input class="global_input_default_style defalut_input " :class="{'input_tip':item.address.name===''}"  v-model="item.address.name" /></td>
+               <td>电话：<input class="global_input_default_style defalut_input " :class="{'input_tip':item.address.phone===''}"  type="number" oninput="if(value.length>11) value=value.slice(0,11)"    v-model="item.address.phone"/></td>
 
-                 <td>省份：<input   :class="{'input_tip':item.address.province===''}"  v-model="item.address.province" /></td>
-                 <td>城市：<input  :class="{'input_tip':item.address.city.trim()===''}"  v-model="item.address.city"/></td>
-                 <td>地区：<input    v-model="item.address.area"/></td>
+                 <td>省份：<input  class="global_input_default_style defalut_input " :class="{'input_tip':item.address.province===''}"  v-model="item.address.province" /></td>
+                 <td>城市：<input class="global_input_default_style defalut_input " :class="{'input_tip':item.address.city.trim()===''}"  v-model="item.address.city"/></td>
+                 <td>地区：<input  class="global_input_default_style defalut_input "  v-model="item.address.area"/></td>
               </tr>
 
             </table>
         <div class="detailed_address_div">
-          <textarea  v-model="item.address.address_detail" ></textarea>
+          <textarea  class="global_input_default_style defalut_input" v-model="item.address.address_detail" ></textarea>
           <!--<label>详细地址：</label>-->
 
         </div>
@@ -200,7 +212,7 @@
 
              this.load_quality_test()
              this.load_logistics()
-             this.selected_logistics = this.logistics_options[1];
+
            if(typeof(this.$route.query.data) !== 'undefined'){
               let goods =  JSON.parse(this.$route.query.data);
               this.raw_goods_txt = goods.shop_market_name + "_" + goods.shop_floor + "_" + goods.shop_stalls_no +"_" + goods.art_no+"_"+goods.goods_price+"_"
@@ -213,6 +225,9 @@
 
       data(){
         return{
+
+          // 显示批量添加
+          is_multi_add:false,
           //开始用户添加未处理的数据
 
           raw_goods_txt:"",
@@ -261,6 +276,9 @@
 　　　　},
      }},
        methods:{
+           on_multi_add_div_clicked(){
+            this.is_multi_add = ! this.is_multi_add
+          },
            // 加载物流选项信息
           load_logistics(){
             const url  = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/trade/logistics/"
@@ -272,9 +290,8 @@
              if("1000" === res.data.code){
                  console.log(res.data)
                   this.logistics_options = this.analysis_logistics(res.data.data)
-                  this.selected_logistics =  this.logistics_options[1]
-                console.log("selected_logistics")
-                console.log(this.selected_logistics)
+                  this.selected_logistics =  this.logistics_options[0]
+
              }else{
 
              }
@@ -314,6 +331,7 @@
               let item = {}
               item["logistics_name"] = data[i].logistics_name
               item["logistics_price"] = data[i].logistics_price
+              item["logistics_id"] = data[i].id
               logistics_list.push(item)
             }
             return logistics_list
@@ -520,7 +538,9 @@
                 let consignee_phone =order_list[i].address.phone;
 
                 let orderGoods = order_list[i].orderGoods;
-                news_list.push({"consignee_address":consignee_address,"consignee_name":consignee_name,'logistics_name':order_list[i].logistics.logistics_name,
+                news_list.push(
+                  {"consignee_address":consignee_address,"consignee_name":consignee_name,'logistics_name':order_list[i].logistics.logistics_name,
+                    'logistics_id':order_list[i].logistics.logistics_id,
                 "consignee_phone":consignee_phone,"orderGoods":orderGoods,"quality_testing_name":order_list[i].quality_test.quality_testing_name
                 })
             }
@@ -560,26 +580,32 @@
         })
          },
 
-         //any
+         //拆分 商品 跟地址  对象形式数据返回
          analysis_address_goods:function(orderStr){
             // 市场名_楼层_店铺位置_货号_颜色/尺码_价格_件数/
             // 市场名_楼层_店铺位置_货号_颜色/尺码_价格_件数/
             // 熊**，86-15808*****，四川省 南充市 高坪区 清溪街道 **路3小区 ，000000；
            //分割出商品跟地址  tem_index 为商品跟地址的分割线
-              let tem_index =  orderStr.lastIndexOf("@");
+              console.log(orderStr,'1111111111111111111111111111111111')
+
+              orderStr = this.replace_redundance_str(orderStr)
               let goods_address = this.split_goods_address_str(orderStr);
+console.log(goods_address,'222222222222222222222222')
+
               if(goods_address[0]=== "" || goods_address[1]=== "" ){
+                 let tem_index =  orderStr.lastIndexOf("@");
                  goods_address[0] = orderStr.substring(0,tem_index);
                  goods_address[1] = orderStr.substring(tem_index+1,orderStr.length);
               }
-              console.log("**********************************************");
-              console.log(goods_address);
-              console.log("**********************************************");
+
+
+
               //拆分收货地址
               let address_str  = goods_address[1];
               let addressObj = mStringUtils.getAddressInfo(address_str);
               let logistics = this.selected_logistics;
               let goods_str  = goods_address[0];
+
               let goods_list = marketData.get_goods_list(goods_str);
 
 
@@ -593,7 +619,28 @@
             let address_str = "";
             let phone_index = orderStr.search(/\d{11}/ig);
               if(phone_index !== -1){
-                while(orderStr.search("\t") !== -1){
+                 goods_str = orderStr.substring(0,phone_index);
+                 let reg = /[, /]{2}|[， /]{2}/;//“， /”三个字符出现两个 不分顺序
+                 while(goods_str.match(reg)){
+                   let result =  goods_str.match(reg);
+                  goods_str = goods_str.replace(result[0],"，")
+                 }
+
+               let index =  this.get_index_for_special_chars(["，"," ","@","/"],goods_str);
+               if(index !== -1){
+                 goods_str = goods_str.substring(0,index);
+                 index = this.get_index_for_special_chars(["，"," ","@","/"],goods_str);
+                 goods_str = goods_str.substring(0,index).trim();
+                 address_str = orderStr.substring(index+1,orderStr.length);
+               }
+              }
+
+              return [goods_str,address_str];
+          },
+
+         //去除替换冗余的数据
+         replace_redundance_str(orderStr){
+             while(orderStr.search("\t") !== -1){
                   orderStr = orderStr.replace("\t"," ");
                 }
                 while(orderStr.search(",") !== -1){
@@ -608,28 +655,22 @@
                 while(orderStr.search("  ") !== -1){
                   orderStr = orderStr.replace("  "," ");
                 }
+                 while(orderStr.search("\n ") !== -1  ) {
+                orderStr = orderStr.replace("\n ", "\n");
+              }
+              while(orderStr.search(" \n") !== -1  ) {
+                orderStr = orderStr.replace(" \n", "\n");
+              }
+
+                 while(orderStr.search("\n\n") !== -1) {
+                orderStr = orderStr.replace("\n\n", "\n");
+              }
+
                  while(orderStr.search("\n") !== -1) {
                 orderStr = orderStr.replace("\n", "@");
               }
-                  goods_str = orderStr.substring(0,phone_index);
-
-                  let reg = /[, /]{2}|[， /]{2}/;//“， /”三个字符出现两个 不分顺序
-                  while(goods_str.match(reg)){
-                  let result =  goods_str.match(reg);
-                  goods_str = goods_str.replace(result[0],"，")
-              }
-
-               let index =  this.get_index_for_special_chars(["，"," ","@","/"],goods_str);
-               if(index !== -1){
-                 goods_str = goods_str.substring(0,index);
-                 index = this.get_index_for_special_chars(["，"," ","@","/"],goods_str);
-                 goods_str = goods_str.substring(0,index).trim();
-                 address_str = orderStr.substring(index+1,orderStr.length);
-               }
-              }
-
-              return [goods_str,address_str];
-          },
+            return orderStr
+         },
          //给出特地字符 从后面开始查找 找到就返回索引值
          get_index_for_special_chars(chars,str){
            for(let i = str.length;i--; i> -1){
@@ -779,15 +820,18 @@
 
 </script>
 
-<style scoped>
-  @import "../../../static/css/PGLOBALCSS.css";
+<style lang="less" scoped>
+@import "../../../static/css/PGLOBALCSS.css";
+@import "../../../static/css/PGLOBALLESS.less";
 .default_button{
   padding: 0.5em;
   margin-bottom: 0.5em;
   margin-top: 0.5em;
+  font-size: 1em;
 }
 .defalut_input{
-  height: 1.5em;
+  height: 2em;
+
 }
 
 .auto_goods_input{
@@ -796,7 +840,7 @@
 }
 .auto_address_input{
   width:70%;
-  height: 5em;
+  height: 10em;
 }
   .input_tip{
     border-style: solid;
@@ -870,8 +914,8 @@
     color: #fff;
     border-radius: 4px;
     font-size: 1.2em;
-  background: #3bb4f2;
-  border-color: #3bb4f2;
+    background: #3bb4f2;
+    border-color: #3bb4f2;
   }
   .mul_add_div{
     width:100%;background: #f0f0f0; border: solid 1px #a9a9a9;

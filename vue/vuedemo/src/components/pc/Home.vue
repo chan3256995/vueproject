@@ -2,7 +2,7 @@
   <div style="width: 100%;margin: 0 auto; ">
 
     <div class="top">
-      <ul>
+      <ul style="padding-right: 3em">
       <li><a style="cursor:pointer;color: blue" @click="on_logout" >退出登录</a></li>
       <li style=""><a style="cursor:pointer;color: blue" @click="go_to_personal" v-text="user"> 个人中心</a></li>
     </ul>
@@ -11,9 +11,10 @@
     <div class="nav_div">
       <router-link class="nav" to = "/pc/home/porder" >下订单</router-link>
       <router-link class="nav" to = "/pc/home/myorder" >我的订单</router-link>
+      <router-link class="nav" to = "/pc/personal/recharge2" >充值</router-link>
     </div>
     <div style="width: 100%; " >
-      <router-view style="width: 100%"></router-view>
+      <keep-alive><router-view style="width: 100%"></router-view></keep-alive>
     </div>
   </div>
 </template>
@@ -58,6 +59,7 @@
   .top{
     width: 100%;
     height: 2em;
+    padding-right: 2em;
   }
   .top ul{
     float: right;

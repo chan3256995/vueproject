@@ -16,7 +16,7 @@
     </tr>
     <tr>
       <td> </td>
-      <td> <button @click="login" :disabled="submit_btn_disable">登录</button></td>
+      <td> <button class="global_btn_normal_style" @click="login" :disabled="submit_btn_disable">登录</button></td>
     </tr>
   </table>
 </div>
@@ -76,7 +76,8 @@
   }
 </script>
 
-<style scoped>
+<style lang="less" scoped>
+  @import "../../../../static/css/PGLOBALCSS.css";
 .login{
   margin:0 auto;
   padding: 0.3em;
@@ -85,6 +86,10 @@
   text-align: center;
 
 }
+
+
+
+
 .login td{
   margin-top: 0.5em;
   width: 5em;

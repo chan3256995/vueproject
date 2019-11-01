@@ -1,5 +1,9 @@
 <template>
   <div class="root">
+    <div>
+      <label> 链接：https://pan.baidu.com/s/1pWOMCEYyfjMAZR3DoCVizQ 提取码：8jyu </label>
+
+    </div>
     <div style="width: 8em;height: auto; float:left;">
     <ul >
       <li > <router-link class="nav"  to = "/pc/back/home/order" >订单列表</router-link></li>

@@ -3,3 +3,23 @@
 .global_background{
   background: #76D7F0;
 }
+
+.global_btn_normal_style{
+
+    color: #fff;
+    border-radius: 4px;
+    font-size: 1.2em;
+    background: #3bb4f2;
+    border-color: #3bb4f2;
+}
+
+.global_btn_clicked_style{
+
+    color: #fff;
+    border-radius: 4px;
+    font-size: 1.2em;
+    background: grey;
+    border-color: grey;
+}
+
+

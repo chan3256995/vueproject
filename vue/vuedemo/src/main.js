@@ -7,10 +7,11 @@ import App from './App'
 import m_global from './utils/mGlobal'
  import "babel-polyfill" //这个插件是用来把es6语法转为es5  为了兼容ie等问题
  Vue.prototype.mGLOBAL = m_global
+ Vue.config.devtools = true
 import MessageBox from './utils/messagebox/messagbox';
 Vue.use(MessageBox);
-import QRBox from './utils/qrbox/qrbox';
-Vue.use(QRBox);
+import MessageBox2 from './utils/qrbox/qrbox';
+Vue.use(MessageBox2);
 
 import Axios from 'axios'
 Vue.prototype.$axios = Axios
@@ -31,6 +32,11 @@ Vue.prototype.$nprogress = NProgress
 import toastRegistry from './utils/toast/index'
 // 这里也可以直接执行 toastRegistry()
 Vue.use(toastRegistry)
+
+ //页面滚动
+ import VueScroller from 'vue-scroller'
+Vue.use(VueScroller)
+  Vue.prototype.$scroller = VueScroller
 
 
 /* eslint-disable no-new */

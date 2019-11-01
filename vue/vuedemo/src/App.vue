@@ -7,7 +7,7 @@
 </template>
 
 <script>
-import Home from './components/Home.vue'
+import Home from './components/pc/Home.vue'
 
 import  axios  from 'axios'
      //设为true 就会带cookies 访问
@@ -56,6 +56,7 @@ export default {
 
   margin: 0 auto;
   width: 100%;
+  max-width: 1440px;
   min-width: 40em;
 }
 </style>

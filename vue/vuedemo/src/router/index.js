@@ -1,12 +1,6 @@
 import Vue from 'vue'
-import VueRouter from 'vue-router'//路由插件
-import Register from '../components/Register.vue'
-import Login from '../components/Login.vue'
-import Home from '../components/Home.vue'
-import MyOrder from '../components/MyOrder.vue'
-import RefundApply from '../components/RefundApply'
-import pOrder from '../components/PlaceOrder.vue'
 
+import VueRouter from 'vue-router'//路由插件
 import pLogin from '../components/pc/Login.vue'
 import pRegister from '../components/pc/Register.vue'
 import pForgetPassword from '../components/pc/ForgotPassword'
@@ -38,43 +32,6 @@ export default new VueRouter({
 
     //根目录默认地址
     {path: '/', redirect: '/pc/home/porder'},
-    {
-      path:'/register',
-      name:'Register',
-      component:Register
-    },
-    {
-      path:'/login',
-      name:'Login',
-      component:Login
-    },
-    {
-      path:'/refund',
-      name:'Refund',
-      component:RefundApply
-    },
-    {
-      path: '/home',
-      name: 'Home',
-      component: Home,
-      children: [
-        {
-          path:'/home/porder',
-          name:'pOrder',
-          component:pOrder
-         },
-         {
-          path:'/home/myorder',
-          name:'MyOrder',
-          component:MyOrder
-         },
-      ]
-    },
-
-
-
-
-
 
 
     {//注册

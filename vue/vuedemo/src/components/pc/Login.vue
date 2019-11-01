@@ -1,26 +1,24 @@
 <template>
 
 <div class="login">
-  <h2>pc</h2>
-
-
 
   <table style="margin: 0 auto">
     <tr>
       <td>用户名：</td>
-      <td><input v-model="username"/></td>
+      <td><input class="global_input_default_style"  v-model="username"/></td>
     </tr>
     <tr>
       <td> 密  码 ：</td>
-      <td> <input v-model="password" type="password"/></td>
+      <td> <input class="global_input_default_style" v-model="password" type="password"/></td>
     </tr>
     <tr>
       <td> </td>
-      <td> <button @click="login" :disabled="submit_btn_disable">登录</button><button @click = 'register'>注册</button></td>
-      <td><a @click="go_forgot_password_page" style="color: black">忘记密码？</a></td>
+      <td> <button :class="{'global_btn_normal_style':!submit_btn_disable  , 'global_btn_clicked_style':submit_btn_disable  }" @click="login" :disabled="submit_btn_disable">登录</button>
+        <button class="global_btn_normal_style" @click = 'register'>注册</button></td>
+      <td><a @click="go_forgot_password_page" style="color: blue">忘记密码？</a></td>
     </tr>
   </table>
-  <button @click="test">test</button>
+
 </div>
 </template>
 
@@ -46,23 +44,7 @@
       })
     },
     methods:{
-      test(){
-        this.$qrBox2.showMsgBox({
-                  title: '扫码',
-                  content: '扫当前二维码获得快递单号"',
-                  isShowInput: true,
-                  isShowConfimrBtn :true,
-                  confirmBtnText :"关闭",
-                  isShowCancelBtn :false,
-              }).then(async (val) => {
 
-                   console.log(val)
-
-
-              }).catch(() => {
-                  // ...
-              });
-      },
       go_forgot_password_page(){
         this.$router.push("/pc/forgotPassword");
       },
@@ -82,20 +64,11 @@
           'username':this.username,
            'password':this.password,
        }).then((res)=>{
-         console.log(res.data) ;
-          console.log("token",res.data.token)
           this.submit_btn_disable = false;
          if(res.data.code === "1000"){
-            console.log("user----------------------")
-            console.log(res.data.user)
             this.setLocalValue("user",JSON.stringify(res.data.user))
-            console.log(this.getLocalValue("user"))
             this.$router.push("/pc/home/porder");
-
-
             this.$cookies.set("access_token" ,res.data.token)
-
-
             this.$router.push("/pc/home/porder");
          }else{
            alert("登录失败："+res.data.message)
@@ -115,10 +88,15 @@
   }
 </script>
 
-<style scoped>
+<style lang="less" scoped>
+    @import "../../../static/css/PGLOBALCSS.css";
+    @import "../../../static/css/PGLOBALLESS.less";
+
+
+
 .login{
   margin:0 auto;
-  padding: 0.3em;
+  padding-top: 5em;
   width: auto;
   height: auto;
   text-align: center;

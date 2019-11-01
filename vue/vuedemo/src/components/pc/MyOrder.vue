@@ -1,14 +1,15 @@
 <template>
-  <div class="container">
+  <div id= 'container_id' class="container">
     <div style="padding-left: 5em">
         <input v-model="query_q" style="width: 85%;height: 2em;max-width: 40em; " placeholder="订单号 ，收货人名，手机号，快递单号"/><button @click='on_orders_query(query_q)' style="margin-left: 0.5em">查询</button>
       </div>
-    <ul class = "status_ul" >
-      <li ><a @click="on_order_filter({'status':goods_status2['未付款']},'未付款')" :class="{status_select:cur_order_status_filter==='未付款'}">未付款</a></li>
-      <li ><a @click="on_order_filter({'status':goods_status2['已付款']},'已付款')" :class="{status_select:cur_order_status_filter==='已付款'}">已付款</a></li>
-      <li ><a @click="on_order_filter({'status':goods_status2['已发货']},'已发货')" :class="{status_select:cur_order_status_filter==='已发货'}">已发货</a></li>
-      <li ><a @click="on_order_filter(-1,'全部订单')" :class="{status_select:cur_order_status_filter==='全部订单'}">全部订单</a></li>
-      <li ><a @click="on_order_filter({'refund_apply_status':'有售后订单'},'售后订单')" :class="{status_select:cur_order_status_filter==='售后订单'}">售后订单</a></li>
+    <ul  class = "status_ul" >
+      <li ><a @click="on_order_filter({'status':goods_status2['未付款']},'未付款')" :class="{status_select:cur_order_status_filter==='未付款'}">未付款{{un_pay_counts}}</a></li>
+      <li ><a @click="on_order_filter({'status':goods_status2['已付款']},'已付款')" :class="{status_select:cur_order_status_filter==='已付款'}">已付款{{is_payed_counts}}</a></li>
+      <li ><a @click="on_order_filter({'status':goods_status2['已发货']},'已发货')" :class="{status_select:cur_order_status_filter==='已发货'}">已发货{{is_delivered_counts}}</a></li>
+      <li ><a @click="on_order_filter({'status_list':goods_status2['已付款']+','+goods_status2['标签打印']+','+goods_status2['拿货中']+','+goods_status2['已拿货']+','+goods_status2['明日有货']+','+goods_status2['2-5天有货']+','+goods_status2['其他']},'未发货')" :class="{status_select:cur_order_status_filter==='未发货'}">未发货 {{un_delivered_counts}}</a></li>
+      <li ><a @click="on_order_filter(-1,'全部订单')" :class="{status_select:cur_order_status_filter==='全部订单'}">全部订单{{all_counts}}</a></li>
+      <li ><a @click="on_order_filter({'refund_apply_status':'有售后订单'},'售后订单')" :class="{status_select:cur_order_status_filter==='售后订单'}">售后订单{{refund_counts}}</a></li>
 
     </ul>
     <div style="padding-left: 3em" v-if="cur_order_status_filter==='未付款'">
@@ -16,7 +17,8 @@
       <button @click="orders_pay(go_pay_order_list)" v-if="cur_order_status_filter==='未付款'">合并付款</button><label style="color: red"> 总计: {{go_pay_money_totals}} 元</label>
 
     </div>
-    <div class = "items_ul">
+
+    <div  class = "items_ul">
         <li class="item_order " v-for="(item,index) in order_list" :key="index">
           <div  class="global_background order_div" >
             <table  >
@@ -42,8 +44,8 @@
                          <label>{{goods.refund_apply.value}}</label>
                          <label>{{goods.goods_price}} x {{goods.goods_count}} =  {{goods.goods_price * goods.goods_count}}元 </label>
                           <a  @click="apply_click(goods,item)" class = "refund_apply_btn" v-if="goods_status[goods.status] ==='已发货' ">申请售后</a>
-                          <a  @click="apply_refund(goods.goods_number,refund_apply_type['拦截发货'],'确定拦截发货吗？申请后不能恢复发货，系统自动转为售后订单')" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='拿货中' ||  goods_status[goods.status] ==='已拿货') &&  refund_apply_status[goods.refund_apply_status] ==='无售后' ">拦截发货</a>
-                          <a  @click="apply_refund(goods.goods_number,refund_apply_type['仅退款'], '确定申请退款吗？')" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='明日有货' ||  goods_status[goods.status] ==='其他状态' || goods_status[goods.status] ==='已付款') &&  refund_apply_status[goods.refund_apply_status] ==='无售后'">申请退款</a>
+                          <!--<a  @click="apply_refund(goods.goods_number,refund_apply_type['拦截发货'],'确定拦截发货吗？申请后不能恢复发货，系统自动转为售后订单')" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='拿货中' ||  goods_status[goods.status] ==='已拿货') &&  refund_apply_status[goods.refund_apply_status] ==='无售后' ">拦截发货</a>-->
+                          <a  @click="apply_refund(goods.goods_number,refund_apply_type['仅退款'], '确定申请退款吗？')" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='2-5天有货' || goods_status[goods.status] ==='已下架' || goods_status[goods.status] ==='已下架' || goods_status[goods.status] ==='明日有货' ||  goods_status[goods.status] ==='其他' || goods_status[goods.status] ==='已付款') &&  refund_apply_status[goods.refund_apply_status] ==='无售后'">申请退款</a>
                           <a  @click="goto_place_order_page(JSON.stringify(goods))" class = "refund_apply_btn">再次下单</a>
                          <!--<select @change="selectVal($event,goods)" >-->
                            <!--<option :value="option.value" v-for="(option,index) in options" :key="index">{{option.text}}</option>-->
@@ -71,7 +73,7 @@
                 <label style="padding-left: 0.5em">下单时间:{{item.add_time}}</label>
                 <label>快递：{{item.logistics_name}}</label>
                <label>单号：{{item.logistics_number}}</label>
-                <button @click="show_logistics_qr(item.logistics_number)" v-if="item.logistics_number!==''">二维码单号</button>
+                <button @click="show_logistics_qr(item.logistics_number)" v-if="item.logistics_number!=='' && item.logistics_number !== null">二维码单号</button>
               </div>
         </li>
     </div>
@@ -97,6 +99,12 @@
         name: "MyOrder",
       data(){
           return{
+            un_pay_counts: "",
+            is_delivered_counts : "",
+            is_payed_counts : "",
+            un_delivered_counts: "",
+            refund_counts:"",
+            all_counts: "",
             //未付款订单全选
             is_all_unpay_order_selected :true,
             cur_order_status_filter:"全部订单",
@@ -141,7 +149,7 @@
                   title: '二维码',
                   qr_value: logistics_number,
 
-                  content: '扫当前二维码获得快递单号"',
+                  content: '用淘宝等平台的扫码填单功能扫上面的二维码',
                   isShowInput: true,
                   isShowConfimrBtn :true,
                   confirmBtnText :"关闭",
@@ -248,7 +256,6 @@
 
           },
           to_stop_deliver(data){
-            console.log("///////////////////////////",data)
 
             this.$msgBox.showMsgBox({
                   title: '支付',
@@ -331,16 +338,19 @@
           },
           on_order_filter(query_data,btn_tag){
              // let query_data ;
+            console.log("2555555555555555555555")
+            console.log(query_data)
             this.cur_order_status_filter = btn_tag
 
             this.order_list = []
             const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/orders/";
+            container_id.scrollIntoView()
             this.loadOrderPage(url,query_data)
           },
 
 
            on_orders_query(query_keys){
-             console.log("99999999999999999999999999")
+
              console.log(query_keys)
             const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/orders/";
             let query_data = {"q":query_keys.trim()};
@@ -443,11 +453,14 @@
           },
 
           prePage(){
+            this.scrollToTop()
             console.log(this.prePageUrl)
             this.loadOrderPage(this.prePageUrl)
           },
 
           nextPage(){
+           this.scrollToTop()
+
              console.log(this.nextPageUrl)
             this.loadOrderPage(this.nextPageUrl)
           },
@@ -467,8 +480,9 @@
         ).then((res)=>{
           console.log(res.data)
           this.order_list = res.data.results;
+           window.scrollTo(0,0);
           this.replaceData()
-
+          this.update_order_counts(this.cur_order_status_filter,res.data.count)
           if(res.data.previous == null){
             this.prePageShow = false;
           }else{
@@ -484,10 +498,34 @@
            this.nextPageUrl = res.data.next;
 
         }).catch(error => {
-          console.log("myorder------------------------------------") ;
+          this.$toast("加载错误哦")
           console.log(error) ;
         })
-        }
+        },
+        // 更新显示订单数量
+        update_order_counts(cur_order_status_filter,counts){
+                if(this.cur_order_status_filter ==="未付款"){
+
+                   this.un_pay_counts = counts
+                }else if(this.cur_order_status_filter ==="已发货"){
+                   this.is_delivered_counts = counts
+                }else if(this.cur_order_status_filter ==="已付款"){
+                   this.is_payed_counts = counts
+                }else if(this.cur_order_status_filter ==="未发货"){
+                   this.un_delivered_counts = counts
+                }else if(this.cur_order_status_filter ==="全部订单"){
+                  this.all_counts = counts
+                }else if(this.cur_order_status_filter ==="售后订单"){
+                  this.refund_counts = counts
+                }
+        },
+
+        //滚动页面到顶端
+        scrollToTop() {
+      　　let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop;
+      　　console.log(scrollTop)
+
+}
       },
       watch:{
         'order_list': {
@@ -495,15 +533,17 @@
 　　　　  handler(new_order_list, old_order_list) {
                 console.log("order_list")
                 console.log(new_order_list)
-　　　　},
-     }
+　　　　  },
+         }
       },
       created(){
           // const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/orders/?access_token="+this.$cookies.get("access_token");
           const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/orders/"
           this.loadOrderPage(url);
       },
+      mount(){
 
+      }
     }
 </script>
 
@@ -515,6 +555,7 @@
   }
   .status_select{
     background: #f0f0f0 ;
+    color: #3bb4f2;
     border:gainsboro solid 1px;
   }
   .status_ul li{
@@ -551,6 +592,7 @@
   .page_table{
     margin: 0 auto;
     float: bottom;
+    font-size: 2em;
   }
 
   .order_div {

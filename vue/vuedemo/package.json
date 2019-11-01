@@ -20,6 +20,7 @@
     "vue-qart": "^2.2.0",
     "vue-qr": "^2.1.0",
     "vue-router": "^3.0.6",
+    "vue-scroller": "^2.2.4",
     "xlsx": "^0.15.1"
   },
   "devDependencies": {

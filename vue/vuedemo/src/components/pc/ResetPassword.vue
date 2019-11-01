@@ -1,20 +1,20 @@
 <template>
 
 
-  <table style="margin: 0 auto">
+  <table style="margin: 0 auto; margin-top: 10em">
     <tr>
       <td>密码：</td>
-      <td><input v-model="password"/></td>
+      <td><input class="global_input_default_style"  v-model="password"/></td>
     </tr>
 
     <tr>
       <td>再次输入密码：</td>
-      <td><input v-model="re_password"/></td>
+      <td><input  class="global_input_default_style"  v-model="re_password"/></td>
     </tr>
 
     <tr>
       <td> </td>
-      <td> <button @click="submit_email(password,re_password)" :disabled="submit_btn_disable">提交</button> </td>
+      <td> <button @click="submit_email(password,re_password)" :class="{'global_btn_normal_style':!submit_btn_disable , 'global_btn_clicked_style':submit_btn_disable }"  :disabled="submit_btn_disable">提交</button> </td>
     </tr>
   </table>
 </template>
@@ -61,7 +61,13 @@
           this.submit_btn_disable = false;
          if(res.data.code === "1000"){
            this.$toast("修改密码成功")
+           console.log(res.data.user)
+            this.setLocalValue("user",JSON.stringify(res.data.user))
+            console.log(this.getLocalValue("user"))
+            this.$router.push("/pc/home/porder");
+            this.$cookies.set("access_token" ,res.data.token)
 
+            this.$router.push("/pc/home/porder");
 
          }else{
             this.$toast("提交失败"+ res.data.message)
@@ -77,6 +83,7 @@
     }
 </script>
 
-<style scoped>
-
+<style lang="less" scoped>
+@import "../../../static/css/PGLOBALCSS.css";
+@import "../../../static/css/PGLOBALLESS.less";
 </style>

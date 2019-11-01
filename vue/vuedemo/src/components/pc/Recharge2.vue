@@ -1,21 +1,17 @@
-<template>
-    <div>
+<template style="text-align: center;">
+    <div style="text-align: center;">
+      <div style="margin: 3em">
+        <vue-qr  v-if="user!=''" :text="config.value" :margin="0" colorDark="black" colorLight="#fff" :logoSrc="config.imagePath" :logoScale="0.3" :size="200"></vue-qr>
+      <label style="color: red; font-size: 1.5em;display: block">扫上面的二维码进行充值</label>
+      <label style="color: red; font-size: 1em;display: block">转账后刷新余额查看是否充值到账</label>
+      </div>
 
-        <table>
+      <div>
+        <label>用户名：{{user.user_name}}</label>
+        <label style="padding-left: 2em">余额：{{user.balance}}</label>
+        <button @click="load_user_info('刷新成功')"> 刷新余额</button>
+      </div>
 
-          <vue-qr v-if="user!=''" :text="config.value" :margin="0" colorDark="black" colorLight="#fff" :logoSrc="config.imagePath" :logoScale="0.3" :size="200"></vue-qr>
-        </table>
-
-       <table>
-          <tr>
-            <td>用户名：</td>
-            <td>{{user.user_name}}</td>
-            <td style="padding-left: 2em">余额：</td>
-            <td style="color: red">{{user.balance}}</td>
-            <td><button @click="load_user_info('刷新成功')"> 刷新余额</button></td>
-          </tr>
-
-        </table>
       <div style="border: #878d99 solid 1px;padding:2em;margin-top: 2em;">
 
        <label style="color: red">如果扫码转账后长时间未到账请提交转账单号跟金额</label>
@@ -27,14 +23,14 @@
         </tr>
         <tr>
           <td>金额：</td>
-          <td><input v-model="trade_money" /></td>
+          <td><input class="global_input_default_style" v-model="trade_money" /></td>
         </tr>
         <tr>
           <td>交易单号：</td>
-          <td><input v-model="recharge_number"/></td>
+          <td><input class="global_input_default_style" v-model="recharge_number"/></td>
         </tr>
         <tr>
-          <td><button @click="recharge(recharge_number,trade_money)"> 提 交</button></td>
+          <td><button class="global_btn_normal_style" @click="recharge(recharge_number,trade_money)"> 提 交</button></td>
         </tr>
       </table>
 </div>
@@ -80,7 +76,7 @@
               "trade_money":trade_money
             }
             if(trade_money ==="" || trade_money< 0 || trade_money===0){
-              this.$toast("充值金额大于0")
+              this.$toast("请输入正确的金额")
               return
             }
             if(recharge_number ===""){
@@ -103,8 +99,7 @@
           refresh_qr_and_user() {
             pcommon_function.load_user().then((res) => {
               if (res.data.code === "1000") {
-                console.log("**************************************")
-                console.log(res.data)
+
                 this.user = res.data.user
                 let timestamp = new Date().getTime() + "_" + this.user.id
                 this.config =
@@ -156,6 +151,8 @@
     }
 </script>
 
-<style scoped>
+<style lang="less" scoped>
+@import "../../../static/css/PGLOBALCSS.css";
+@import "../../../static/css/PGLOBALLESS.less";
 
 </style>
