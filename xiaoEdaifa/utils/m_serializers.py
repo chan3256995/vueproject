@@ -384,7 +384,8 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     })
 
     def validate_email(self, email):
-        EMALI_REGEX = "^[a-z0-9A-Z]+[-|a-z0-9A-Z._]+@([a-z0-9A-Z]+(-[a-z0-9A-Z]+)?\\.)+[a-z]{2,}$"
+        # EMALI_REGEX = "^[a-z0-9A-Z]+[-|a-z0-9A-Z._]+@([a-z0-9A-Z]+(-[a-z0-9A-Z]+)?\\.)+[a-z]{2,}$"
+        EMALI_REGEX = "^([a-zA-Z0-9_\.\-])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$"
         # 邮箱是否注册
         if models.User.objects.filter(email=email).count():
             raise serializers.ValidationError("邮箱已经注册")

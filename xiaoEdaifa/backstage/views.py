@@ -20,6 +20,7 @@ from xiaoEdaifa import settings
 from utils import mglobal
 from trade import trade_utils
 from backstage import bserializers
+from _decimal import Decimal
 import time
 import xlwt
 import traceback
@@ -138,8 +139,9 @@ class OutPutOrdersView(APIView):
             file_list = mfile_utils.get_file_list(settings.TEMP_FILE_DIRS + "/bk/")
             for file in file_list:
                 mfile_utils.delete_file(settings.TEMP_FILE_DIRS + "/bk/"+file)
-            # 以传递的name+当前日期作为excel名称保存。
-            wbk.save(excel_path)
+            if mfile_utils.create_dir(excel_path):
+                # 以传递的name+当前日期作为excel名称保存。
+                wbk.save(excel_path)
             ret['excel_url'] = excel_url
         except:
             traceback.print_exc()
@@ -541,6 +543,9 @@ class OrderGoodsRefundViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, G
                     refund_apply_obj.delete()
             elif refund_apply_obj.refund_apply_type == mcommon.refund_apply_choices2.get("拦截发货"):
                 with transaction.atomic():
+                    cur_order_goods = trade_models.OrderGoods.objects.filter(id=refund_apply_obj.orderGoods_id).first()
+                    # 是否退回快递费
+                    is_return_logistics_fee = self.is_return_logistics_fee(cur_order_goods.order,cur_order_goods)
                     logistics_name = refund_apply_obj.return_logistics_name
                     logistics_num = refund_apply_obj.return_logistics_number
                     order_goods = trade_models.OrderGoods.objects.filter(id=refund_apply_obj.orderGoods_id).first()
@@ -553,9 +558,13 @@ class OrderGoodsRefundViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, G
                     # 申请退货数量不能大于下单的数量
                     if refund_apply_obj.goods_counts > order_goods.goods_count:
                         raise Exception
-                    trade_moneys = order_goods.goods_price * refund_apply_obj.goods_counts
-                    self.log_user_pay_info(order_goods,order_goods.order,trade_moneys)
-                    order_owner.balance = order_owner.balance + trade_moneys
+
+                    logistics_fee = 0.0
+                    if is_return_logistics_fee:
+                        logistics_fee = cur_order_goods.order.logistics_fee
+                    trade_moneys = Decimal(str(order_goods.goods_price)) * Decimal(str(refund_apply_obj.goods_counts)) + Decimal(str(logistics_fee))
+                    self.log_user_pay_info(order_goods, order_goods.order, trade_moneys, "快递费：" + str(logistics_fee))
+                    order_owner.balance = Decimal(str(order_owner.balance)) + Decimal(str(trade_moneys))
                     order_owner.save()
                     refund_apply_obj.delete()
 
@@ -565,9 +574,21 @@ class OrderGoodsRefundViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, G
             ret['message'] = "更改失败"
         return Response(ret)
 
-    def log_user_pay_info(self,order_goods,order,trade_moneys):
-        order_owner_balance = order.order_owner.balance + trade_moneys
-        message = "商品退货退款" + " 订单编号："+order.order_number +" 商品编号："+order_goods.goods_number
+
+    # 是否退 快递费
+    def is_return_logistics_fee(self, order, cur_order_goods):
+        # 这个函数只适合拦截退款款类型
+        order_goods_queryset = trade_models.OrderGoods.objects.filter(order = order)
+        for order_goods in order_goods_queryset:
+            # 订单有已发货状态的商品就不能退运费
+            if order_goods.status == mcommon.status_choices2.get("已发货"):
+                return False
+
+        return True
+
+    def log_user_pay_info(self,order_goods,order,trade_moneys,ex_message=''):
+        order_owner_balance = Decimal(str(order.order_owner.balance)) + Decimal(str(trade_moneys))
+        message = "商品退货退款" + " 订单编号："+order.order_number +" 商品编号："+order_goods.goods_number + " " +ex_message
         trade_models.TradeInfo.objects.create(user = order.order_owner,
                                               trade_number=trade_utils.get_trade_number(self,self.request.user.id),
                                               user_balance=order_owner_balance,

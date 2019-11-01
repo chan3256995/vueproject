@@ -92,6 +92,8 @@ class Order(models.Model):
     sender_address = models.CharField(null=False, max_length=140)
     sender_name = models.CharField(max_length=30, null=False)
     sender_phone = models.BigIntegerField(null=False)
+    # 是否已发货
+    is_delivered = models.BooleanField(default=False)
     # 物流单号是否已打印
     is_logistics_print = models.BooleanField(default=False)
     # 是否删除（逻辑删除）
@@ -165,7 +167,6 @@ class OrderGoods(models.Model):
     is_delete = models.BooleanField(default=False, null=False)
 
 
-
 # 售后申请
 class RefundApply(models.Model):
     orderGoods = models.ForeignKey(OrderGoods,related_name="refund_apply", on_delete=models.CASCADE)
@@ -178,9 +179,6 @@ class RefundApply(models.Model):
     return_logistics_name = models.CharField(null=False, max_length=30)
     # 退货物流单号
     return_logistics_number = models.CharField(null=False, max_length=40)
-
-
-
 
 
 class RefundInfo(models.Model):

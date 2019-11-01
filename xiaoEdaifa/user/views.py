@@ -20,12 +20,14 @@ from django.http.response import JsonResponse,HttpResponse
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import serializers
+from utils.permission import UserPermission
 from django.db import transaction
 from rest_framework.mixins import CreateModelMixin,RetrieveModelMixin,UpdateModelMixin,ListModelMixin,DestroyModelMixin
 from rest_framework.viewsets import GenericViewSet
 from utils import encryptions
 import time
 import json
+from utils.auth import UserAuthtication
 from trade import models as trmodels
 from django.db.models import Q
 from user import trade_views
@@ -43,7 +45,7 @@ def md5(user):
     return m.hexdigest()
 
 
-from utils.auth import Authtication
+
 # 用户登录
 
 
@@ -88,7 +90,8 @@ class UserMulOrderSaveViewSet(CreateModelMixin,GenericViewSet):
      多个一起提交保存
     """
     serializer_class = m_serializers.TradeAddOrdersSerializer
-
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
     class TemOrderGoodsSer(serializers.ModelSerializer):
         """
         临时验证字段的类
@@ -156,15 +159,14 @@ class UserMulOrderSaveViewSet(CreateModelMixin,GenericViewSet):
                     order = self.perform_create(serializer)
                     orderGoodsList = item['orderGoods']
                     order_agency_fee = 0  # 代拿费用
-                    logisitcs_name = item.get('logistics_name')
+                    logistics_name = item.get('logistics_name')
+                    logistics_id = item.get('logistics_id')
                     # 请求的质检服务
                     req_quality_testing_name = item.get('quality_testing_name')
                     # 默认 无质检
                     quality_testing_fee = 0.0
                     quality_testing_name = "基础质检"
-                    logistics = trade_models.Logistics.objects.filter(logistics_name = logisitcs_name).first()
-
-
+                    logistics = trade_models.Logistics.objects.filter(logistics_name = logistics_name).first()
                     logistics_fee = logistics.logistics_price
                     # 订单里的商品总数量
                     order_goods_counts = 0
@@ -213,75 +215,68 @@ class UserMulOrderSaveViewSet(CreateModelMixin,GenericViewSet):
         return serializer.save()
 
 
-class NahuoUserOrderGoodsAlterView(APIView):
-    # 拿货人修改订单状态
-    permission_classes = [permission.NahuoUserpermission, ]
-    # status_choices = (
-    # (1, '待付款'),
-    # (2, '已付款'),
-    # (3, '拿货中'),
-    # (4, '已拿货'),
-    # (5, '已发货'),
-    # (6, '已退款'),
-    # (7, '明日有货'),
-    # )
-    status_choices = mcommon.status_choices
-
-    def post(self, request, *args, **kwargs):
-        ret = {"code":"1000","message": ""}
-        # 3拿货中 4 已经拿货  5已发货 7,明日有货 , 9其他状态
-        # 接受拿货人usertype = 2 修改的值
-        acp_status = [mcommon.status_choices2.get("拿货中"),
-                      mcommon.status_choices2.get("已拿货"),
-                      mcommon.status_choices2.get("已发货"),
-                      mcommon.status_choices2.get("明日有货"),
-                      mcommon.status_choices2.get("其他状态"),
-                      ]
-        data = self.request.data
-        # data['status'] 拿货人 usertype=2 的用户 请求要修改状态值
-        if data['status'] not in acp_status:
-            ret['code'] = 1001;
-            ret['message'] = "status错误"
-            return Response(ret)
-
-        query = trade_models.OrderGoods.objects.filter(id=data['order_goods_id'])
-        if query.count() == 1:
-            # 接受修改的状态
-            acp_status = []
-            order_goods = query.first()
-            if order_goods.status == mcommon.status_choices2.get("拿货中"):
-                # 拿货中状态只能修改为 4已拿货 和 5已发货 和 7明日有货 9其他状态
-                acp_status = [mcommon.status_choices2.get("已拿货"),
-                              mcommon.status_choices2.get("已发货"),
-                              mcommon.status_choices2.get("明日有货"),
-                              mcommon.status_choices2.get("其他状态"),
-                              ]
-            elif order_goods.status == mcommon.status_choices2.get("已拿货"):
-                # 已拿货状态只能修 和 已发货
-                acp_status = [mcommon.status_choices2.get("已发货")]
-            if data['status'] not in acp_status:
-                ret['code'] = "1001";
-                ret['message'] = "status错误"
-                return Response(ret)
-            try:
-                query.update(status=data['status'])
-                ret['code'] = "1000"
-                ret['message'] = "更新成功"
-                return Response(ret)
-            except:
-                ret['code'] = "1001";
-                ret['message'] = "更新数据库失败"
-                return Response(ret)
-        else:
-            ret['code'] = "1001"
-            ret['message'] = "数据错误"
-            return Response(ret)
+# class NahuoUserOrderGoodsAlterView(APIView):
+#     # 拿货人修改订单状态
+#     permission_classes = [permission.NahuoUserpermission, ]
+#
+#     status_choices = mcommon.status_choices
+#
+#     def post(self, request, *args, **kwargs):
+#         ret = {"code":"1000","message": ""}
+#         # 3拿货中 4 已经拿货  5已发货 7,明日有货 , 9其他状态
+#         # 接受拿货人usertype = 2 修改的值
+#         acp_status = [mcommon.status_choices2.get("拿货中"),
+#                       mcommon.status_choices2.get("已拿货"),
+#                       mcommon.status_choices2.get("已发货"),
+#                       mcommon.status_choices2.get("明日有货"),
+#                       mcommon.status_choices2.get("其他状态"),
+#                       ]
+#         data = self.request.data
+#         # data['status'] 拿货人 usertype=2 的用户 请求要修改状态值
+#         if data['status'] not in acp_status:
+#             ret['code'] = 1001;
+#             ret['message'] = "status错误"
+#             return Response(ret)
+#
+#         query = trade_models.OrderGoods.objects.filter(id=data['order_goods_id'])
+#         if query.count() == 1:
+#             # 接受修改的状态
+#             acp_status = []
+#             order_goods = query.first()
+#             if order_goods.status == mcommon.status_choices2.get("拿货中"):
+#                 # 拿货中状态只能修改为 4已拿货 和 5已发货 和 7明日有货 9其他状态
+#                 acp_status = [mcommon.status_choices2.get("已拿货"),
+#                               mcommon.status_choices2.get("已发货"),
+#                               mcommon.status_choices2.get("明日有货"),
+#                               mcommon.status_choices2.get("其他状态"),
+#                               ]
+#             elif order_goods.status == mcommon.status_choices2.get("已拿货"):
+#                 # 已拿货状态只能修 和 已发货
+#                 acp_status = [mcommon.status_choices2.get("已发货")]
+#             if data['status'] not in acp_status:
+#                 ret['code'] = "1001";
+#                 ret['message'] = "status错误"
+#                 return Response(ret)
+#             try:
+#                 query.update(status=data['status'])
+#                 ret['code'] = "1000"
+#                 ret['message'] = "更新成功"
+#                 return Response(ret)
+#             except:
+#                 ret['code'] = "1001";
+#                 ret['message'] = "更新数据库失败"
+#                 return Response(ret)
+#         else:
+#             ret['code'] = "1001"
+#             ret['message'] = "数据错误"
+#             return Response(ret)
 
 
 class OrderGoodsViewSet(RetrieveModelMixin,GenericViewSet):
     serializer_class = m_serializers.OrderGoodsSerializer
     queryset =  trade_models.OrderGoods.objects.all()
-
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
     def retrieve(self, request, *args, **kwargs):
         print(kwargs.get("pk"))
         orderGoods = trade_models.OrderGoods.objects.filter(id = kwargs.get("pk")).first()
@@ -299,18 +294,12 @@ class OrderGoodsViewSet(RetrieveModelMixin,GenericViewSet):
 
 
 class UserOrderGoodsChangeViewSet(APIView):
+        authentication_classes = [UserAuthtication]
+        permission_classes = [UserPermission]
         # serializer_class = m_serializers.TradeOrderGoodsRefundSerializer
         # 订单状态选择
         status_choices = mcommon.status_choices
-        # status_choices = (
-        #     (1, '待付款'),
-        #     (2, '已付款'),
-        #     (3, '拿货中'),
-        #     (4, '已拿货'),
-        #     (5, '已发货'),
-        #     (6, '已退款'),
-        #     (7, '明日有货'),
-        # )
+
         def post(self,request,*args,**kwargs):
             ret = {"code":"1000","message":""}
             data = self.request.data
@@ -362,7 +351,6 @@ class UserOrderGoodsChangeViewSet(APIView):
             return Response(ret)
 
 
-
 class UsersPagination(PageNumberPagination):
     # 指定每一页的个数
     page_size = 10
@@ -373,7 +361,8 @@ class UsersPagination(PageNumberPagination):
 
 
 class UserOrderViewSet(ListModelMixin,DestroyModelMixin, GenericViewSet):
-        # authentication_classes = []
+        authentication_classes = [UserAuthtication]
+        permission_classes = [UserPermission]
         serializer_class = m_serializers.tTradeOrderQuerySerializer
         # 设置分页的class
         pagination_class = UsersPagination
@@ -447,9 +436,8 @@ class UserOrderViewSet(ListModelMixin,DestroyModelMixin, GenericViewSet):
                 print(self.request.query_params)
                 query_keys = self.request.query_params.get("q")
                 status_filter = self.request.query_params.get("status")
+                status_filter_list_str = self.request.query_params.get("status_list")
                 refund_apply_status = self.request.query_params.get("refund_apply_status")
-
-
                 print("query_keys")
                 print(query_keys)
                 print(status_filter)
@@ -460,9 +448,15 @@ class UserOrderViewSet(ListModelMixin,DestroyModelMixin, GenericViewSet):
                         args = args | Q(consignee_phone=query_keys)
                     return trade_models.Order.objects.filter(Q(order_owner=self.request.user) & args).order_by('-add_time')
                 elif status_filter is not None:
-                    qy =  trade_models.Order.objects.filter(order_owner=self.request.user,orderGoods__status = status_filter).distinct().order_by("-add_time")
-                    print("9999999999")
-                    print(len(qy))
+                    qy = trade_models.Order.objects.filter(order_owner=self.request.user,orderGoods__status = status_filter).distinct().order_by("-add_time")
+                    return qy
+                elif status_filter_list_str is not None:
+                    status_filter_list = status_filter_list_str.split(',')
+                    args = Q()
+                    for status2 in status_filter_list:
+                        args = args | Q(orderGoods__status=status2)
+                    qy = trade_models.Order.objects.filter(Q(order_owner=self.request.user) & args).distinct().order_by("-add_time")
+
                     return qy
                 elif refund_apply_status is not None :
                     if refund_apply_status == "有售后订单":
@@ -496,6 +490,8 @@ class UserOrderViewSet(ListModelMixin,DestroyModelMixin, GenericViewSet):
 # 用户拦截发货
 class UserStopDeliverView(APIView):
     # 商品状态为拿货中，已拿货，可以进行拦截发货
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
     def post(self,request, *args, **kwargs):
         try:
             with transaction.atomic():
@@ -554,7 +550,9 @@ class UserStopDeliverView(APIView):
 
 # 重置密码
 class ResetPasswordView(APIView):
-    # authentication_classes = []
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
     def post(self,request, *args, **kwargs):
         try:
             ret = {"code":"1000","message":""}
@@ -569,6 +567,9 @@ class ResetPasswordView(APIView):
                     request.user.password = e_pwd
                     request.user.save()
                     models.UserToken.objects.update_or_create(user=request.user,defaults={'token': token, 'add_time': time.time()})
+                    user_ser = m_serializers.UserQuerySerializer(instance=request.user, many=False)
+                    ret['token'] = token
+                    ret['user'] = user_ser.data
 
             else:
                 ret['code'] = "1001"
@@ -587,10 +588,7 @@ class ResetPasswordView(APIView):
 
 # 忘记密码
 class ForgetPasswordView(APIView):
-
-    # 注册时候检查一个一个异步检查是否存在
     authentication_classes = []
-
     def post(self,request, *args, **kwargs):
         try:
             ret = {"code":"1000","message":""}
@@ -616,6 +614,7 @@ class ForgetPasswordView(APIView):
             return JsonResponse(ret)
 
         return JsonResponse(ret)
+
 
 class UserCheckView(APIView):
     # 注册时候检查一个一个异步检查是否存在
@@ -664,6 +663,9 @@ class UserCheckView(APIView):
 
 
 class UserViewSet(RetrieveModelMixin, UpdateModelMixin, GenericViewSet):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
     def update(self, request, *args, **kwargs):
         try:
             print(request.data)
@@ -722,6 +724,9 @@ class UserViewSet(RetrieveModelMixin, UpdateModelMixin, GenericViewSet):
 
 
 class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
     class TemSerializer(serializers.ModelSerializer):
         class Meta:
             model = trade_models.RefundApply
@@ -1082,6 +1087,7 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
 
     # 是否退 订单其他费用
     def is_return_order_fee(self, order, orderGoods):
+        # 这个函数只适合仅退款类型
         order_goods_queryset = trade_models.OrderGoods.objects.filter(order = order)
         # 只有一个商品 进行退运费
         if len(order_goods_queryset)==1 and order_goods_queryset[0].goods_number == orderGoods.goods_number:
@@ -1169,7 +1175,10 @@ class UserRegViewSet(CreateModelMixin, GenericViewSet):
         return serializer.save()
 
 
+# 确认密码
 class AlterPasswordView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
     def post(self, request, *args, **kwargs):
         try:
             ret = {"code":"1000","message":""}
@@ -1196,6 +1205,7 @@ class AlterPasswordView(APIView):
         return JsonResponse(ret)
 
 
+# 确认支付密码
 class AlterPayPasswordView(APIView):
     def post(self, request, *args, **kwargs):
         try:

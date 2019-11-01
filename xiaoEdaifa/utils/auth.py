@@ -6,7 +6,7 @@ logger = logging.getLogger('stu')
 import traceback
 
 
-class Authtication(BaseAuthentication):
+class UserAuthtication(BaseAuthentication):
     def authenticate(self,request):
 
         token = request._request.GET.get('access_token')

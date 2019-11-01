@@ -3,10 +3,13 @@ from trade import models as trade_models
 from user import  models as user_models
 from utils import mcommon
 from django.db import transaction
+from utils import mtime
+from django.db.models import Q
 from _decimal import Decimal
 logger = logging.getLogger('stu')
 from utils import encryptions
 import traceback
+
 
 
 # 充值订单审核
@@ -27,3 +30,13 @@ def recharge_pass(trade_number):
         traceback.print_exc()
         raise Exception(traceback.format_exc())
     return True
+
+
+def change_tomorrow_status():
+    zero_clock_stamp = mtime.get_time_0clock_of_today()
+    order_goods_queryset = trade_models.OrderGoods.objects.filter(
+        Q(status=mcommon.status_choices2.get('明日有货')) & Q(add_time__lt=zero_clock_stamp) & Q(
+            refund_apply_status=mcommon.refund_apply_choices2.get('无售后'))).distinct()
+    for order_goods in order_goods_queryset:
+        order_goods.status = mcommon.status_choices2.get('已付款')
+        order_goods.save()

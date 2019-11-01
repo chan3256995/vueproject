@@ -174,7 +174,7 @@ CORS_ALLOW_HEADERS = (
 
 REST_FRAMEWORK = {
     # 用户认证全局配置
-    "DEFAULT_AUTHENTICATION_CLASSES":['utils.auth.Authtication'],
+    "DEFAULT_AUTHENTICATION_CLASSES":['utils.auth.UserAuthtication'],
     # 访问频率
     "DEFAULT_THROTTLE_CLASSES":['utils.throttle.VisitThrottle'],
     #
@@ -259,3 +259,4 @@ EMAIL_HOST_USER = '137637653@qq.com'
 EMAIL_HOST_PASSWORD = 'puoahkhhoirvcaaa'
 #收件人看到的发件人
 EMAIL_FROM = '修改密码<137637653@qq.com>'
+

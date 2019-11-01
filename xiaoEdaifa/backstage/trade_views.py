@@ -1,10 +1,15 @@
-import logging
-logger = logging.getLogger('stu')
+
 from rest_framework.views import APIView
 from django.http.response import JsonResponse
 from trade import models as trade_models
-from user import models as user_models
+from django.db.models import Q
+from utils.auth import BackStageAuthentication,BackStageNahuoAuthentication
+from utils.permission import Superpermission,NahuoUserpermission
+from backstage import back_utils
+from xiaoEdaifa import settings
+from utils import mfile_utils
 from utils import mcommon
+from utils import mtime
 import traceback
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import mixins
@@ -13,10 +18,12 @@ from rest_framework.viewsets import GenericViewSet
 from utils import m_serializers
 from utils import mIP_utils
 import time
-from django.db.models import Q
-from utils.auth import BackStageAuthentication,BackStageNahuoAuthentication
-from utils.permission import Superpermission,NahuoUserpermission
-from backstage import back_utils
+import datetime
+import threading
+import logging
+logger = logging.getLogger('stu')
+
+
 class UsersPagination(PageNumberPagination):
     # 指定每一页的个数
     page_size = 10
@@ -56,6 +63,77 @@ class TradeInfoViewSet(mixins.ListModelMixin,GenericViewSet):
             logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
             return JsonResponse(ret)
         return JsonResponse(ret)
+
+
+#
+class TimeSwitchView(APIView):
+    authentication_classes = [BackStageAuthentication]
+    permission_classes = [Superpermission]
+
+    def post(self, request, *args, **kwargs):
+        print("tag print''''''''''''''")
+        print(request.data)
+        try:
+            ret = {'code': "1000", 'message': ""}
+            file_path = settings.BASE_DIR + "/backstage/msettings.txt"
+            mfile_utils.create_file(file_path)
+            req_switch = request.data.get('switch')
+            file = open(file_path)
+            content = file.read()
+            file.close()
+
+            if content != "":
+                sett = content.split('=')
+                sett_is_running = sett[3]
+                if req_switch == 'ON':
+                    if sett_is_running == "False":
+                        # start running
+                        content = "TIMER_SWITCH_ON=ON=IS_RUNNIG=False"
+                        file = open(file_path,'w')
+                        file.write(content)
+                        file.close()
+                        self.start_run_thread()
+                elif req_switch == 'OFF':
+                    content = "TIMER_SWITCH_ON=OFF=IS_RUNNIG=" + sett_is_running
+                    file = open(file_path, 'w')
+                    file.write(content)
+                    file.close()
+
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "查询异常"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return JsonResponse(ret)
+        return JsonResponse(ret)
+
+    def start_run_thread(self):
+        print("haha")
+        file_path = settings.BASE_DIR + "/backstage/msettings.txt"
+        file = open(file_path)
+        content = file.read()
+        file.close()
+        sett = content.split('=')
+        sett_switch_on = sett[1]
+
+        if sett_switch_on == 'OFF':
+            file = open(file_path,'w')
+            content = "TIMER_SWITCH_ON=OFF=IS_RUNNIG=False"
+            file.write(content)
+            file.close()
+        elif sett_switch_on == 'ON':# 为 True 说要进行任务
+            file = open(file_path,'w')
+            content = "TIMER_SWITCH_ON=ON=IS_RUNNIG=True"
+            file.write(content)
+            file.close()
+            # do someting
+            mcommon.send_email(subject="闹钟测试", sender=settings.EMAIL_FROM, message="测试",
+                               html_message='hello word 3',
+                               receiver=['80131490@qq.com'])
+            duration_time = mtime.get_duration("03:00:00")
+
+            timer = threading.Timer(duration_time,  self.start_run_thread)
+            timer.start()
 
 
 # 缺货
@@ -124,6 +202,28 @@ class NotHasGoods(APIView):
             if goods_number == req_order_goods_list[i].get("goods_number"):
                 return req_order_goods_list[i]
         return ""
+
+
+# # 明日有货 重新修改为 付款状态
+class TomorrowStatusResetView(APIView):
+    authentication_classes = [BackStageAuthentication, ]
+    permission_classes = [Superpermission]
+
+    def post(self, request, *args, **kwargs):
+        print("tag print''''''''''''''")
+        print(request.data)
+        try:
+            with transaction.atomic():
+                ret = {'code': "1000", 'message': ""}
+                back_utils.change_tomorrow_status()
+
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "查询异常"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return JsonResponse(ret)
+        return JsonResponse(ret)
 
 
 # 修改拿货中状态商品 统一用这个接口（如 拿货中状态 改为 明日有货  2-5天有货 已拿货  其他）
@@ -315,6 +415,7 @@ class DeliverGoodsView(APIView):
                             nomal_order_goods.save()
                         sql_order.logistics_number = req_order_logistic_number
                         sql_order.logistics_name = req_order_logistic_name
+                        sql_order.is_delivered = True
                         sql_order.save()
                 ret['exception_order'] = exception_order_list
                 return JsonResponse(ret)
@@ -351,8 +452,8 @@ class DeliverFrom315View(APIView):
                 req_order_id_list = []
                 # 异常状态订单
                 exception_order_list = []
-                for req_order_object in req_order_list:
-                    order_number = req_order_object.get("order_number")
+                for i in range(0,len(req_order_list)):
+                    order_number = req_order_list[i].get("order_number")
                     if ip.find('172.17.1.38') != -1:
                         if order_number.startswith("r") is False:
                             ret['code'] = "1001"
@@ -360,6 +461,8 @@ class DeliverFrom315View(APIView):
                             return JsonResponse(ret)
                         else:
                             order_number = order_number.replace('r', '')
+                            req_order_list[i]['order_number'] = order_number
+
                     req_order_id_list.append(order_number)
 
                 order_queryset = trade_models.Order.objects.filter(Q(id__in=req_order_id_list)).distinct()
@@ -392,6 +495,7 @@ class DeliverFrom315View(APIView):
                             nomal_order_goods.save()
                         sql_order.logistics_number = req_order_logistic_number
                         sql_order.logistics_name = req_order_logistic_name
+                        sql_order.is_delivered = True
                         sql_order.save()
                 ret['exception_order'] = exception_order_list
                 return JsonResponse(ret)
@@ -570,6 +674,7 @@ class PurchaseGoodsView(APIView):
                     for order_goods in order_goods_query:
                         if order_goods.status != mcommon.status_choices2.get("标签打印") and order_goods.status != mcommon.status_choices2.get("已付款"):
                             tem_exceptions_order_goods.append(order_goods.goods_number)
+
                         else:
                             order_goods.status = mcommon.status_choices2.get("拿货中")
                             order_goods.save()

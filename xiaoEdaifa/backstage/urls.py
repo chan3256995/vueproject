@@ -43,11 +43,18 @@ urlpatterns = [
     url('logisticsPrint/', trade_views.LogisticsPrintView.as_view()),
     # 发货
     url('deliverGoods/', trade_views.DeliverGoodsView.as_view()),
+# 这个接口只为315物流来源发货
     url('deliverFrom315/', trade_views.DeliverFrom315View.as_view()),
     #  明天有货
     url('tomorrowGoods/', trade_views.TomorrowGoodsView.as_view()),
+    # 修改拿货中状态商品 统一用这个接口（如 拿货中状态 改为 明日有货  2-5天有货 已拿货  其他）
     url('changePurchasingStatus/', trade_views.ChangePurchasingStatus.as_view()),
     url('notGoods/', trade_views.NotHasGoods.as_view()),
+    # 明日有货 重新修改为 付款状态
+    url('tomorrowStatusReset/', trade_views.TomorrowStatusResetView.as_view()),
+
+    # 明日有货 重新修改为 付款状态 定时器开关
+    url('timeSwitch/', trade_views.TimeSwitchView.as_view()),
 
     url(r'', include(router.urls))
 ]

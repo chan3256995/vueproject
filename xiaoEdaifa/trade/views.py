@@ -10,7 +10,7 @@ from trade import models as trade_views
 from trade import  models as trade_models
 from user import  models as user_models
 import traceback
-from utils.permission import VIPPermission
+from utils.permission import UserPermission
 from utils.m_serializers import TradeAddOrdersSerializer
 from utils import m_serializers
 from utils import mcommon
@@ -18,17 +18,7 @@ import time
 from trade import trade_utils
 from backstage import back_utils
 from _decimal import Decimal
-# class Authtication(object):
-#     def authenticate(self,request):
-#         token = request._request.GET.get('token')
-#         token_obj = models.UserToken.objects.filter(token=token).first()
-#         if not token_obj:
-#             raise exceptions.AuthenticationFailed("用户认证失败")
-#         # zai rest  framework 内部会将两字段复制给request（request.user,request.util），
-#         return (token_obj.user, token_obj)
-#
-#     def authenticate_header(self,request):
-#         pass
+
 
 
 # 物流表
@@ -169,7 +159,7 @@ class QualityTestView(APIView):
 
 
 class OrderView(APIView):
-    permission_classes = [VIPPermission, ]
+    permission_classes = [UserPermission, ]
 
     def get(self,request,*args,**kwargs):
         ret = {'code': "1000", 'message': None}

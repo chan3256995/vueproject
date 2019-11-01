@@ -48,4 +48,20 @@ def create_dir(dir_path):
 
 
 if __name__ == '__main__':
-    print(create_dir("E:\\pythonprojects\\xiaoEdaifa\\static\\nh\\03\\"))
+    from xiaoEdaifa import settings
+    file_path = settings.BASE_DIR + "/backstage/msettings.txt"
+    print(create_file(file_path))
+    file = open(file_path,'w')
+
+    file.write("TIMER_SWITCH_ON = True")
+    file.close()
+    file = open(file_path)
+    content = file.read()
+    print(content)
+    res = content.split("=")[1].strip()
+    if res == 'True':
+        print("OK")
+    else:
+        print("NO")
+    print(res)
+    file.close()
