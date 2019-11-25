@@ -38,10 +38,23 @@
         {{order_goods.goods_color}}
         <div>
           <label style="color: red;">{{goods_status[order_goods.status]}}</label>
-          <label v-if="order_goods.status == goods_status2['其他']">({{order_goods.log}})</label>
+          <label v-if="order_goods.status === goods_status2['其他']">({{order_goods.log}})</label>
           <label style="color: deepskyblue;">{{refund_apply_status[order_goods.refund_apply_status]}}</label>
            <label style="color: red;">{{order_goods.goods_price}}元</label>
+           <label style="color: red;">{{order_goods.goods_count}}件</label>
+<label style="padding-left: 0.5em" @click="force_show_message(order_goods)">▼</label>
         </div>
+        <div>
+        <label v-show="order_goods.customer_message !== null && order_goods.customer_message !== ''" style="color:red">客户留言：{{order_goods.customer_message}}</label>
+
+  </div>
+        <div v-show="(order_goods.customer_service_message !== null && order_goods.customer_service_message !== '') || order_goods.force_show_service_message === true">
+
+          <label style="color:red">客服留言：</label>
+          <input style="color:red" v-model="order_goods.customer_service_message"> <button  @click="alter_order_goods_info(order_goods.id,{'customer_service_message':order_goods.customer_service_message})" >确定修改</button>
+        </div>
+
+
 
 
         <button  @click="tomorrow_goods([{'order_number':order.order_number,'order_goods_list':[{'goods_number':order_goods.goods_number }]}], pGLOBAL.GOODS_STATUS2['明日有货'])">明天有货</button>
@@ -105,7 +118,8 @@
           options: [
             {reason: '价格有误', reason_value: '价格有误'},
             {reason: '尺码缺货', reason_value: '尺码缺货'},
-            {reason: '档口或货号不对', reason_value: '档口或货号不对'}
+            {reason: '档口或货号不对', reason_value: '档口或货号不对'},
+            {reason: '其他', reason_value: '其他'}
           ],
           logistics_options: [],
           // 扫码返回的值
@@ -152,11 +166,35 @@
               let item =  order_list[i];
               let  mdate = mtime.formatDateStrFromTimeSt(item.add_time);
               mdate=mdate.substr(5,11)
-              console.log(mdate)
+
               item.add_time =mdate;
+              item['force_show_service_message'] =false;
             }
             return order_list
         },
+
+        force_show_message(order_goods){
+           let is_force = !order_goods.force_show_service_message
+           this.$delete(order_goods, 'force_show_service_message');
+           this.$set(order_goods, 'force_show_service_message', is_force);
+        },
+        alter_order_goods_info(id ,data){
+          const url = pGlobal.DJANGO_SERVER_BASE_URL+"/back/orderGoods/"+id+"/";
+          axios.defaults.withCredentials=true;
+           axios.put(url,data)
+             .then(res=>{
+               if(res.data.code === "1000"){
+               alert("修改成功")
+               }else{
+                 alert("修改失败"+res.data.message)
+               }
+
+              console.log(res.data);
+           }).catch(error =>{
+              alert("修改失败"+error)
+          })
+        },
+
         // 修改物流
         modify_logistics(order,new_logistics_number){
             if(!confirm("该订单已发货，确定修改物流信息吗？")) {
@@ -226,7 +264,7 @@
                 // 已拿货状态
         is_purchase_goodsed_status_btn_disable(){
           this.print_tag_btn_disable = true;
-          this.print_logistics_btn_disable=true;
+          this.print_logistics_btn_disable=false;
           this.purchase_goods_btn_disable=true;
           this.scan_qr_code_btn_disable=false;
           this.deliver_ok_btn_disable=false;
