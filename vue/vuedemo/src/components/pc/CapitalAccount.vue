@@ -1,5 +1,6 @@
 <template>
     <div class="root">
+
         <table class = "list_table">
           <tr>
             <td>交易号</td>
@@ -49,9 +50,11 @@
             account_log_list:[],
             prePageUrl:"",
             nextPageUrl:"",
+            user_trade_info_url : mGlobal.DJANGO_SERVER_BASE_URL+"/user/tradeInfo/"
         }
       },
       methods:{
+
           replaceData() {
             for(let i = 0;i<this.account_log_list.length;i++){
               let item =  this.account_log_list[i];
@@ -104,8 +107,8 @@
         }
       },
       created(){
-         const url = mGlobal.DJANGO_SERVER_BASE_URL+"/user/tradeInfo/"
-        this.loadCapitalPage(url,{})
+
+         this.loadCapitalPage(this.user_trade_info_url,{})
 
       }
 

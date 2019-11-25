@@ -12,6 +12,7 @@
       <router-link class="nav" to = "/pc/home/porder" >下订单</router-link>
       <router-link class="nav" to = "/pc/home/myorder" >我的订单</router-link>
       <router-link class="nav" to = "/pc/personal/recharge2" >充值</router-link>
+
     </div>
     <div style="width: 100%; " >
       <keep-alive><router-view style="width: 100%"></router-view></keep-alive>
@@ -53,7 +54,7 @@
   .nav_div{
     width: 100%;
     text-align: center;
-    height: 5em;
+    height: 2em;
 
   }
   .top{

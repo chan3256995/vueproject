@@ -1,5 +1,23 @@
 <template>
     <div class="root">
+      <div>
+        <input placeholder="交易号" style="width: 40%" v-model="trade_number"><button @click="filter_data({'trade_number':trade_number})">查询</button>
+      </div>
+      <div>
+        <input placeholder="用户名" style="width: 10%" v-model="query_user_name" >
+
+        <select   v-model="trade_source_selected">
+                  <option :value="option" v-for="(option,index) in trade_info_source_option" :key="index">{{option.text}}</option>
+        </select>
+        <select   v-model="trade_type_selected">
+                  <option :value="option" v-for="(option,index) in trade_type_option" :key="index">{{option.text}}</option>
+        </select>
+        <select   v-model="pass_type_selected">
+                  <option :value="option" v-for="(option,index) in pass_type_option" :key="index">{{option.text}}</option>
+        </select>
+
+        <button @click="filter_data({'user_name':query_user_name})">查询</button> <button @click="filter_data({'check_status':0})">未通过</button><button @click="filter_data({})">全部</button>
+      </div>
         <table class = "list_table">
           <tr>
             <td>用户</td>
@@ -26,8 +44,9 @@
             <td style="width: 2em" v-else-if="item.is_pass === false">未审核</td>
 
             <td>{{item.user_balance}}</td>
-            <td>
-              <button v-if="item.is_pass === false" @click="recharge_pass(item.trade_number)">通过</button>
+            <td v-if="item.is_pass === false">
+              <button  @click="recharge_pass(item)">通过</button>
+              <input  v-model="item.validation_recharge_number"  />
             </td>
 
           </tr>
@@ -51,40 +70,84 @@
      //设为true 就会带cookies 访问
     axios.defaults.withCredentials=true;
     export default {
-      name: "CapitalAccount",
+      name: "TradeInfo",
       data(){
         return {
-           prePageShow:true,
+          // 交易来源
+            trade_source_selected:{text:"全部",value:""},
+            trade_type_selected:{text:"全部",value:""},
+            pass_type_selected:{text:"全部",value:""},
+            trade_info_source_option:[].concat(mGlobal.TRADE_INFO_SOURCE_OPTIONS),
+            trade_type_option:[
+
+              {text:"全部",value:""},
+              {text:"收入",value:1},
+              {text:"支出",value:2},
+
+            ],
+            pass_type_option:[
+
+              {text:"全部",value:""},
+              {text:"通过",value:1},
+              {text:"未通过",value:2},
+
+            ],
+            mGlobal:mGlobal,
+            query_trade_number:"",
+            query_user_name:"",
+            prePageShow:true,
             nextPageShow:true,
             account_log_list:[],
             prePageUrl:"",
             nextPageUrl:"",
+            user_trade_info_url : mGlobal.DJANGO_SERVER_BASE_URL+"/back/tradeInfo/"
         }
       },
       methods:{
+          filter_data(params){
+             this.loadCapitalPage(this.user_trade_info_url,params)
+          },
 
         // 充值通过
-         recharge_pass(trade_number){
+         recharge_pass(item){
             const url = mGlobal.DJANGO_SERVER_BASE_URL+"/back/rechargePass/"
+           if(item.validation_recharge_number===""){
+              if(!confirm("校验单号为空,确定继续？")) {
+                return ;
+              }
+           }else{
+             if(item.validation_recharge_number !== item.recharge_number){
+                if(!confirm("校验单号失败，确定继续？")) {
+
+                return ;
+              }
+             }
+
+           }
            axios.defaults.withCredentials=true;
             let query_data = {
-              "trade_number":trade_number
+              "trade_number":item.trade_number
             }
            axios.post(url,query_data
 
         ).then((res)=>{
-          console.log(res.data)
+          if(res.data.code === "1000"){
+            this.$toast("提交成功")
+          }
+
 
         }).catch(error => {
 
           console.log(error) ;
         })
          },
-          replaceData() {
+        replaceData() {
             for(let i = 0;i<this.account_log_list.length;i++){
               let item =  this.account_log_list[i];
                let  mdate = mtime.formatDateStrFromTimeSt(item.add_time);
-              item.add_time =mdate;
+               item.add_time =mdate;
+               item['validation_recharge_number'] ="";
+
             }
           },
 
@@ -130,8 +193,8 @@
         }
       },
       created(){
-         const url = mGlobal.DJANGO_SERVER_BASE_URL+"/back/tradeInfo/"
-        this.loadCapitalPage(url,{})
+        this.trade_info_source_option.unshift({text:"全部",value:''})
+        this.loadCapitalPage(this.user_trade_info_url,{})
       }
 
     }

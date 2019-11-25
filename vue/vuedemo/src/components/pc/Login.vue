@@ -31,7 +31,8 @@
         submit_btn_disable: false,
         username:'',
         password:'',
-        datas:{}
+        datas:{},
+
       }
     },
     created(){
@@ -84,7 +85,8 @@
             name:'pRegister'
           })
       }
-    }
+    },
+
   }
 </script>
 

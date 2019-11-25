@@ -16,6 +16,7 @@
     "nprogress": "^0.2.0",
     "vant": "^2.0.8",
     "vue": "^2.5.2",
+    "vue-clipboard2": "^0.3.1",
     "vue-cookies": "^1.5.13",
     "vue-qart": "^2.2.0",
     "vue-qr": "^2.1.0",

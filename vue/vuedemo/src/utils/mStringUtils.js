@@ -3772,9 +3772,51 @@ export default {
 
     }
   },
+// 给商品跟地地址字符串除去冗余数据
+           //去除替换冗余的数据
+  replace_redundance_str(orderStr){
+             while(orderStr.search("\t") !== -1){
+                  orderStr = orderStr.replace("\t"," ");
+                }
+                while(orderStr.search(",") !== -1){
+                  orderStr = orderStr.replace(",","，");
+                }
+                 while(orderStr.search("，，") !== -1){
+                  orderStr = orderStr.replace("，，","，");
+                }
+                 while(orderStr.search("//") !== -1 ){
+                  orderStr = orderStr.replace("//","/");
+                }
+                while(orderStr.search("  ") !== -1){
+                  orderStr = orderStr.replace("  "," ");
+                }
+                 while(orderStr.search("\n ") !== -1  ) {
+                orderStr = orderStr.replace("\n ", "\n");
+              }
+              while(orderStr.search(" \n") !== -1  ) {
+                orderStr = orderStr.replace(" \n", "\n");
+              }
 
+                 while(orderStr.search("\n\n") !== -1) {
+                orderStr = orderStr.replace("\n\n", "\n");
+              }
+
+                 while(orderStr.search("\n") !== -1) {
+                orderStr = orderStr.replace("\n", "@");
+              }
+              
+              let reg = /[, /]{2}|[， /]{2}/;//“， /”三个字符出现两个 不分顺序
+                 while(orderStr.match(reg)){
+                   let result =  orderStr.match(reg);
+                  orderStr = orderStr.replace(result[0],"，")
+                 }
+            return orderStr
+         },
+  
+  
      getAddressInfo(address){
         let info = this.getAddressInfo1(address);
+        console.log('info',info)
         if(info.province === "" || info.city ===""){
           info = this.getAddressInfo2(address)
         }
@@ -3831,8 +3873,7 @@ export default {
        let address_detail = "";
        let  speace_province = ["北京市","天津市","上海市"]
        let  chongqing_province = "重庆市";
-       console.log("7777777777777777777777777777777777777777777777777777777777777")
-       console.log(this.data().mdata)
+       
        let  provice_res = this.searchProvince(address,this.data().mdata)
         if(provice_res!==""){
           province = provice_res.province;
@@ -3902,12 +3943,15 @@ export default {
       let name = "";
       let phone_arr = address.match(/\d{11}/ig);
       let name_str = ""
+     console.log('phone_arr',phone_arr)
       if(phone_arr !== null){
           phone = phone_arr[0];
           name_str= address.substring(0,address.search(phone))
       }else{
         // 没有找到 11位数的手机号码 可能固话
+        console.log('没有找到 11位数的手机号码 可能固话',address)
         let tem_str_arr = address.trim().split(/[，  ]/)
+         console.log('没有找到 11位数的手机号码 可能固话2',tem_str_arr)
             phone = tem_str_arr[1]
             name_str= tem_str_arr[0]
       }

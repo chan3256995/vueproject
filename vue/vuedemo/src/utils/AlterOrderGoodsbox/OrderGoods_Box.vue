@@ -9,25 +9,70 @@
       </svg>
       <h3 class="title">{{ title }}</h3>
       <p class="content">{{ content }}</p>
+      <div  >
+        <table class="market_table1">
+          <tr  >
+            <td  >市场</td>
+            <td  >楼层</td>
+            <td  >档口号</td>
+            <td >货号</td>
+          </tr>
+          <tr  >
+            <td  ><input v-model="orderGoodsBackUp.shop_market_name"/></td>
+            <td  ><input v-model="orderGoodsBackUp.shop_floor" /></td>
+            <td  ><input v-model="orderGoodsBackUp.shop_stalls_no"  /></td>
+            <td  ><input v-model="orderGoodsBackUp.art_no"  /></td>
+          </tr>
+          <tr></tr>
+        </table>
+
+        <table class="market_table1">
+          <tr>
+            <td>颜色/尺码</td>
+            <td>单价</td>
+            <td>数量</td>
+
+          </tr>
+          <tr>
+            <td><input v-model="orderGoodsBackUp.goods_color"  /></td>
+            <td><input type="number" v-model="orderGoodsBackUp.goods_price" /></td>
+            <td><input type="number" v-model="orderGoodsBackUp.goods_count"     /></td>
+
+          </tr>
+          <tr></tr>
+        </table>
+
+      </div>
+      <div v-if="orderGoodsBackUp.status !== mGlobal.GOODS_STATUS2['未付款']">
+        <div>
+        <label>应付金额：</label><label style="color: red"> {{pay_moneys}}</label><label>元</label><label style="color: red">（负数为应退金额，正数为应付金额）</label>
+      </div>
       <table style="text-align: center">
-        <tr  v-if="isShowInput" >
+        <tr>
           <td> <label style="float: left">支付密码：</label></td>
-          <td> <input style="width:15em;" type="password" v-model="inputValue"ref="input" @keyup.enter="confirm"></td>
+          <td> <input style="width:15em;" type="password" v-model="inputValue" v-if="isShowInput" ref="input" @keyup.enter="confirm"></td>
         </tr>
 
 
       </table>
+
+      </div>
+
       <div class="btn-group">
+
         <button class="btn-default" @click="cancel" v-show="isShowCancelBtn">{{ cancelBtnText }}</button>
-        <button class="btn-primary btn-confirm" @click="confirm" v-show="isShowConfimrBtn">{{ confirmBtnText }}</button>
+        <button class="btn-primary btn-confirm" :disabled="submit_btn_disable" @click="confirm" v-show="isShowConfimrBtn">{{ confirmBtnText }}</button>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+   import mGlobal from '../../utils/mGlobal';
   export default {
     props: {
+      orderGoods:{},
+      orderGoodsBackUp:{},
       title: {
         type: String,
         default: '标题'
@@ -57,23 +102,82 @@
     },
     data () {
       return {
+        mGlobal:mGlobal,
+        pay_moneys:0,
         isShowMessageBox: false,
         resolve: '',
         reject: '',
-        promise: '' // 保存promise对象
+        promise: '', // 保存promise对象
+        submit_btn_disable :false,
       };
     },
+    created(){
+
+    },
+    mounted(){
+
+      // Object.assign(this.orderGoodsBackUp,this.orderGoods)
+
+    },
+
+
     methods: {
+      // 计算差价
+      calc_price(){
+        this.pay_moneys  = (this.orderGoodsBackUp.goods_price * this.orderGoodsBackUp.goods_count) - (this.orderGoods.goods_price * this.orderGoods.goods_count)
+        console.log('pay_moneys',this.pay_moneys)
+      },
+
       // 确定,将promise断定为resolve状态
       confirm: function () {
-        this.isShowMessageBox = false;
-        if (this.isShowInput) {
-          this.resolve(this.inputValue);
-        } else {
-          this.resolve('confirm');
+        console.log(this.inputValue)
+        if(this.orderGoodsBackUp.status  !== mGlobal.GOODS_STATUS2['未付款']){
+           if(this.inputValue === "" || this.inputValue === undefined){
+          alert("支付密码不能为空")
+          return
         }
-        this.remove();
+        }
+
+        if(isNaN(this.orderGoodsBackUp.goods_price) ||  this.orderGoodsBackUp.goods_price === 0 ){
+          alert("价格必须大于 0 ")
+          return
+        }
+
+
+         if(isNaN(this.orderGoodsBackUp.goods_count) ||  this.orderGoodsBackUp.goods_count < 1   ){
+          alert("数量必须大于 0 的整数")
+          return
+        }
+        this.submit_btn_disable = true;
+        let url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/alterOrderGoodsDetails/"
+
+        console.log(url)
+        this.$axios.post(url,{
+           'new_order_goods':this.orderGoodsBackUp,
+           'pay_pwd':this.inputValue
+
+       }).then((res)=>{
+
+         if(res.data.code === "1000"){
+             alert("修改成功")
+            this.orderGoods.goods_price = this.orderGoodsBackUp.goods_price
+           this.$delete(this.orderGoods,'goods_price')
+           this.$set(this.orderGoods,'goods_price', this.orderGoodsBackUp.goods_price)
+            this.isShowMessageBox = false;
+             this.resolve('confirm');
+             this.remove();
+         }else{
+            alert("修改失败:"+res.data.message)
+         }
+          this.submit_btn_disable = false;
+          }).catch(error => {
+            alert("访问错误")
+            this.submit_btn_disable = false;
+          })
+
       },
+
+
       // 取消,将promise断定为reject状态
       cancel: function () {
         this.isShowMessageBox = false;
@@ -84,7 +188,7 @@
       showMsgBox: function () {
         this.isShowMessageBox = true;
         this.promise = new Promise((resolve, reject) => {
-          this.resolve = resolve;
+            this.resolve = resolve;
           this.reject = reject;
         });
         // 返回promise对象
@@ -99,13 +203,32 @@
         this.$destroy();
         document.body.removeChild(this.$el);
       }
-    }
+    },
+        watch: {
+
+         'orderGoodsBackUp.goods_price': function(newVal,oldVal) {
+
+            this.calc_price()
+
+         },
+          'orderGoodsBackUp.goods_count':function(newVal,oldVal){
+           console.log('goods_count',newVal, oldVal)
+
+             this.calc_price()
+          }
+      },
   };
 </script>
 
 <style lang="less" scoped>
+  .market_table1 td{
+    width: 20%;
+  }
+  .market_table1 input{
+    width: 100%;
+  }
   .message-box {
-    width:30em;
+    width: 30em;
     position: relative;
     .mask {
       position: fixed;
@@ -145,14 +268,13 @@
         margin-bottom: 1em;
       }
       .content {
-        width: 100%;
+        width: 300px;
         font-size: 1em;
-        /*line-height: 2em;*/
-        word-wrap: break-word;
+        line-height: 2em;
         color: #555;
       }
       input {
-        width: 30em;
+
         margin: 1em 0;
         background-color: #fff;
         border-radius: 0.4em;

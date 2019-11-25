@@ -14,16 +14,23 @@ import pUserDetails from '../components/pc/UserDetails'
 import pCapitalAccount from '../components/pc/CapitalAccount'
 import pRecharge from '../components/pc/Recharge'
 import pRecharge2 from '../components/pc/Recharge2'
+import pMyInvite from '../components/pc/MyInvite'
+import pMyDiscountCard from '../components/pc/MyDiscountCard'
 import pbkHome from '../components/pc/backstage/Home'
 import pbkLogin from '../components/pc/backstage/Login'
 import pbkQR from '../components/pc/backstage/qrtest.vue'
 import pbkOrder from '../components/pc/backstage/Order'
 import pbRefund from '../components/pc/backstage/Refund'
-import pOutPutOrdersForExcel from '../components/pc/backstage/OutPutOrderForExcel'
-import pExcelToString from '../components/pc/backstage/ExcelToString'
-import pPrint from '../components/pc/backstage/Print'
-import pTradeInfo from '../components/pc/backstage/TradeInfo'
-import pPrintFormat from '../components/pc/backstage/printFormatPage'
+import pbkOutPutOrdersForExcel from '../components/pc/backstage/OutPutOrderForExcel'
+import pbkExcelToString from '../components/pc/backstage/ExcelToString'
+import pbkPrint from '../components/pc/backstage/Print'
+import pbkTradeInfo from '../components/pc/backstage/TradeInfo'
+import pbkPrintFormat from '../components/pc/backstage/printFormatPage'
+// 会员卡管理
+import pbkDiscountCard from '../components/pc/backstage/DiscountCard'
+// 用户支付宝账户认证信息
+import pbkUserAliPayAccountInfo from '../components/pc/backstage/UserAliPayAccount'
+import pbkInviteRegisterInfo from '../components/pc/backstage/InviteRegister'
 
 Vue.use(VueRouter)
 export default new VueRouter({
@@ -88,6 +95,16 @@ export default new VueRouter({
           name:'pRecharge2',
           component:pRecharge2
         },
+        {
+          path:'/pc/personal/myInvite',
+          name:'pMyInvite',
+          component:pMyInvite
+        },        
+        {
+          path:'/pc/personal/myDiscountCard',
+          name:'pMyDiscountCard',
+          component:pMyDiscountCard
+        },
       ]
     } ,
     {
@@ -126,7 +143,7 @@ export default new VueRouter({
     {
           path:'/pc/back/printPageFormat',
           name:'pPrintFormat',
-          component:pPrintFormat
+          component:pbkPrintFormat
     },
 
     {
@@ -148,26 +165,44 @@ export default new VueRouter({
 
         {
           path:'/pc/back/home/outPutExcel',
-          name:'pOutPutOrdersForExcel',
-          component:pOutPutOrdersForExcel
+          name:'pbkOutPutOrdersForExcel',
+          component:pbkOutPutOrdersForExcel
          },       
         {
           path:'/pc/back/home/excelToString',
-          name:'pExcelToString',
-          component:pExcelToString
+          name:'pbkExcelToString',
+          component:pbkExcelToString
          },
 
         {
           path:'/pc/back/home/print',
-          name:'pPrint',
-          component:pPrint
+          name:'pbkPrint',
+          component:pbkPrint
          },
         {
           path:'/pc/back/home/tradeInfo',
-          name:'pTradeInfo',
-          component:pTradeInfo
+          name:'pbkTradeInfo',
+          component:pbkTradeInfo
          },
 
+        {
+          // 打折卡
+          path:'/pc/back/home/discountCard',
+          name:'pbkDiscountCard',
+          component:pbkDiscountCard
+         },
+         {
+          // 用户支付宝认证信息
+          path:'/pc/back/home/userAliPayAccountInfo',
+          name:'pbkUserAliPayAccountInfo',
+          component:pbkUserAliPayAccountInfo
+         },
+        {
+          // 邀请注册信息
+          path:'/pc/back/home/inviteRegisterInfo',
+          name:'pbkInviteRegisterInfo',
+          component:pbkInviteRegisterInfo
+         },
 
       ]
     }

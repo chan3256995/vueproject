@@ -142,6 +142,7 @@
           // #  读取excel 内容
             readExcel(e) {//表格导入
             var that = this;
+            that.fahuo_list = []
             const files = e.target.files;
             console.log(files);
             if(files.length<=0){//如果没有文件名
@@ -172,10 +173,11 @@
                     let logistics_name = ws[i].快递
                     let logisitcs_number = ws[i].单号
                     let my_number = ws[i].自定义编码
+                    if (my_number === undefined  || my_number===""){
+                       continue
+                     }
                     let order_id = my_number.split('-')[0]
-                   if (order_id === undefined){
-                     continue
-                   }
+
                     if(logisitcs_number !== undefined){
                       this.fahuo_list.push({"order_number":order_id,"logistics_name":logistics_name,"logistics_number":logisitcs_number})
                     }

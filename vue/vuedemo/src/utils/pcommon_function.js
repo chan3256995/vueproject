@@ -18,6 +18,9 @@ analysis_logistics(data){
             const url = mGlobal.DJANGO_SERVER_BASE_URL+"/user/details/-1/"
             return axios.get(url)
           },
+  
+  
+  
 }
 
 

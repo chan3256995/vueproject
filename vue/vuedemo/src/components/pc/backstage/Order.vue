@@ -1,13 +1,26 @@
 <template>
   <div class="container">
     <ul class = "items_ul">
-      <div>
-        <input v-model="query_q" style="width: 30em; height: 2em ; " placeholder="订单号 ，收货人名，手机号，快递单号"/><button @click='on_orders_query(query_q)' style="margin-left: 0.5em">查询</button>
+      <div >
+        <input v-model="search_market_name" style="width: 5em; height: 2em ; " placeholder="市场名"/>
+        <input v-model="search_shop_floor" style="width: 5em; height: 2em ; " placeholder="楼层"/>
+        <input v-model="search_stall_no" style="width: 5em; height: 2em ; " placeholder="档口号"/>
+        <input v-model="search_art_no" style="width: 5em; height: 2em ; " placeholder="款号"/>
+        <button @click='on_orders_query("market_full",{"shop_market_name":search_market_name, "shop_floor":search_shop_floor,"shop_stalls_no":search_stall_no,"art_no":search_art_no})' style="margin-left: 0.5em">市场查询</button>
+      </div>
+      <div style="margin-top:0.5em" >
+        <select  style="width: 5em"  v-model="query_by_selected">
+          <option :value="option" v-for="(option,index) in query_by_options" :key="index">{{option.text}}</option>
+        </select>
+        <input v-model="query_q" :placeholder="query_by_selected.text" style="width: 30em; height: 2em ; "  /><button @click='on_orders_query(query_by_selected.value,query_q)' style="margin-left: 0.5em">查询</button><button style="margin-left: 0.5em" @click='on_orders_query()' >全部</button>
       </div>
         <li class="item_order" v-for="(item,index) in order_list" :key="index">
           <div  class="order_div" >
+            <a style="cursor:pointer; text-decoration:underline; " @click="show_user(item.order_owner)">下单人:{{item.order_owner.user_name}}</a>
               <label  class="order_label" >订单号：{{item.order_number}}</label>
-             <label v-if="item.order_follower !==null">跟单人：{{item.order_follower.user_name}}</label>
+             <label   style="color:black">跟单人：</label>
+             <label v-if="item.order_follower !==null" style="color:black">{{item.order_follower.user_name}}</label>
+            <label>包裹状态：{{order_status[item.order_status]}}</label>
               <label> {{item.consignee_name}} {{item.consignee_phone}} {{item.consignee_address}}</label>
           </div>
           <div style="display: inline-block;width: 100%" ><button @click="item_detail_show(index,item)" style="float: right">显示/隐藏</button></div>
@@ -78,7 +91,7 @@
               </div>
               <div>
                 <label style="padding-left: 0.5em">下单时间:{{item.add_time}}</label>
-                <label>物流名{{item.logistics_name}}</label>
+                <label>物流名:{{item.logistics_name}}</label>
               <label>快递：</label>
 
                  <select style="width: 5em" v-model="item.logistics_name">
@@ -113,6 +126,19 @@
         name: "MyOrder",
       data(){
           return{
+            search_market_name:"",
+            search_shop_floor:"",
+            search_stall_no:"",
+            search_art_no:"",
+
+            query_by_selected : {value:"default:",text:"订单号 ，收货人名，手机号，快递单号"},
+            query_by_options:[
+              {value:"default",text:"订单号 ，收货人名，手机号，快递单号"},
+              {value:"by_user_name",text:"下单用户名"},
+              {value:"by_order_follower_user_name",text:"跟单人用户名"},
+
+            ],
+            order_status:mGlobal.ORDER_STATUS,
             goods_status: mGlobal.GOODS_STATUS,
             goods_status_options: mGlobal.GOODS_STATUS_OPTIONS,
             refund_apply_status:mGlobal.REFUND_APPLY_STATUS,
@@ -123,14 +149,29 @@
             prePageUrl:"",
             nextPageUrl:"",
             query_q:"",
+            query_:"",
             logistics_options:[]
           }
 
       },
 
       methods:{
+          // 显示用户信息
+        show_user(user){
+           this.$msgBox.showMsgBox({
+                  title: '用户信息',
+                  content: JSON.stringify(user)+" ",
+                  isShowInput: false,
+                  isShowConfimrBtn:false
+              }).then(async (val) => {
+
+
+              }).catch(() => {
+                  // ...
+              });
+        },
           // 加载物流选项信息
-          load_logistics(){
+        load_logistics(){
             let return_value = ""
             const url  = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/trade/logistics/"
            //设为true 就会带cookies 访问
@@ -144,26 +185,49 @@
                console.log(this.logistics_options)
                return_value =  "物流信息"
              }else{
-return "物流信息"
+              return "物流信息"
              }
               }).catch(error => {
                 console.log(error) ;
-return "物流信息"
+                return "物流信息"
               })
           },
 
-          item_detail_show: function(index, item){
+        item_detail_show: function(index, item){
             let  show = !item.show;
             this.$delete(item,'show')
             this.$set(item, 'show', show);
 },
-          on_orders_query(query_keys){
+        on_orders_query(query_by,query_keys){
             const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/orders/"
-            let query_data = {"q":query_keys.trim()}
+            let query_data = {}
+            if(query_by==="default"){
+              query_data = {'q':query_keys.trim()}
+            }else if(query_by==="by_order_follower_user_name"){
+               query_data = {'order_follower_user_name':query_keys.trim()}
+            }else if(query_by==="by_user_name"){
+               query_data = {'user_name':query_keys.trim()}
+            }else if (query_by==="market_full"){
+
+              query_data={
+                  "market_full":{
+                  "shop_market_name":query_keys['shop_market_name'],
+                  "shop_floor":query_keys['shop_floor'],
+                  "shop_stalls_no":query_keys['shop_stalls_no'],
+                  "art_no":query_keys.art_no
+                }
+              }
+            }
+
+            this.loadOrderPage(url,query_data)
+          },
+        on_orders_query_by_user_name(user_name){
+            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/orders/"
+            let query_data = {"user_name":user_name.trim()}
             this.loadOrderPage(url,query_data)
           },
           //修改订单信息
-          alter_order_info(id,data){
+        alter_order_info(id,data){
             console.log("订单id",id)
           const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/orders/"+id+"/";
           axios.defaults.withCredentials=true;
@@ -203,7 +267,7 @@ return "物流信息"
           this.$router.push({path:"/pc/home/porder",query:{data:data}})
         },
 
-          replaceData() {
+        replaceData() {
             for(let i = 0;i<this.order_list.length;i++){
               let item =  this.order_list[i];
                let  mdate = mtime.formatDateStrFromTimeSt(item.add_time);
@@ -211,23 +275,27 @@ return "物流信息"
               item.add_time =mdate;
               let orderGoodsTotalMoney = 0;
                 for(let g = 0; g < item.orderGoods.length;g++){
-                    orderGoodsTotalMoney = orderGoodsTotalMoney + item.orderGoods[g].goods_price * item.orderGoods[g].goods_count
+                  if(item.orderGoods[g].status !== mGlobal.GOODS_STATUS2['已退款']){
+
+                     orderGoodsTotalMoney = orderGoodsTotalMoney + item.orderGoods[g].goods_price * item.orderGoods[g].goods_count
+                  }
+
                 }
                 item['orderGoodsTotalMoney'] = orderGoodsTotalMoney;
-                item['show'] = false;
+                item['show'] = true;
             }
           },
 
-          prePage(){
+        prePage(){
             console.log(this.prePageUrl)
             this.loadOrderPage(this.prePageUrl)
           },
 
-          nextPage(){
+        nextPage(){
              console.log(this.nextPageUrl);
             this.loadOrderPage(this.nextPageUrl)
           },
-          loadOrderPage(url,query_data){
+        loadOrderPage(url,query_data){
            axios.defaults.withCredentials=true;
            axios.get(url,{
                     params:query_data,
@@ -260,9 +328,11 @@ return "物流信息"
       },
 
       created(){
-          console.log("返回值：",this.load_logistics())
+          this.query_by_selected = this.query_by_options[0]
           const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/orders/";
           this.loadOrderPage(url);
+          this.load_logistics();
+
       },
 
     }

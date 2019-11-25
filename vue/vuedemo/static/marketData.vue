@@ -42,7 +42,7 @@
 
       // 根据商品字符串list  返回商品对象list
        ret_goods_list(goods_str_list){
-
+            console.log("889898989898",goods_str_list)
              let goods_list = [];
              for(let i=0;i<goods_str_list.length;i++){
                let goods_info = {"shop_market_name":"","shop_floor":"","shop_stalls_no":"","art_no":"","goods_price":"","goods_color":"",'goods_count':""}
@@ -163,12 +163,15 @@
                   let result =  tem_goods_str.match(reg);
                   tem_goods_str = tem_goods_str.replace(result[0],"，")
               }
-
+console.log("-----------------------------------------------------------------------------------")
           // 寻找第一次出现市场明的位置 返回 该位置的市场名 索引 等信息
           let goods_start_info = this.isfind_market(tem_goods_str,this.market_name_list,0);
+           console.log("goods_start_info",goods_start_info)
            // 寻找下一次出现市场明的位置 返回 该位置的市场名 索引 等信息
+          console.log("next_goods_info_find_market ",tem_goods_str,goods_start_info.market_name.length)
           let next_goods_info = this.isfind_market(tem_goods_str,this.market_name_list,goods_start_info.market_name.length);
 
+          console.log("next_goods_info",next_goods_info)
           if(next_goods_info !==""){
              let goods_info = tem_goods_str.substring(0,next_goods_info.index).trim();
              goods_str_list.push(goods_info);
@@ -180,7 +183,7 @@
              tem_goods_str = "";
           }
 
-
+console.log("------------------------------- ")
 
   }
  console.log(goods_str+"999999999999")
@@ -188,22 +191,28 @@
   },
 
    isfind_market(address,market_list,start_index) {
+
     let tem_str = address.substring(start_index,address.length)
+
+    let  find_start_str = tem_str
      for(let index = 0 ;index<tem_str.length;index++){
+
         for(let i = 0; i< market_list.length; i++){
-          let is_find = tem_str.startsWith(market_list[i])
+          let is_find = find_start_str.startsWith(market_list[i])
           if(is_find){
+
             return {'index':start_index+index,'market_name':market_list[i]};
           }
     }
-       tem_str = tem_str.substr(1,tem_str.length)
+        find_start_str = tem_str.substr(index+1,tem_str.length-1)
      }
-    for(let i = 0; i< market_list.length; i++){
-      let index = tem_str.search(market_list[i])
-      if(index !== -1){
-        return {'index':start_index+index,'market_name':market_list[i]};
-      }
-    }
+    //  for(let i = 0; i< market_list.length; i++){
+    //   let index = tem_str.search(market_list[i])
+    //   if(index !== -1){
+    //      console.log("isfind_market_search_index",index,market_list[i],tem_str)
+    //     return {'index':start_index+index,'market_name':market_list[i]};
+    //   }
+    // }
     return "";
   }
   }

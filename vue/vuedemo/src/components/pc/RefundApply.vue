@@ -151,7 +151,7 @@
 
       },
 
-         created(){
+      created(){
            console.log("created------------")
            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/orderGoods/"+this.order_goods_id+"/";
              //设为true 就会带cookies 访问
@@ -186,7 +186,7 @@
             this.$router.push(NewPage);
             this.$router.go(-1);
 },
-             checkData(){
+        checkData(){
                if(this.goods.refund_apply_status !== 0){
                  alert("关闭申请退款后才能再次申请")
                  return false;
@@ -225,7 +225,7 @@
 
                 return true
             },
-          submit(){
+        submit(){
              if(this.checkData() == false){
                return;
              }
@@ -258,12 +258,12 @@
                alert("提交成功")
                 this.reflashPage();
              }else{
-                alert("提交失败")
+                alert("提交失败，"+res.data.message)
              }
         }).catch(error => {
               this.submit_btn_disable = false;
               this.submit_btn = "提交"
-             alert("提交失败")
+             alert("访问错误")
         })
        },
 

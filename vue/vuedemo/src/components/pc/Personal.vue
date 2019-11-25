@@ -1,4 +1,4 @@
-<template>
+<template  >
   <div class="root">
     <div style="width: 8em;height: auto; float:left;">
 
@@ -6,10 +6,12 @@
       <li > <router-link class="nav"  to = "/pc/personal/userDetails" >个人资料</router-link></li>
       <li > <router-link class="nav"  to = "/pc/personal/capitalAccount" >账户记录</router-link></li>
       <li > <router-link class="nav"  to = "/pc/personal/recharge2" >充值</router-link></li>
+      <li > <router-link class="nav"  to = "/pc/personal/myInvite" >我的邀请</router-link></li>
+      <li > <router-link class="nav"  to = "/pc/personal/myDiscountCard" >我的优惠</router-link></li>
 
     </ul>
       </div>
-      <div style="float: left;padding-left: 2em">
+      <div style="width:80%;float: left;padding-left: 2em">
           <router-view></router-view>
       </div>
   </div>
@@ -22,9 +24,13 @@
 </script>
 
 <style scoped>
+  .root{
+    width:100%
+  }
   .root ul li{
     padding-top: 1em;
     list-style: none;
+
   }
 .nav{
 

@@ -1,5 +1,6 @@
 <template>
     <div >
+      <p style="font-size: 2em;margin-top: 2em">用户注册</p>
  <table class="register">
     <tr>
         <td>用户名<label style="color:red;font-size: 1.5em">*</label></td>
@@ -32,7 +33,7 @@
       <td><input class="global_input_default_style" type="number" v-model="qq"/></td>
     </tr>
     </table>
-  <button @click="register" class="register_submit_btn" :class="{'global_btn_normal_style':!submit_btn_disable , 'global_btn_clicked_style':submit_btn_disable }">提交</button>
+  <button @click="register" class="register_submit_btn" :class="{'global_btn_normal_style':!submit_btn_disable , 'global_btn_clicked_style':submit_btn_disable }">提交注册</button>
 
 </div>
 </template>
@@ -43,7 +44,8 @@
       name: "Register",
       data() {
         return {
-           submit_btn_disable: false,
+          inviter_id :this.$route.query.inviter_id,
+          submit_btn_disable: false,
           username: '',
           password: '',
           email:'',
@@ -56,8 +58,14 @@
           email_tip:'',
         }
       },
+      created(){
+        console.log("created_inviter_id:"+this.inviter_id)
+      },
+      mounted(){
+         console.log("mounted_inviter_id:"+this.inviter_id)
+      },
       methods:{
-            register(){
+        register(){
               if(this.check_data() === false){
                 return
               }
@@ -69,6 +77,9 @@
             datas.phone = this.phone;
             datas.qq = this.qq;
             datas.password = this.password;
+            if(this.inviter_id !== undefined && (! isNaN(this.inviter_id))){
+              datas.inviter_id = this.inviter_id
+            }
              axios.post(url,datas).then((res)=>{
                 console.log(res.data)
                  this.submit_btn_disable = false;
@@ -108,15 +119,13 @@
         re_password_focus(){
               this.password_tip=""
         },
-       password_tip_bl(){
+        password_tip_bl(){
               console.log(this.password)
               console.log(this.re_password)
               if(this.password !==  this.re_password){
                 this.password_tip = "两次密码不一致"
               }
       },
-
-
         email_bl(){
             const url  = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/checkUser/";
             console.log(url);
@@ -151,8 +160,7 @@
         email_focous(){
           this.email_tip = ""
         },
-
-          checkUser:function(datas,){
+        checkUser:function(datas,){
 
             const url  = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/checkUser/";
             console.log(url);
@@ -161,7 +169,7 @@
                  if(res.data.code === '1000'){
                    this.username_tip = '可用'
                  }else if(res.data.code === '1002'){
-                   this.username_tip = '该用户名不可用'
+                   this.username_tip = res.data.message
                  }
             }).catch(error => {
             })

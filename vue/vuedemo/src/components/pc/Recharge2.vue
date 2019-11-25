@@ -2,7 +2,7 @@
     <div style="text-align: center;">
       <div style="margin: 3em">
         <vue-qr  v-if="user!=''" :text="config.value" :margin="0" colorDark="black" colorLight="#fff" :logoSrc="config.imagePath" :logoScale="0.3" :size="200"></vue-qr>
-      <label style="color: red; font-size: 1.5em;display: block">扫上面的二维码进行充值</label>
+      <label style="color: red; font-size: 1.5em;display: block">用支付宝扫上面的二维码进行充值</label>
       <label style="color: red; font-size: 1em;display: block">转账后刷新余额查看是否充值到账</label>
       </div>
 
@@ -101,7 +101,7 @@
               if (res.data.code === "1000") {
 
                 this.user = res.data.user
-                let timestamp = new Date().getTime() + "_" + this.user.id
+                let timestamp = new Date().getTime() + "_" + this.user.id + "_17pay"
                 this.config =
                   {
                     value: 'alipays://platformapi/startapp?appId=20000123&actionType=scan&biz_data={"s":"money","u":"2088012229532543","a":"","m":"' + timestamp + '"}',

@@ -1,5 +1,8 @@
 <template>
   <div id= 'container_id' class="container">
+    <div style="text-align: center">
+      <p style="color:red;font-size: 1.2em;padding-left: 5em"> 只有商品状态为明日有货的第二天才默认继续拿货，其余的状态要申请退款重新下单</p>
+    </div>
     <div style="padding-left: 5em">
         <input v-model="query_q" style="width: 85%;height: 2em;max-width: 40em; " placeholder="订单号 ，收货人名，手机号，快递单号"/><button @click='on_orders_query(query_q)' style="margin-left: 0.5em">查询</button>
       </div>
@@ -7,37 +10,46 @@
       <li ><a @click="on_order_filter({'status':goods_status2['未付款']},'未付款')" :class="{status_select:cur_order_status_filter==='未付款'}">未付款{{un_pay_counts}}</a></li>
       <li ><a @click="on_order_filter({'status':goods_status2['已付款']},'已付款')" :class="{status_select:cur_order_status_filter==='已付款'}">已付款{{is_payed_counts}}</a></li>
       <li ><a @click="on_order_filter({'status':goods_status2['已发货']},'已发货')" :class="{status_select:cur_order_status_filter==='已发货'}">已发货{{is_delivered_counts}}</a></li>
-      <li ><a @click="on_order_filter({'status_list':goods_status2['已付款']+','+goods_status2['标签打印']+','+goods_status2['拿货中']+','+goods_status2['已拿货']+','+goods_status2['明日有货']+','+goods_status2['2-5天有货']+','+goods_status2['其他']},'未发货')" :class="{status_select:cur_order_status_filter==='未发货'}">未发货 {{un_delivered_counts}}</a></li>
-      <li ><a @click="on_order_filter(-1,'全部订单')" :class="{status_select:cur_order_status_filter==='全部订单'}">全部订单{{all_counts}}</a></li>
+      <li ><a @click="on_order_filter({'status_list':goods_status2['已付款']+','+goods_status2['标签打印']+','+goods_status2['拿货中']+','+goods_status2['快递打印']+','+goods_status2['已拿货']+','+goods_status2['明日有货']+','+goods_status2['2-5天有货']+','+goods_status2['已下架']+','+goods_status2['其他']},'未发货')" :class="{status_select:cur_order_status_filter==='未发货'}">未发货 {{un_delivered_counts}}</a></li>
+      <li ><a @click="on_order_filter({},'全部订单')" :class="{status_select:cur_order_status_filter==='全部订单'}">全部订单{{all_counts}}</a></li>
       <li ><a @click="on_order_filter({'refund_apply_status':'有售后订单'},'售后订单')" :class="{status_select:cur_order_status_filter==='售后订单'}">售后订单{{refund_counts}}</a></li>
 
+      <li style="padding-left: 1em"><input style=" width: 1.3em;height:1.5em; color:red; background: #3bb4f2" type="checkbox" v-model="is_order_by_update_time"> </li>
+      <li><label style=" font-size: 1.2em;">拿/发货时间排序</label> </li>
     </ul>
+
     <div style="padding-left: 3em" v-if="cur_order_status_filter==='未付款'">
       <button @click="select_all_unpay_orders(is_all_unpay_order_selected)">全选</button>
       <button @click="orders_pay(go_pay_order_list)" v-if="cur_order_status_filter==='未付款'">合并付款</button><label style="color: red"> 总计: {{go_pay_money_totals}} 元</label>
-
     </div>
-
     <div  class = "items_ul">
         <li class="item_order " v-for="(item,index) in order_list" :key="index">
           <div  class="global_background order_div" >
-            <table  >
+            <table style="width: 98%" >
               <tr>
-                <td style="width:90%">
+                <td style="width:80%">
                    <input style="width: 1.2em;height: 1.2em" @change="check_box_change(item)" type="checkbox" v-model="item.is_order_selected" v-if="cur_order_status_filter==='未付款'"/>
                     <label  class="order_label" >订单号：{{item.order_number}}</label>
                     <label> {{item.consignee_name}} {{item.consignee_phone}} {{item.consignee_address}}</label></td>
-                <td><button @click="delete_order(item.order_number)" v-if="item.orderGoods[0].status == goods_status2['未付款']">删除订单</button></td>
+                <td style="text-align: right ;width:20% ">
+                  <button @click="delete_order(item.order_number)" v-if="item.orderGoods[0].status == goods_status2['未付款']">删除订单</button>
+                  <a class = "refund_apply_btn"  @click="alter_address(item)"   v-if="item.orderGoods[0].status == goods_status2['未付款']" >修改地址</a>
+                  <!--<a class = "refund_apply_btn"  @click="alter_address(item)"  v-if="item.is_address_alter" >修改地址</a>-->
+
+                </td>
               </tr>
             </table>
 
           </div>
 
               <div class="item_goods"  v-for="(goods,index2) in item.orderGoods">
-                <div>
-                  <label>商品:{{index2+1}}
+                <div style="   margin-bottom: 0.4em;">
+                  <label >商品:{{index2+1}}
                     {{goods.shop_market_name}}_{{goods.shop_floor}}_{{goods.shop_stalls_no}}_{{goods.art_no}}_{{goods.goods_price}}元_{{goods.goods_color}}_{{goods.goods_count}}件
                  </label>
+                  <!--<button @click="test(goods)">修改商品</button>-->
+                  <!--<a  @click="alter_goods(goods)"  style="margin-bottom: 1em" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='未付款' || goods_status[goods.status] ==='已付款' ||goods_status[goods.status] ==='明日有货' || goods_status[goods.status] ==='已下架' ||  goods_status[goods.status] ==='2-5天有货' ||  goods_status[goods.status] ==='其他' || goods_status[goods.status] ==='缺货') &&  refund_apply_status[goods.refund_apply_status] ==='无售后'">修改商品</a>-->
+                  <a  @click="alter_goods(goods)"  style="margin-bottom: 1em" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='未付款' )">修改商品</a>
                 </div>
 
                  <div style="float:right;margin-right: 4em">
@@ -60,8 +72,9 @@
                     <label v-else-if="refund_apply_status[goods.refund_apply_status]!=='无售后' && goods.refund_apply.length >0 " style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> （处理中）</label>
                   </div>
                   <div v-if="goods.return_logistics_name !== null " ><label style="float: left">售后物流:</label><label  > {{goods.return_logistics_name}}:{{goods.return_logistics_number}}  </label> </div>
-                 <!--<label style="display:block;color: red" >   下单备注：{{goods.customer_message}}</label>-->
-                 <label style="float:none;display:block;color: red">   客服留言:{{goods.customer_service_message}}</label>
+                 <label style="display:block;color: red"v-if="goods.customer_message!==null && goods.customer_message!==''">  我的留言：{{goods.customer_message}}</label>
+
+                 <label style="float:none;display:block;color: red" v-if="goods.customer_service_message!==null && goods.customer_service_message!==''">   客服留言:{{goods.customer_service_message}}</label>
 
               </div>
               <div>
@@ -70,7 +83,8 @@
                 </label>
               </div>
               <div>
-                <label style="padding-left: 0.5em">下单时间:{{item.add_time}}</label>
+                <label style="display:block;padding-left: 0.5em;color:red">拿/发货时间:{{return_format_time(item.update_time)}}</label>
+                <label style="padding-left: 0.5em;">下单时间:{{item.add_time}}</label>
                 <label>快递：{{item.logistics_name}}</label>
                <label>单号：{{item.logistics_number}}</label>
                 <button @click="show_logistics_qr(item.logistics_number)" v-if="item.logistics_number!=='' && item.logistics_number !== null">二维码单号</button>
@@ -91,7 +105,7 @@
 <script>
   import mtime from '../../utils/mtime.js';
   import mGlobal from '../../utils/mGlobal';
-    import  axios  from 'axios'
+  import  axios  from 'axios'
 
      //设为ttrue 就会带cookies 访问
     axios.defaults.withCredentials=true;
@@ -99,6 +113,9 @@
         name: "MyOrder",
       data(){
           return{
+            is_order_by_update_time :false,
+            // 加载数据后是否滚动到顶端
+            is_scroll_top:true,
             un_pay_counts: "",
             is_delivered_counts : "",
             is_payed_counts : "",
@@ -138,17 +155,37 @@
       },
 
       methods:{
+          return_format_time(stmp){
+            if (stmp === 0){
+               return ""
+            }
+            return mtime.formatDateStrFromTimeSt(stmp)
+          },
+          // 修改商品信息
+          alter_goods(order_goods){
+            this.$orderGoodsBox.showMsgBox({
+                  title: '修改商品信息',
+                  content: '',
+                  isShowInput: true,
+                  orderGoods:order_goods,
+                  orderGoodsBackUp:Object.assign({},order_goods),
+              }).then(async (val) => {
+                  this.refresh_cur_page();
 
+
+              }).catch(() => {
+                  // ...
+              });
+      },
           // 用二维码显示物理单号
           show_logistics_qr(logistics_number){
             if(logistics_number.toString().trim() === ""){
               alert("单号不能为空")
               return
             }
-            this.$qrBox2.showMsgBox({
+          this.$qrBox2.showMsgBox({
                   title: '二维码',
                   qr_value: logistics_number,
-
                   content: '用淘宝等平台的扫码填单功能扫上面的二维码',
                   isShowInput: true,
                   isShowConfimrBtn :true,
@@ -168,7 +205,6 @@
         calc_unpay_order_moneys(go_pay_order_list){
             // go_pay_order_list = this.get_unpay_order_list();
             let go_pay_money_totals = 0;
-            console.log("ggggggggggggggggggggggg")
             console.log(go_pay_order_list)
             for(let i  = 0;i<go_pay_order_list.length;i++){
               go_pay_money_totals = go_pay_money_totals+ go_pay_order_list[i].total_price
@@ -318,6 +354,49 @@
                   // ...
               });
           },
+// 修改订单地址
+         alter_address(order){
+            let name = order.consignee_name
+            let phone = order.consignee_phone;
+            let address_arr = order.consignee_address.split(',')
+            let province = address_arr[0]
+            let city = address_arr[1]
+            let area = address_arr[2]
+            let address_detail = address_arr[3]
+            let orderBackUp = {
+              'name':name,
+              'phone':phone,
+              'province':province,
+              'city':city,
+              'area':area,
+              'address_detail' : address_detail
+            }
+            this.$orderAddressBox.showMsgBox({
+                  title: '修改商品信息',
+                  isShowInput: false,
+                  order:order,
+                  orderBackUp:orderBackUp
+              }).then(async (val) => {
+
+                   // axios.post(url,data).then((res)=>{)
+                   // if(res.data.code === "1000"){
+                   //      this.$toast("支付成功")
+                   //     this.refresh_cur_page();
+                   // }else if(res.data.code === "1001"){
+                   //     console.log("支付失败")
+                   //    alert(res.data.message+" 请刷新")
+                   //   return false
+                   // }
+                   //  }).catch(error => {
+                   //       alert("提交失败")
+                   //  })
+
+              }).catch(() => {
+                  // ...
+              });
+      },
+
+
           // 删除订单(未付款订单)
           delete_order(order_number){
               if(!confirm("确定删除订单吗？删除后不可恢复。")) {
@@ -327,7 +406,7 @@
             axios.delete(url).then((res)=>{
              if(res.data.code === "1000"){
                alert("删除订单成功")
-               console.log("删除订单成功")
+
                 this.refresh_cur_page();
              }else if(res.data.code === "1001"){
                 alert("删除订单失败")
@@ -338,13 +417,19 @@
           },
           on_order_filter(query_data,btn_tag){
              // let query_data ;
-            console.log("2555555555555555555555")
             console.log(query_data)
+            console.log("btn_tag",btn_tag)
+            if(btn_tag === "全部订单" ||  btn_tag==="已发货" ){
+              if (this.is_order_by_update_time){
+                Object.assign(query_data,{'order_by':'update_time'})
+              }
+            }
+
             this.cur_order_status_filter = btn_tag
 
             this.order_list = []
             const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/orders/";
-            container_id.scrollIntoView()
+
             this.loadOrderPage(url,query_data)
           },
 
@@ -385,24 +470,23 @@
               }
 
        },
+
         //刷新当前页面
         refresh_cur_page(goods_status){
               let cur_page_url = "";
               let cur_page_num ;
-              console.log("-------------------------------")
-              console.log(this.nextPageUrl)
-              console.log("********************************")
-              console.log(this.prePageUrl)
 
+              this.is_scroll_top = false;
+              console.log("this.nextPageUrl",this.nextPageUrl)
             if(this.nextPageUrl !== null && this.nextPageUrl !==""){
-              let next_page_num_arr= this.nextPageUrl.match(/page=\d/);
+              let next_page_num_arr= this.nextPageUrl.match(/page=\d+/);
               let next_page_num = next_page_num_arr[0].split("=")[1]
               let base_url = this.nextPageUrl.substring(0,next_page_num_arr.index);
               let cur_page_num = parseInt(next_page_num)-1;
               cur_page_url = base_url+"page="+cur_page_num;
 
             }else if(this.prePageUrl !== null && this.prePageUrl !==""){
-               let pre_page_num_arr= this.prePageUrl.match(/page=\d/);
+               let pre_page_num_arr= this.prePageUrl.match(/page=\d+/);
                let pre_page_num = pre_page_num_arr[0].split("=")[1];
                let base_url = this.prePageUrl.substring(0,pre_page_num_arr.index);
                let  cur_page_num = parseInt(pre_page_num)-1;
@@ -410,6 +494,7 @@
             }else{
                 cur_page_url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/orders/";
             }
+
             let query_data =""
             if(this.cur_order_status_filter!==""){
                 if(this.cur_order_status_filter ==="未付款"){
@@ -423,6 +508,7 @@
 
                 }
             }
+
              this.loadOrderPage(cur_page_url,query_data);
         },
         goto_place_order_page(data){
@@ -443,29 +529,41 @@
                let  mdate = mtime.formatDateStrFromTimeSt(item.add_time);
               console.log(mdate)
               item.add_time =mdate;
+              let is_address_alter = true
               let orderGoodsTotalMoney = 0;
                 for(let g = 0; g < item.orderGoods.length;g++){
+                   if(item.orderGoods[g].status !== mGlobal.GOODS_STATUS2['已退款']){
                     orderGoodsTotalMoney = orderGoodsTotalMoney + item.orderGoods[g].goods_price * item.orderGoods[g].goods_count
+                  }
+
+                }
+
+                for(let g = 0; g < item.orderGoods.length;g++){
+                     if(item.orderGoods[g].status !== this.goods_status2['已付款'] && item.orderGoods[g].status !== this.goods_status2['未付款']){
+                      is_address_alter = false
+                       break;
+                    }
                 }
                 item['orderGoodsTotalMoney'] = orderGoodsTotalMoney
                 item['is_order_selected'] = false
+                item['is_address_alter'] = is_address_alter
             }
           },
 
           prePage(){
-            this.scrollToTop()
+            this.is_scroll_top = true
             console.log(this.prePageUrl)
             this.loadOrderPage(this.prePageUrl)
           },
 
           nextPage(){
-           this.scrollToTop()
-
-             console.log(this.nextPageUrl)
+            this.is_scroll_top = true
+            console.log(this.nextPageUrl)
             this.loadOrderPage(this.nextPageUrl)
           },
 
           firstPage(){
+            this.is_scroll_top = true
             if(this.firstPageUrl!==""){
               this.loadOrderPage(this.firstPageUrl)
             }
@@ -480,7 +578,9 @@
         ).then((res)=>{
           console.log(res.data)
           this.order_list = res.data.results;
-           window.scrollTo(0,0);
+          if(this.is_scroll_top){
+            window.scrollTo(0,0);
+          }
           this.replaceData()
           this.update_order_counts(this.cur_order_status_filter,res.data.count)
           if(res.data.previous == null){
@@ -520,12 +620,7 @@
                 }
         },
 
-        //滚动页面到顶端
-        scrollToTop() {
-      　　let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop;
-      　　console.log(scrollTop)
 
-}
       },
       watch:{
         'order_list': {
@@ -625,10 +720,13 @@
     cursor:pointer;
     width: 4em;
     height: 2em;
-    margin: 5px auto;
+    margin-top: 2px;
+    margin-bottom: 2px;
+
     color: #fff;
    padding: 0.2em;
     font-size: 1.0em;
+    border-radius: 4px;
   background: #3bb4f2;
   border-color: #3bb4f2;
   }

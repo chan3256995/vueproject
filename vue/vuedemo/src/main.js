@@ -13,6 +13,17 @@ Vue.use(MessageBox);
 import MessageBox2 from './utils/qrbox/qrbox';
 Vue.use(MessageBox2);
 
+import AlterGoodsBox from './utils/AlterOrderGoodsbox/OrderGoodsBox'
+ Vue.use(AlterGoodsBox);
+
+import AlterOrderAddress from './utils/AlterOrderAddressbox/OrderAddressBox'
+ Vue.use(AlterOrderAddress);
+
+//复制到粘贴板插件
+import VueClipboard from 'vue-clipboard2'
+VueClipboard.config.autoSetContainer = true
+Vue.use(VueClipboard)
+
 import Axios from 'axios'
 Vue.prototype.$axios = Axios
 

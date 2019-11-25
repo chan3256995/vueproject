@@ -3,11 +3,16 @@
 </template>
 
 <script>
-  const DJANGO_SERVER_BASE_URL = "http://39.96.69.115:8089"
-    // const DJANGO_SERVER_BASE_URL = "http://192.168.1.110:8009"
+  //后台服务器地址
+  // const DJANGO_SERVER_BASE_URL = "http://39.96.69.115:8089"
+    const DJANGO_SERVER_BASE_URL = "http://192.168.1.110:8009"
+  // 前段访问地址
+  //   const VUE_REQUEST_BASE_URL = "http://17daina.com/#"
+    const VUE_REQUEST_BASE_URL = "http://192.168.1.110:8082/#"
     export default {
-        DJANGO_SERVER_BASE_URL,
-      SERVER_FEE:2.0,
+     DJANGO_SERVER_BASE_URL,
+     VUE_REQUEST_BASE_URL,
+     SERVER_FEE:2.0,
        // LOGISTICS: [
        //      { logistics_name: '圆通', price: '4.0' },
        //      { logistics_name: '韵达', price: '4.0' },
@@ -15,7 +20,7 @@
        //
        //    ],
       //商品状态
-        GOODS_STATUS:{
+     GOODS_STATUS:{
               1:"未付款",//未付款
               2:"已付款",//已付款
               3:"拿货中",//拿货中
@@ -31,7 +36,7 @@
               13: '2-5天有货',
               14:'其他',
             },
-      GOODS_STATUS2:{
+     GOODS_STATUS2:{
               "未付款":1,//未付款
               "已付款":2,//已付款
               "拿货中":3,//拿货中
@@ -47,7 +52,7 @@
                '2-5天有货': 13,
               '其他': 14,
             },
-      GOODS_STATUS_OPTIONS:[
+     GOODS_STATUS_OPTIONS:[
               {text:"未付款",value:1},
               {text:"已付款",value:2},
               {text:"拿货中",value:3},
@@ -63,8 +68,68 @@
               {text:"2-5天有货",value:13},
               {text:"其他",value:14},
             ],
+// 订单状态
+     ORDER_STATUS:{
+          0:'未处理',
+          1: '快递打印',
+          2: '已发货',
+      },
+     ORDER_STATUS2:{
+        '未处理': 0,
+        '快递打印': 1,
+        '已发货': 2,
+      },
+     ORDER_STATUS_OPTIONS:[
+         {text:"未处理",value:0},
+         {text:"快递打印",value:1},
+         {text:"已发货",value:2},
+      ],
+     COMMON_CHECK_STATUS:{
+          0:'未审核',
+          1: '审核通过',
+          2: '审核不通过',
+      },
+     COMMON_CHECK_STATUS2:{
+        '未审核': 0,
+        '审核通过': 1,
+        '审核不通过': 2,
+      },
+      // 优惠卡类型
+     DISCOUNT_CARD_TYPE:{
 
-         REFUND_APPLY_STATUS: {
+          1: '物流金额优惠卡',
+          2: '物流折扣率优惠卡',
+      },
+
+     DISCOUNT_CARD_TYPE2:{
+        '物流金额优惠卡': 1,
+        '物流折扣率优惠卡': 2,
+      },
+      // 交易来源
+      TRADE_INFO_SOURCE:{
+          1:'订单',
+          2: '商品',
+          3: '充值',
+          4: '提现',
+          5: '其他费用',
+      },
+      // 交易来源
+     TRADE_INFO_SOURCE2:{
+            '订单': 1,
+            '商品': 2,
+            '充值': 3,
+            '提现': 4,
+            '其他费用': 5,
+      },
+
+     TRADE_INFO_SOURCE_OPTIONS:[
+              {text:"订单",value:1},
+              {text:"商品",value:2},
+              {text:"充值",value:3},
+              {text:"提现",value:4},
+              {text:"其他费用",value:5},
+            ],
+     REFUND_APPLY_STATUS: {
             0:"无售后",
             1:"退货退款",
             2:"仅退款",
@@ -80,7 +145,6 @@
           // "取消订单":4,
           "拦截发货":5,
       },
-
       REFUND_APPLY_TYPE_OPTIONS:[
             { text: '无售后',value:0},
             { text: '退货退款',value:1},

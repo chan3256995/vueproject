@@ -8,26 +8,49 @@
         <use xlink:href="#icon-delete"></use>
       </svg>
       <h3 class="title">{{ title }}</h3>
-      <p class="content">{{ content }}</p>
-      <table style="text-align: center">
-        <tr  v-if="isShowInput" >
-          <td> <label style="float: left">支付密码：</label></td>
-          <td> <input style="width:15em;" type="password" v-model="inputValue"ref="input" @keyup.enter="confirm"></td>
-        </tr>
+      <!--<p class="content">{{ content }}</p>-->
+      <div  >
+        <table class="market_table1">
+          <tr  >
+            <td  ><input  placeholder='姓名' v-model="orderBackUp.name" /></td>
+            <td  ><input placeholder='手机' v-model="orderBackUp.phone"  /></td>
+            <td  > </td>
+
+          </tr>
+          <tr  >
+            <td  ><input  placeholder='省份' v-model="orderBackUp.province" /></td>
+            <td  ><input placeholder='城市' v-model="orderBackUp.city"  /></td>
+            <td  ><input placeholder='地区' v-model="orderBackUp.area"   /></td>
+
+          </tr>
+          <tr></tr>
+        </table>
+        <input style="width: 70%; height: 5em;"  v-model="orderBackUp.address_detail"  placeholder='详细地址'/>
+      </div>
+      <div>
+
+      </div>
 
 
-      </table>
+      <div>
+        <input style="width: 70%; height: 5em;" placeholder='新地址' v-model="new_address"/>
+        <button @click="onAddAddressClick(new_address)"  class="btn-primary btn-confirm" >识别地址</button>
+      </div>
       <div class="btn-group">
+
         <button class="btn-default" @click="cancel" v-show="isShowCancelBtn">{{ cancelBtnText }}</button>
-        <button class="btn-primary btn-confirm" @click="confirm" v-show="isShowConfimrBtn">{{ confirmBtnText }}</button>
+        <button class="btn-primary btn-confirm" :disabled="submit_btn_disable" @click="confirm" v-show="isShowConfimrBtn">{{ confirmBtnText }}</button>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+   import mStringUtils from "../mStringUtils.js"
   export default {
     props: {
+      order:{},
+      orderBackUp:{},
       title: {
         type: String,
         default: '标题'
@@ -57,23 +80,75 @@
     },
     data () {
       return {
+        pay_moneys:0,
         isShowMessageBox: false,
         resolve: '',
         reject: '',
-        promise: '' // 保存promise对象
+        promise: '', // 保存promise对象
+        submit_btn_disable :false,
+        new_address:'',
+
       };
     },
+    created(){
+
+    },
+    mounted(){
+    console.log('orderBackUp',this.orderBackUp)
+
+
+    },
+
+
     methods: {
+
+   // 识别地址
+      onAddAddressClick(address_str){
+
+           address_str = mStringUtils.replace_redundance_str(address_str)
+          //一个分号结束代表一个订单
+          let addressObj = mStringUtils.getAddressInfo(address_str);
+           this.orderBackUp = addressObj
+
+
+
+
+          },
+
       // 确定,将promise断定为resolve状态
       confirm: function () {
-        this.isShowMessageBox = false;
-        if (this.isShowInput) {
-          this.resolve(this.inputValue);
-        } else {
-          this.resolve('confirm');
-        }
-        this.remove();
+
+        this.submit_btn_disable = true;
+        let url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/alterOrderAddress/"
+
+        console.log(url)
+        console.log('this.orderGoodsBackUp',this.orderBackUp)
+        this.$axios.post(url,{
+
+           'order':Object.assign({'order_number':this.order.order_number},this.orderBackUp)
+
+       }).then((res)=>{
+
+         if(res.data.code === "1000"){
+             alert("修改成功")
+            this.order.consignee_name = this.orderBackUp.name
+            this.order.consignee_phone = this.orderBackUp.phone
+            this.order.consignee_address = this.orderBackUp.province+","+ this.orderBackUp.city+","+this.orderBackUp.area+","+this.orderBackUp.address_detail
+            this.isShowMessageBox = false;
+             this.resolve('confirm');
+             this.remove();
+         }else{
+            alert("修改失败:"+res.data.message)
+         }
+          this.submit_btn_disable = false;
+          }).catch(error => {
+            alert("访问错误")
+            this.submit_btn_disable = false;
+          })
+
       },
+
+
       // 取消,将promise断定为reject状态
       cancel: function () {
         this.isShowMessageBox = false;
@@ -84,7 +159,7 @@
       showMsgBox: function () {
         this.isShowMessageBox = true;
         this.promise = new Promise((resolve, reject) => {
-          this.resolve = resolve;
+            this.resolve = resolve;
           this.reject = reject;
         });
         // 返回promise对象
@@ -99,13 +174,22 @@
         this.$destroy();
         document.body.removeChild(this.$el);
       }
-    }
+    },
+        watch: {
+
+      },
   };
 </script>
 
 <style lang="less" scoped>
+  .market_table1 td{
+    width: 20%;
+  }
+  .market_table1 input{
+    width: 100%;
+  }
   .message-box {
-    width:30em;
+    width: 30em;
     position: relative;
     .mask {
       position: fixed;
@@ -145,14 +229,13 @@
         margin-bottom: 1em;
       }
       .content {
-        width: 100%;
+        width: 300px;
         font-size: 1em;
-        /*line-height: 2em;*/
-        word-wrap: break-word;
+        line-height: 2em;
         color: #555;
       }
       input {
-        width: 30em;
+
         margin: 1em 0;
         background-color: #fff;
         border-radius: 0.4em;

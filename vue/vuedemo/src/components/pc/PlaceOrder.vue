@@ -1,5 +1,6 @@
 <template >
  <div class="root">
+   <div><button @click="test()">test</button></div>
   <div class="orders_str_div" >
     <div class="review_order_div" >
       <div>
@@ -13,7 +14,11 @@
                  <td>颜色尺码</td>
                  <td>件数</td>
             </tr>
-            <tr v-for="(goodsitem,index) in processed_goods_list">
+
+
+            </table>
+        <table class = "market_table" style="width: 100%" v-for="(goodsitem,index) in processed_goods_list">
+           <tr >
                  <td><input  class="global_input_default_style defalut_input "    :class="{'input_tip':(goodsitem.shop_market_name===''  && is_tip === true )}" v-model="goodsitem.shop_market_name" /></td>
                  <td><input  class="global_input_default_style defalut_input "   :class="{'input_tip':(goodsitem.shop_floor==='' && is_tip === true)}" v-model="goodsitem.shop_floor" /></td>
                  <td><input   class="global_input_default_style defalut_input "  :class="{'input_tip':goodsitem.shop_stalls_no==='' && is_tip === true }"  v-model="goodsitem.shop_stalls_no"/></td>
@@ -22,8 +27,10 @@
                  <td><input   class="global_input_default_style defalut_input "  :class="{'input_tip':goodsitem.goods_color==='' && is_tip === true}" v-model="goodsitem.goods_color"/></td>
                  <td><input   class="global_input_default_style defalut_input "  :class="{'input_tip':goodsitem.goods_count==='' && is_tip === true}" v-model="goodsitem.goods_count" type="number" /> </td>
                   <td><button @click="onDeleteRawGoods(index,processed_goods_list)">删除</button></td>
+
             </tr>
-            </table>
+
+        </table>
         </div>
       <button class = "default_button global_btn_normal_style" @click="onHandAddGoodsClick">添加商品</button>
       <div>
@@ -79,15 +86,16 @@
 
 
     <div style="margin-top: 2em;margin-bottom: 2em">
+                <p style="color: red" v-if="logistics_discount_card!==null">{{discount_card_type_choise[logistics_discount_card.discount_card_type] }}   {{logistics_discount_card.discount}}元  有效期至：{{time_format(logistics_discount_card.expire_time)}}</p>
                 <select class="logistic_select" v-model="selected_logistics">
                   <option :value="option" v-for="(option,index) in logistics_options" :key="index">{{option.logistics_name}}</option>
                 </select>
-                <label style="margin-left: 0.5em">{{selected_logistics.logistics_price}}元</label>
-                   <select class="logistic_select" v-model="selected_quality_test">
+                <label v-if="logistics_discount_card!==null" style="margin-left: 0.5em">{{selected_logistics.logistics_price}} - {{logistics_discount_card.discount}} ={{selected_logistics.logistics_price - logistics_discount_card.discount}}元</label>
+                <label v-else style="margin-left: 0.5em">{{selected_logistics.logistics_price}}  </label>
+                <select class="logistic_select" v-model="selected_quality_test">
                   <option :value="option" v-for="(option,index) in quality_test_options" :key="index">{{option.quality_testing_name}}</option>
-
                 </select>
-              <label style="margin-left: 0.5em">{{selected_quality_test.quality_testing_price}}元 </label>
+              <label style="margin-left: 0.5em">{{selected_quality_test.quality_testing_price}}  </label>
     </div>
         <div style="margin-top: 2em;margin-bottom: 2em">
               <div style="cursor:pointer;background: darkgrey;width:10em;margin: 0 auto" @click="on_multi_add_div_clicked" >
@@ -110,7 +118,7 @@
             金富丽 4F 4F057-114-39  白色均码 1
             熊**，86-15808*****，四川省 南充市 高坪区 清溪街道 **路3小区 ，000000；
 
-            大西豪-3F-320-A-#8185-59  黑色3xl 1
+            大西豪_3F_320-A_#8185_59  黑色3xl 1
             小花，17808*****，广东省 广州市 天河区  ***街道 **路小区 ，000000；
 "> </textarea>
                 <button class="match_btn" @click="match_btn" style="display:block">批量添加</button>
@@ -134,7 +142,7 @@
           <button style=" width:4em;height:2em;float: right; margin-right: 2em" @click="onDeleteRawGoods(index,order_obj['order_list'])">删除</button>
          </div>
 
-            <table class = "market_table">
+         <table class = "market_table">
               <tr>
                  <td>市场</td>
                  <td>楼层</td>
@@ -144,7 +152,11 @@
                   <td>颜色尺码</td>
                  <td>件数</td>
             </tr>
-            <tr   v-for="(goodsitem,index) in item.orderGoods ">
+
+            </table>
+
+             <table class = "market_table" style="width: 100%" v-for="(goodsitem,index) in item.orderGoods " >
+            <tr  >
                  <td><input  class="global_input_default_style defalut_input "   :class="{'input_tip':goodsitem.shop_market_name===''}" v-model="goodsitem.shop_market_name"/></td>
                  <td><input   class="global_input_default_style defalut_input " :class="{'input_tip':goodsitem.shop_floor===''}" v-model="goodsitem.shop_floor"/></td>
                  <td><input   class="global_input_default_style defalut_input " :class="{'input_tip':goodsitem.shop_stalls_no===''}" v-model="goodsitem.shop_stalls_no" /></td>
@@ -152,11 +164,12 @@
                  <td><input  class="global_input_default_style defalut_input " :class="{'input_tip':goodsitem.goods_price===''}" type="number" v-model="goodsitem.goods_price"/></td>
                  <td><input  class="global_input_default_style defalut_input " :class="{'input_tip':goodsitem.goods_color===''}"    v-model="goodsitem.goods_color"/></td>
                  <td><input  class="global_input_default_style defalut_input " :class="{'input_tip':goodsitem.goods_count===''}" type="number"   v-model="goodsitem.goods_count"/> </td>
-
             </tr>
-
-            </table>
-      <div style="padding-top:5px">
+                <tr  v-if="my_account!=='' && my_account.id === 1 " style="display: block; color:red">
+                      <label>留言：</label><input style="color:red"  class="global_input_default_style defalut_input "      v-model="goodsitem.customer_message" />
+              </tr>
+        </table>
+       <div style="padding-top:5px">
 
             <table class="address">
               <tr>
@@ -174,6 +187,7 @@
             </table>
         <div class="detailed_address_div">
           <textarea  class="global_input_default_style defalut_input" v-model="item.address.address_detail" ></textarea>
+
           <!--<label>详细地址：</label>-->
 
         </div>
@@ -203,16 +217,17 @@
 <script>
     import  axios  from 'axios'
     import mStringUtils from "../../utils/mStringUtils.js"
+    import pcommon_function from "../../utils/pcommon_function.js"
     import mGlobal from "../../utils/mGlobal"
     import marketData from "../../../static/marketData"
-
+    import mtime from '../../utils/mtime.js';
     export default {
         name: "PlaceOrder",
       created(){
-
+          this.my_account = JSON.parse(this.getLocalValue("user"))
              this.load_quality_test()
              this.load_logistics()
-
+             this.load_discount_card()
            if(typeof(this.$route.query.data) !== 'undefined'){
               let goods =  JSON.parse(this.$route.query.data);
               this.raw_goods_txt = goods.shop_market_name + "_" + goods.shop_floor + "_" + goods.shop_stalls_no +"_" + goods.art_no+"_"+goods.goods_price+"_"
@@ -225,11 +240,11 @@
 
       data(){
         return{
-
+            my_account:"",
           // 显示批量添加
           is_multi_add:false,
           //开始用户添加未处理的数据
-
+          discount_card_type_choise:mGlobal.DISCOUNT_CARD_TYPE,
           raw_goods_txt:"",
           raw_address:"",
           //处理后的地址对象
@@ -246,6 +261,8 @@
               "goods_color":"",
               "goods_price":"",
               "goods_count":"",
+              "customer_message":"",
+
             }
 
           ],
@@ -256,7 +273,8 @@
           selected_quality_test:"",
           logistics_options:[],
           quality_test_options:[],
-
+          //物流优惠卡
+          logistics_discount_card :null,
           order_obj: {
             order_list: [],
           }
@@ -276,9 +294,45 @@
 　　　　},
      }},
        methods:{
-           on_multi_add_div_clicked(){
+        test(){
+          let str = "_4楼 459-B-7068-43 薄@国投";
+          for(let i = 0;i<str.length;i++){
+            console.log("index:",i,"value:",str[i])
+          }
+        },
+       time_format(time_stmp){
+         return mtime.formatDateStrFromTimeSt(time_stmp)
+        },
+        on_multi_add_div_clicked(){
             this.is_multi_add = ! this.is_multi_add
           },
+
+         // 加载用户优惠卡信息
+         load_discount_card(){
+              const url  = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDiscountCards/"
+           //设为true 就会带cookies 访问
+           axios.defaults.withCredentials=true
+            axios.get(url,
+
+           ).then((res)=>{
+             if("1000" === res.data.code){
+                 console.log(res.data)
+               for(let i = 0;i<res.data.data.length;i++){
+                 let discount_card =res.data.data[i]
+                 if (discount_card.discount_card_type === mGlobal.DISCOUNT_CARD_TYPE2['物流金额优惠卡']){
+                   this.logistics_discount_card = discount_card
+                   break;
+                 }
+               }
+
+             }else{
+
+             }
+              }).catch(error => {
+                console.log(error) ;
+
+              })
+         },
            // 加载物流选项信息
           load_logistics(){
             const url  = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/trade/logistics/"
@@ -374,6 +428,7 @@
               "goods_color":"",
               "goods_price":"",
               "goods_count":"",
+              "customer_message":"",
             })
          },
           onAddGoodsClick(){
@@ -415,6 +470,7 @@
                         "goods_color":"",
                         "goods_price":"",
                         "goods_count":"",
+                        "customer_message":"",
                       }]
                alert("添加成功")
             }
@@ -586,11 +642,10 @@
             // 市场名_楼层_店铺位置_货号_颜色/尺码_价格_件数/
             // 熊**，86-15808*****，四川省 南充市 高坪区 清溪街道 **路3小区 ，000000；
            //分割出商品跟地址  tem_index 为商品跟地址的分割线
-              console.log(orderStr,'1111111111111111111111111111111111')
 
-              orderStr = this.replace_redundance_str(orderStr)
+
+              orderStr = mStringUtils.replace_redundance_str(orderStr)
               let goods_address = this.split_goods_address_str(orderStr);
-console.log(goods_address,'222222222222222222222222')
 
               if(goods_address[0]=== "" || goods_address[1]=== "" ){
                  let tem_index =  orderStr.lastIndexOf("@");
@@ -613,7 +668,7 @@ console.log(goods_address,'222222222222222222222222')
              return orderObj
          },
 
-
+          // 分割商品跟地址
           split_goods_address_str(orderStr){
             let goods_str = "";
             let address_str = "";
@@ -638,39 +693,39 @@ console.log(goods_address,'222222222222222222222222')
               return [goods_str,address_str];
           },
 
-         //去除替换冗余的数据
-         replace_redundance_str(orderStr){
-             while(orderStr.search("\t") !== -1){
-                  orderStr = orderStr.replace("\t"," ");
-                }
-                while(orderStr.search(",") !== -1){
-                  orderStr = orderStr.replace(",","，");
-                }
-                 while(orderStr.search("，，") !== -1){
-                  orderStr = orderStr.replace("，，","，");
-                }
-                 while(orderStr.search("//") !== -1 ){
-                  orderStr = orderStr.replace("//","/");
-                }
-                while(orderStr.search("  ") !== -1){
-                  orderStr = orderStr.replace("  "," ");
-                }
-                 while(orderStr.search("\n ") !== -1  ) {
-                orderStr = orderStr.replace("\n ", "\n");
-              }
-              while(orderStr.search(" \n") !== -1  ) {
-                orderStr = orderStr.replace(" \n", "\n");
-              }
-
-                 while(orderStr.search("\n\n") !== -1) {
-                orderStr = orderStr.replace("\n\n", "\n");
-              }
-
-                 while(orderStr.search("\n") !== -1) {
-                orderStr = orderStr.replace("\n", "@");
-              }
-            return orderStr
-         },
+         // //去除替换冗余的数据
+         // replace_redundance_str(orderStr){
+         //     while(orderStr.search("\t") !== -1){
+         //          orderStr = orderStr.replace("\t"," ");
+         //        }
+         //        while(orderStr.search(",") !== -1){
+         //          orderStr = orderStr.replace(",","，");
+         //        }
+         //         while(orderStr.search("，，") !== -1){
+         //          orderStr = orderStr.replace("，，","，");
+         //        }
+         //         while(orderStr.search("//") !== -1 ){
+         //          orderStr = orderStr.replace("//","/");
+         //        }
+         //        while(orderStr.search("  ") !== -1){
+         //          orderStr = orderStr.replace("  "," ");
+         //        }
+         //         while(orderStr.search("\n ") !== -1  ) {
+         //        orderStr = orderStr.replace("\n ", "\n");
+         //      }
+         //      while(orderStr.search(" \n") !== -1  ) {
+         //        orderStr = orderStr.replace(" \n", "\n");
+         //      }
+         //
+         //         while(orderStr.search("\n\n") !== -1) {
+         //        orderStr = orderStr.replace("\n\n", "\n");
+         //      }
+         //
+         //         while(orderStr.search("\n") !== -1) {
+         //        orderStr = orderStr.replace("\n", "@");
+         //      }
+         //    return orderStr
+         // },
          //给出特地字符 从后面开始查找 找到就返回索引值
          get_index_for_special_chars(chars,str){
            for(let i = str.length;i--; i> -1){
@@ -753,10 +808,17 @@ console.log(goods_address,'222222222222222222222222')
                     order_goods_counts = orderItem.orderGoods[g].goods_count*1.0 + order_goods_counts
                   }
                   orderItem['agencyFee_totals'] = order_goods_counts * mGlobal.SERVER_FEE;
+                  //  优惠金额
+                  let discount_amount = 0
+                  let cur_time_stmp = new Date().getTime()
+                  if(this.logistics_discount_card !==null && this.logistics_discount_card.discount_card_type === mGlobal.DISCOUNT_CARD_TYPE2['物流金额优惠卡'] &&  this.logistics_discount_card.expire_time > cur_time_stmp){
+                        discount_amount  = this.logistics_discount_card.discount
+                    }
+                  console.log("discount_amount",discount_amount)
                   if(order_goods_counts< 3){
-                    orderItem['postage_totals'] =orderItem.logistics.logistics_price;
+                        orderItem['postage_totals'] =orderItem.logistics.logistics_price - discount_amount;
                   }else{
-                    orderItem['postage_totals'] =orderItem.logistics.logistics_price*1.0 + 5;
+                    orderItem['postage_totals'] =orderItem.logistics.logistics_price*1.0 - discount_amount + (order_goods_counts - 2)*3;
                   }
                   orderItem['quality_test_fee'] = orderItem.quality_test.quality_testing_price * order_goods_counts
 
@@ -801,7 +863,7 @@ console.log(goods_address,'222222222222222222222222')
           }
 
             // 计算所有订单加起来的金额
-          this.calcAllOrderAmount(orderList);
+         this.calcAllOrderAmount(orderList);
 
          let jsonStr = JSON.stringify( this.order_obj);
 
