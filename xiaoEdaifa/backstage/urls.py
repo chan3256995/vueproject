@@ -23,6 +23,12 @@ from xiaoEdaifa import settings
 router = routers.DefaultRouter()
 router.register(r'orderGoods', views.OrderGoodsViewSet, base_name='orderGoods')
 router.register(r'orders', views.OrderViewSet, base_name='orders')
+# 优惠卡
+router.register(r'discountCard', views.DiscountCardViewSet, base_name='discountCard')
+#  用户认证
+router.register(r'alipayAccountInfo', views.AlipayAccountInfoViewSet, base_name='alipayAccountInfo')
+# 邀请注册信息
+router.register(r'inviteRegInfo', views.InviteRegisterInfoViewSet, base_name='inviteRegInfo')
 router.register(r'goodsRefund', views.OrderGoodsRefundViewSet, base_name='goodsRefund')
 router.register(r'tradeInfo', trade_views.TradeInfoViewSet, base_name='tradeInfo')
 # router.register(r'tagPrint', trade_views.TagPrintViewSet, base_name='tradeInfo')
@@ -31,8 +37,13 @@ urlpatterns = [
     # url(r'^static/(?P<path>.*)$', my_view.serve),
     url(r'static/(?P<path>.*)',serve,{'document_root':settings.STATIC_ROOT}),
     url('outputExcel/', views.OutPutOrdersView.as_view()),
+    # 充值审核通过
     url('rechargePass/', trade_views.RechargePassView.as_view()),
+    # 支付宝账号真实信息审核通过
+    url('userAlipayAccountCheckPass/', trade_views.UserAlipayAccountCheckPassView.as_view()),
     url('stopDeliverPass/', trade_views.StopDeliverPass.as_view()),
+    # 添加折扣卡
+    url('add_discount_card/', trade_views.AddDiscountCardView.as_view()),
     # 打印标签请求  把商品状态改为打印标签
     url('tagPrint/', trade_views.TagPrintView.as_view()),
     # 采购中
@@ -55,6 +66,8 @@ urlpatterns = [
 
     # 明日有货 重新修改为 付款状态 定时器开关
     url('timeSwitch/', trade_views.TimeSwitchView.as_view()),
+    url('temp/', trade_views.Temp.as_view()),
+
 
     url(r'', include(router.urls))
 ]

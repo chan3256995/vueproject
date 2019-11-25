@@ -2,6 +2,8 @@
 from rest_framework.views import APIView
 from django.http.response import JsonResponse
 from trade import models as trade_models
+from trade import trade_utils
+from user import models as user_models
 from django.db.models import Q
 from utils.auth import BackStageAuthentication,BackStageNahuoAuthentication
 from utils.permission import Superpermission,NahuoUserpermission
@@ -10,6 +12,7 @@ from xiaoEdaifa import settings
 from utils import mfile_utils
 from utils import mcommon
 from utils import mtime
+
 import traceback
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import mixins
@@ -36,7 +39,7 @@ class UsersPagination(PageNumberPagination):
 # 查询个人交易信息
 class TradeInfoViewSet(mixins.ListModelMixin,GenericViewSet):
     serializer_class = m_serializers.QueryTradeInfoSerializer
-    # serializer_class = m_serializers.TradeOrderQuerySerializer
+    #
     # 设置分页的class
     pagination_class = UsersPagination
     authentication_classes = [BackStageAuthentication]
@@ -45,8 +48,20 @@ class TradeInfoViewSet(mixins.ListModelMixin,GenericViewSet):
     def list(self, request, *args, **kwargs):
         try:
             ret = {'code': "1000", 'message': ""}
+            check_status = request.query_params.get('check_status')
+            trade_number = request.query_params.get('trade_number')
+            user_name = request.query_params.get('user_name')
+            mul_args_and = request.query_params.get('args_and')
+            mul_args_or = request.query_params.get('args_or')
             # queryset = self.filter_queryset(self.get_queryset())
-            queryset =  trade_models.TradeInfo.objects.filter().order_by("-add_time")
+            if check_status is not None:
+                queryset = trade_models.TradeInfo.objects.filter(is_pass=check_status).order_by("-add_time")
+            elif trade_number is not None :
+                queryset = trade_models.TradeInfo.objects.filter(trade_number=trade_number).order_by("-add_time")
+            elif user_name is not None :
+                queryset = trade_models.TradeInfo.objects.filter(user__user_name=user_name).order_by("-add_time")
+            else:
+                queryset = trade_models.TradeInfo.objects.filter().order_by("-add_time")
 
             page = self.paginate_queryset(queryset)
             if page is not None:
@@ -135,6 +150,32 @@ class TimeSwitchView(APIView):
             timer = threading.Timer(duration_time,  self.start_run_thread)
             timer.start()
 
+
+class Temp(APIView):
+    authentication_classes = []
+    def get(self, request, *args, **kwargs):
+        print("tag print''''''''''''''")
+        print(request.data)
+        try:
+            with transaction.atomic():
+                ret = {'code': "1000", 'message': ""}
+                order_query = trade_models.Order.objects.filter().all()
+                for order in order_query:
+                    order_goods_query = trade_models.OrderGoods.objects.filter(order = order)
+                    for order_goods in order_goods_query:
+                        if order_goods.status == mcommon.status_choices2.get("已发货"):
+                            order.order_status = mcommon.order_status_choices2.get("已发货")
+                            order.save()
+                            break
+
+
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "查询异常"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return JsonResponse(ret)
+        return JsonResponse(ret)
 
 # 缺货
 class NotHasGoods(APIView):
@@ -248,6 +289,8 @@ class ChangePurchasingStatus(APIView):
                     req_order_number_list.append(req_order_object.get("order_number"))
                 order_queryset = trade_models.Order.objects.filter(Q(order_number__in = req_order_number_list)).distinct()
                 for sql_order in order_queryset:
+                    # 订单里有一个商品状态该为已拿货 就更新时间
+                    is_update_time = False
                     tem_exceptions_order_goods = []
                     sql_order_goods_query = trade_models.OrderGoods.objects.filter(order = sql_order)
                     req_order = self.find_order(sql_order.order_number,req_order_list)
@@ -257,25 +300,39 @@ class ChangePurchasingStatus(APIView):
                         # 提交上来的数据没有该商品
                         if req_goods == "":
                             continue
-                        # 商品状态已经改变了 比如改为拦截发货  并且 客户端提交了该商品
-                        if sql_order_goods.status != mcommon.status_choices2.get("拿货中") and req_goods != "":
+                        if sql_order_goods.refund_apply_status != mcommon.refund_apply_choices2.get("无售后"):
                             tem_exceptions_order_goods.append(sql_order_goods.goods_number)
-                        elif sql_order_goods.status == mcommon.status_choices2.get("拿货中") and req_goods !="" \
-                                and sql_order_goods.refund_apply_status != mcommon.refund_apply_choices2.get("无售后"):
-                            # 状态正常  者有售后申请
-                            tem_exceptions_order_goods.append(sql_order_goods.goods_number)
-                        elif sql_order_goods.status == mcommon.status_choices2.get("拿货中") and sql_order_goods.refund_apply_status == mcommon.refund_apply_choices2.get("无售后"):
-                            if req_status_type == mcommon.status_choices2.get("明日有货") or req_status_type == mcommon.status_choices2.get("2-5天有货")\
-                                or  req_status_type == mcommon.status_choices2.get("已下架") or req_status_type == mcommon.status_choices2.get("已拿货"):
+                            continue
 
+                        if (req_status_type == mcommon.status_choices2.get("明日有货") or req_status_type == mcommon.status_choices2.get( "2-5天有货") or req_status_type == mcommon.status_choices2.get( "已下架") or req_status_type == mcommon.status_choices2.get("已拿货")) and sql_order_goods.refund_apply_status == mcommon.refund_apply_choices2.get("无售后"):
+                             if sql_order_goods.status == mcommon.status_choices2.get("拿货中") or sql_order_goods.status == mcommon.status_choices2.get("明日有货") or sql_order_goods.status == mcommon.status_choices2.get( "2-5天有货") or sql_order_goods.status == mcommon.status_choices2.get( "已下架") or sql_order_goods.status == mcommon.status_choices2.get("已拿货") or sql_order_goods.status == mcommon.status_choices2.get("其他"):
                                 sql_order_goods.status = req_status_type
+                                sql_order_goods.log = ""
                                 sql_order_goods.save()
-                            elif req_status_type == mcommon.status_choices2.get("其他"):
+                             else:
+                                tem_exceptions_order_goods.append(sql_order_goods.goods_number)
+
+                        elif req_status_type == mcommon.status_choices2.get("其他") and req_goods !="" and sql_order_goods.refund_apply_status == mcommon.refund_apply_choices2.get("无售后"):
+                            if sql_order_goods.status == mcommon.status_choices2.get(
+                                    "拿货中") or sql_order_goods.status == mcommon.status_choices2.get(
+                                    "明日有货") or sql_order_goods.status == mcommon.status_choices2.get(
+                                    "2-5天有货") or sql_order_goods.status == mcommon.status_choices2.get(
+                                    "已下架") or sql_order_goods.status == mcommon.status_choices2.get(
+                                    "已拿货"):
                                 sql_order_goods.status = req_status_type
                                 sql_order_goods.log = req_goods.get("message")
                                 sql_order_goods.save()
-                            pass
+                            else:
+                                tem_exceptions_order_goods.append(sql_order_goods.goods_number)
 
+                        else:
+                            tem_exceptions_order_goods.append(sql_order_goods.goods_number)
+                        if req_status_type == req_status_type == mcommon.status_choices2.get("已拿货"):
+                            is_update_time = True
+
+                    if is_update_time:
+                        sql_order.update_time = time.time() * 1000
+                        sql_order.save()
                     if len(tem_exceptions_order_goods) != 0:
                         exception_order_list.append({"order_number": sql_order.order_number, 'orderGoods':tem_exceptions_order_goods})
                 ret['exception_order'] = exception_order_list
@@ -416,6 +473,8 @@ class DeliverGoodsView(APIView):
                         sql_order.logistics_number = req_order_logistic_number
                         sql_order.logistics_name = req_order_logistic_name
                         sql_order.is_delivered = True
+                        sql_order.order_status = mcommon.order_status_choices2.get('已发货')
+                        sql_order.update_time = time.time() * 1000
                         sql_order.save()
                 ret['exception_order'] = exception_order_list
                 return JsonResponse(ret)
@@ -496,6 +555,7 @@ class DeliverFrom315View(APIView):
                         sql_order.logistics_number = req_order_logistic_number
                         sql_order.logistics_name = req_order_logistic_name
                         sql_order.is_delivered = True
+                        sql_order.order_status = mcommon.order_status_choices2.get('已发货')
                         sql_order.save()
                 ret['exception_order'] = exception_order_list
                 return JsonResponse(ret)
@@ -532,7 +592,9 @@ class LogisticsPrintView(APIView):
                 exception_order_list = []
                 order_queryset = trade_models.Order.objects.filter(Q(order_number__in = req_order_number_list)).distinct()
                 for sql_order in order_queryset:
+                    # 异常商品
                     tem_exceptions_order_goods = []
+                    # 正常商品
                     tem_nomal_order_goods = []
                     sql_order_goods_query = trade_models.OrderGoods.objects.filter(order = sql_order)
                     for sql_order_goods in sql_order_goods_query:
@@ -548,9 +610,12 @@ class LogisticsPrintView(APIView):
                         # 有异常状态商品
                         exception_order_list.append({"order_number": sql_order.order_number, 'orderGoods':tem_exceptions_order_goods})
                     else:
+                        sql_order.order_status = mcommon.order_status_choices2.get('快递打印')
+                        sql_order.save()
                         for nomal_order_goods in tem_nomal_order_goods:
                             nomal_order_goods.status = mcommon.status_choices2.get("快递打印")
                             nomal_order_goods.save()
+
                 ret['exception_order'] = exception_order_list
                 return JsonResponse(ret)
 
@@ -583,6 +648,8 @@ class PurchasedGoodsCompleteView(APIView):
                     req_order_number_list.append(req_order_object.get("order_number"))
                 order_queryset = trade_models.Order.objects.filter(Q(order_number__in = req_order_number_list)).distinct()
                 for sql_order in order_queryset:
+                    # 订单里有一个商品状态该为已拿货 就更新时间
+                    is_update_time = False
                     tem_exceptions_order_goods = []
                     sql_order_goods_query = trade_models.OrderGoods.objects.filter(order = sql_order)
                     req_order = self.find_order(sql_order.order_number,req_order_list)
@@ -602,9 +669,12 @@ class PurchasedGoodsCompleteView(APIView):
                             tem_exceptions_order_goods.append(sql_order_goods.goods_number)
                         elif sql_order_goods.status == mcommon.status_choices2.get("拿货中"):
                             sql_order_goods.status = mcommon.status_choices2.get("已拿货")
+                            is_update_time = True
                             sql_order_goods.save()
                             pass
-
+                    if is_update_time:
+                        sql_order.update_time = time.time() * 1000
+                        sql_order.save()
                     if len(tem_exceptions_order_goods) != 0:
                         exception_order_list.append({"order_number": sql_order.order_number, 'orderGoods':tem_exceptions_order_goods})
                 ret['exception_order'] = exception_order_list
@@ -774,12 +844,56 @@ class StopDeliverPass(APIView):
             return JsonResponse(ret)
 
 
+class AddDiscountCardView(APIView):
+    authentication_classes = [BackStageAuthentication, ]
+    permission_classes = [Superpermission, ]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            ret = {'code': "1000", 'message': ""}
+            req_discount_card_info = request.data.get("discount_card_info")
+            req_user_name  =req_discount_card_info.get("user_name")
+            discount_card_type  =req_discount_card_info.get("discount_card_type")
+            # 折扣率 或 折扣面额
+            discount = req_discount_card_info.get("discount")
+            expire_time =req_discount_card_info.get("expire_time")
+            add_time = time.time() * 1000
+
+            sql_user = user_models.User.objects.filter(user_name = req_user_name).first()
+            if sql_user is None:
+                ret['code'] = "1001"
+                ret['message'] = "用户名不存在"
+            else:
+                save_data = {
+                    "user":sql_user,
+                    "discount_card_type":discount_card_type,
+                    "discount":discount,
+                    "expire_time":expire_time,
+                    "add_time":add_time,
+
+                }
+                if trade_utils.add_discount_card_to_sql(save_data):
+                    ret['code'] = "1000"
+                    ret['message'] = "添加成功"
+                else:
+                    ret['code'] = "1001"
+                    ret['message'] = "添加失败"
+
+
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "添加异常"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+        return JsonResponse(ret)
+
+
 # 充值审核通过
 class RechargePassView(APIView):
-    authentication_classes = []
-    permission_classes = []
-    # authentication_classes = [BackStageAuthentication, ]
-    # permission_classes = [permission.Superpermission, ]
+    # authentication_classes = []
+    # permission_classes = []
+    authentication_classes = [BackStageAuthentication, ]
+    permission_classes = [Superpermission, ]
 
     def post(self, request, *args, **kwargs):
         ret = {'code': "1000", 'message': ""}
@@ -792,6 +906,44 @@ class RechargePassView(APIView):
                 ret['code'] = "1001"
                 ret['message'] = "修改失败"
 
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "修改失败"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+        return JsonResponse(ret)
+
+
+# 支付宝认证审核通过
+class UserAlipayAccountCheckPassView(APIView):
+
+    authentication_classes = [BackStageAuthentication, ]
+    permission_classes = [Superpermission, ]
+
+    def post(self, request, *args, **kwargs):
+        ret = {'code': "1000", 'message': ""}
+        try:
+            with transaction.atomic():
+                req_ali_info_id = request.data.get("user_ali_info_id")
+                sql_ali_info_obj = user_models.UserAlipayRealInfo.objects.filter(id = req_ali_info_id).first()
+                if sql_ali_info_obj is not None:
+                    sql_ali_info_obj.check_status = mcommon.common_check_status_choices2['审核通过']
+                    sql_ali_info_obj.check_time = time.time() * 1000
+                    sql_ali_info_obj.save()
+                    # 送一张 一星期的折扣卡
+                    save_data = {
+                        "user": sql_ali_info_obj.user,
+                        "discount_card_type": mcommon.discount_card_type_choices2['物流金额优惠卡'],
+                        "discount": 0.5,
+                        "expire_time": time.time() * 1000 + 10 * 24 * 60 * 60 * 1000,
+                        "add_time": time.time() * 1000,
+
+                    }
+                    trade_utils.add_discount_card_to_sql(save_data)
+                    # 阿里支付宝认证通过  找出当前用户的被邀请注册信息
+                    invite_reg_info = user_models.InviteRegisterInfo.objects.filter( be_inviter=sql_ali_info_obj.user).first()
+                    if invite_reg_info is not None:
+                        back_utils.invite_reg_info_pass(invite_reg_info)
         except:
             traceback.print_exc()
             ret['code'] = "1001"

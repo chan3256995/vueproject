@@ -6,6 +6,8 @@ from user import models as user_models
 from trade import models as trade_models
 from utils import mcommon
 from django.db import transaction
+from utils.auth import UserAuthtication
+from utils.permission import UserPermission
 logger = logging.getLogger('stu')
 import traceback
 from rest_framework import mixins
@@ -14,7 +16,7 @@ from rest_framework.pagination import PageNumberPagination
 import time
 from utils import encryptions
 from _decimal import Decimal
-
+from rest_framework import serializers
 class UsersPagination(PageNumberPagination):
     # 指定每一页的个数
     page_size = 10
@@ -37,8 +39,6 @@ class BaseTrade():
                                                              userid=self.user.id,
                                                              ranstr=random_ins.randint(10, 99999))
         return trade_number
-
-
 
 
 # 充值
@@ -94,11 +94,10 @@ class TradeInfoViewSet(mixins.ListModelMixin,GenericViewSet):
         try:
             ret = {'code': "1000", 'message': ""}
             queryset = self.filter_queryset(self.get_queryset())
-
             page = self.paginate_queryset(queryset)
             if page is not None:
                 serializer = self.get_serializer(page, many=True)
-                print(serializer.data)
+
                 return self.get_paginated_response(serializer.data)
 
             serializer = self.get_serializer(queryset, many=True)
@@ -132,8 +131,89 @@ class TradeInfoViewSet(mixins.ListModelMixin,GenericViewSet):
         return trade_models.TradeInfo.objects.filter(user = self.request.user).order_by("-add_time")
 
 
+# 支付宝真实信息
+class UserAlipayRealInfoViewSet( mixins.UpdateModelMixin, mixins.RetrieveModelMixin,GenericViewSet):
+
+    class QueryUserAlipayInfo(serializers.ModelSerializer):
+        class Meta:
+            model = user_models.UserAlipayRealInfo
+            fields = "__all__"
+
+    serializer_class = [QueryUserAlipayInfo]
+
+    def retrieve(self, request, *args, **kwargs):
+        try:
+            ret = {"code": "1000", "message": ""}
+            ql_alipay_real_info = user_models.UserAlipayRealInfo.objects.filter(user=request.user).first()
+            if ql_alipay_real_info is not None:
+                serializer = self.QueryUserAlipayInfo(ql_alipay_real_info,many=False)
+                ret['alipay_account_info'] = serializer.data
+            else:
+                ret['alipay_account_info'] = None
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "提交异常"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+        return JsonResponse(ret)
+
+    def update(self, request, *args, **kwargs):
+        try:
+            ret = {"code": "1000", "message": ""}
+            req_data = request.data
+            req_alipay_account_info = req_data.get("alipay_account_info")
+
+            create_data = {
+                    'user' : request.user,
+                    'alipay_account': req_alipay_account_info.get('alipay_account'),
+                    'alipay_real_name': req_alipay_account_info.get('alipay_real_name'),
+                    'check_trade_no': req_alipay_account_info.get('check_trade_no'),
+                    'check_status': mcommon.common_check_status_choices2.get('未审核'),
+                    'check_time': time.time()*1000,
+                    'add_time': time.time()*1000
+
+                }
+            update_data ={
+                'alipay_account': req_alipay_account_info.get('alipay_account'),
+                'alipay_real_name': req_alipay_account_info.get('alipay_real_name'),
+                'check_trade_no': req_alipay_account_info.get('check_trade_no'),
+
+            }
+            sql_alipay_account_info = user_models.UserAlipayRealInfo.objects.filter(user=request.user).first()
+            if sql_alipay_account_info is None:
+                # 该用户没有提交认证信息
+                sql_alipay_account_info = user_models.UserAlipayRealInfo.objects.filter(alipay_account=update_data.get('alipay_account')).first()
+                if sql_alipay_account_info is not None:
+                    # 提交的认证账户已经存在
+                    ret['code'] = "1001"
+                    ret['message'] = "该支付宝账户已存在"
+                    return JsonResponse(ret)
+                else:
+
+                    user_models.UserAlipayRealInfo.objects.create(**create_data)
+            else:
+                if sql_alipay_account_info.check_status == mcommon.common_check_status_choices2.get("审核通过"):
+                    ret['code'] = "1001"
+                    ret['message'] = "审核通过不可修改"
+                    return JsonResponse(ret)
+                sql_alipay_account_info.alipay_account = update_data.get('alipay_account')
+                sql_alipay_account_info.alipay_real_name = update_data.get('alipay_real_name')
+                sql_alipay_account_info.save()
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "提交异常"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+        return JsonResponse(ret)
+
+
+
+
+
+# 订单支付
 class OrderPayView(APIView):
-    # authentication_classes = []
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
 
     def post(self,request, *args, **kwargs):
         print("order_list--------------")

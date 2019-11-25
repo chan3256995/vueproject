@@ -59,7 +59,7 @@ class PayInfoView(APIView):
             for key in items.keys():
                 req_data = eval(key)
                 break
-            # req_data = {"pay":"Ali","uid":"2088012229532543","mark":"4664A6265048_1","money":"50.00","tradeNo":"20190918200040011100540039618952"}
+            # req_data = {"pay":"Ali","uid":"2088012229532543","mark":"1574483704625_12_最初_17pay","money":"50.00","tradeNo":"201909182000400111005400396189"}
             trade_info = trade_models.TradeInfo.objects.filter(recharge_number=req_data.get("tradeNo")).first()
             # 如果该支付订单存在则自动审核
             if trade_info is not None:
@@ -71,9 +71,10 @@ class PayInfoView(APIView):
                 else:
                     ret['code'] = "1001"
                     ret['message'] = '提交失败'
+                    logger.info('%s url:%s method:%s' % ("数据库存在该订单 自动审核发现金额不一致或者已经审核通过", request.path, request.method))
                     return Response(status=400, data=ret)
 
-            if req_data !={}:
+            if  req_data !={}:
                 if self.save_pay_info(req_data):
                     trade_info = trade_models.TradeInfo.objects.filter(recharge_number=req_data.get("tradeNo")).first()
                     back_utils.recharge_pass(trade_info.trade_number)
@@ -83,10 +84,13 @@ class PayInfoView(APIView):
                 else:
                     ret['code'] = "1001"
                     ret['message'] = '提交失败'
+                    print("数据库存在该订单 自动审核发现金额不一致或者已经审核通过")
+                    logger.info('%s url:%s method:%s' % ("数据库存在该订单 自动审核发现金额不一致或者已经审核通过", request.path, request.method))
                     return Response(status=400, data=ret)
             else:
                 ret['code'] = "1001"
                 ret['message'] = '提交失败'
+                print("提交数据空")
                 return Response(status=400, data=ret)
 
         except:
@@ -106,32 +110,37 @@ class PayInfoView(APIView):
                 if trade_info is not None:
                     return False
                 mark = req_data.get('mark')
-                user = None
-                if mark is not None or mark !="":
-                    mark_msg, mark_user_id = mark.split("_")
-                    mark_user_id = int(mark_user_id)
-                    user = user_models.User.objects.filter(id = mark_user_id).first()
-                    if user is None:
-                        return False
-                save_data = {}
-                save_data.update({'recharge_number': req_data.get("tradeNo")})
-                save_data.update({'trade_money': req_data.get("money")})
-                save_data.update({'user': user.id})
-                ser = m_serializers.PayInfoSerializer(data=save_data, context={'request': self.request})
-                ser.is_valid(raise_exception=True)
+                if mark.endswith("_17pay"):
+                    user = None
+                    if mark is not None or mark !="":
+                        mark_array = mark.split("_")
+                        mark_msg = mark_array[0]
+                        mark_user_id = int(mark_array[1])
+                        user = user_models.User.objects.filter(id = mark_user_id).first()
+                        if user is None:
+                            return False
+                    save_data = {}
+                    save_data.update({'recharge_number': req_data.get("tradeNo")})
+                    save_data.update({'trade_money': req_data.get("money")})
+                    save_data.update({'user': user.id})
+                    ser = m_serializers.PayInfoSerializer(data=save_data, context={'request': self.request})
+                    ser.is_valid(raise_exception=True)
 
-                ser.validated_data['trade_source'] = mcommon.trade_source_choices2.get("充值")
-                ser.validated_data['cash_in_out_type'] = mcommon.cash_in_out_type_choices2.get("收入")
-                ser.validated_data['trade_number'] = trade_utils.get_trade_number(self,user.id)
-                ser.validated_data['mark'] = mark_msg
-                ser.validated_data['user_balance'] = user.balance
-                ser.validated_data['add_time'] = time.time() * 1000
-                ser.validated_data['message'] = "充值 " + " 充值号：" + save_data.get( "recharge_number") + " mark：" + mark + "金额：" + save_data.get("trade_money")
-                ser.save()
+                    ser.validated_data['trade_source'] = mcommon.trade_source_choices2.get("充值")
+                    ser.validated_data['cash_in_out_type'] = mcommon.cash_in_out_type_choices2.get("收入")
+                    ser.validated_data['trade_number'] = trade_utils.get_trade_number(self,user.id)
+                    ser.validated_data['mark'] = mark_msg
+                    ser.validated_data['user_balance'] = user.balance
+                    ser.validated_data['add_time'] = time.time() * 1000
+                    ser.validated_data['message'] = "充值 " + " 充值号：" + save_data.get( "recharge_number") + " mark：" + mark + "金额：" + save_data.get("trade_money")
+                    ser.save()
+                else:
+                    return False
             else:
                 return False
         except:
             traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), self.request.path, self.request.method))
             raise Exception(traceback.format_exc())
         return True
 

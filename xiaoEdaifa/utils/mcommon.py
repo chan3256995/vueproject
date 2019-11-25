@@ -7,6 +7,19 @@ cash_in_out_type_choices =(
     (1, '收入'),
     (2, '支出'),
 )
+# 打折卡
+discount_card_type_choices=(
+    (1, '物流金额优惠卡'),
+    (2, '物流折扣率优惠卡'),
+
+)
+
+# 打折卡
+discount_card_type_choices2 = {
+     '物流金额优惠卡': 1,
+     '物流折扣率优惠卡': 2,
+
+}
 
 cash_in_out_type_choices2 = {
     '收入': 1,
@@ -26,7 +39,7 @@ trade_source_choices2 = {
     '提现': 4,
     '其他费用': 5,
 }
-
+# 商品状态
 status_choices = (
     (1, '待付款'),
     (2, '已付款'),
@@ -43,7 +56,7 @@ status_choices = (
     (13, '2-5天有货'),
     (14, '其他'),
 )
-
+# 商品状态
 status_choices2 = {
     '待付款': 1,
     '已付款': 2,
@@ -61,6 +74,34 @@ status_choices2 = {
     '其他': 14,
 
 
+}
+
+# 订单状态
+order_status_choices = (
+    (0, '未处理'),
+    (1, '快递打印'),
+    (2, '已发货'),
+)
+
+# 订单状态
+order_status_choices2 = {
+    '未处理': 0,
+    '快递打印': 1,
+    '已发货': 2,
+}
+
+# 公用的审核状态
+common_check_status_choices = (
+    (0, '未审核'),
+    (1, '审核通过'),
+    (2, '审核不通过'),
+)
+
+# 公用的审核状态
+common_check_status_choices2 = {
+    '未审核': 0,
+    '审核通过': 1,
+    '审核不通过': 2,
 }
 
 refund_apply_choices = (
@@ -83,7 +124,7 @@ refund_apply_choices2 = {
 }
 
 # 服务费
-service_fee = 2.0
+service_fee = 1.0
 
 market_short_name = {
     '国投': "投",

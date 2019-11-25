@@ -9,11 +9,14 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 from django.db.models import Q
 from utils.permission import Superpermission
+from utils.permission import NahuoUserpermission
 from utils.auth import BackStageAuthentication
+from utils.auth import BackStageNahuoAuthentication
 from utils import mIP_utils
 from django.db import transaction
 from rest_framework  import serializers
 from trade import models as trade_models
+from user import models as user_models
 from utils import mfile_utils
 from datetime import datetime
 from xiaoEdaifa import settings
@@ -25,6 +28,7 @@ import time
 import xlwt
 import traceback
 import logging
+import json
 logger = logging.getLogger('stu')
 
 
@@ -219,14 +223,14 @@ class OutPutOrdersView(APIView):
                     sheet.write(cur_row, 7, order_goods.goods_price)
                     sheet.write(cur_row, 8, "")
 
-                    sheet.write(cur_row, 9, "")
+                    sheet.write(cur_row, 9, order_goods.customer_message)
                     if ip.find('172.17.1.38') != -1:
                         sheet.write(cur_row, 10, "r"+str(order.id)+"-"+str(order_goods.id))
                     else:
                         sheet.write(cur_row, 10, str(order.id) + "-" + str(order_goods.id))
                     sheet.write(cur_row, 11, order.consignee_address)
 
-                consignee_address = order.consignee_address.replace(","," ",3).replace("，"," ").replace("  "," ")
+                consignee_address = order.consignee_address.replace("，"," ").replace("  "," ").replace(' ','').replace(","," ",3)
 
                 # 合并第1行到第2行的第0列到第3列。
                 sheet.write_merge(cur_order_row, cur_row, 11, 11,order.consignee_name+"，"+str(order.consignee_phone)+"，"+ consignee_address)
@@ -259,8 +263,8 @@ class OutPutOrdersView(APIView):
 
 
 class OrderGoodsViewSet(mixins.UpdateModelMixin,GenericViewSet):
-    authentication_classes = [BackStageAuthentication,]
-    permission_classes = [Superpermission]
+    authentication_classes = [BackStageAuthentication, BackStageNahuoAuthentication]
+    permission_classes = [NahuoUserpermission]
     serializer_class = m_serializers.TradeOrderGoodsSerializer
 
     def update(self, request, *args, **kwargs):
@@ -388,7 +392,7 @@ class SuperUserOrderGoodsAlterView(APIView):
                 return Response(ret)
 
 
-class OrderPagination(PageNumberPagination):
+class CommonPagination(PageNumberPagination):
     # 指定每一页的个数
     page_size = 10
     # 可以让前端来设置page_szie参数来指定每页个数
@@ -402,7 +406,7 @@ class OrderViewSet(mixins.ListModelMixin,mixins.UpdateModelMixin, GenericViewSet
         permission_classes = [permission.Superpermission,]
         serializer_class = bserializers.BackTradeOrderQuerySerializer
         # 设置分页的class
-        pagination_class = OrderPagination
+        pagination_class = CommonPagination
 
         def list(self, request, *args, **kwargs):
             ret = {"code": 1000, "message": ""}
@@ -422,22 +426,36 @@ class OrderViewSet(mixins.ListModelMixin,mixins.UpdateModelMixin, GenericViewSet
 
         def get_queryset(self):
             print(self.request.query_params)
-            query_keys = self.request.query_params.get("q")
+            default_query_keys = self.request.query_params.get("q")
             status_filter = self.request.query_params.get("status")
+            user_name_query = self.request.query_params.get("user_name")
+            order_follower_user_name = self.request.query_params.get("order_follower_user_name")
+            market_full = self.request.query_params.get("market_full")
             print("query_keys")
-            print(query_keys)
-            if query_keys is not None:
+            print(default_query_keys)
+            if default_query_keys is not None:
 
-                args = Q(order_number=query_keys) | Q(consignee_name=query_keys) | Q(logistics_number=query_keys)
+                args = Q(order_number=default_query_keys) | Q(consignee_name__contains=default_query_keys) | Q(logistics_number=default_query_keys)
                 # 手机字段为数字 用字符查询会报错
-                if query_keys.isdigit():
-                    args = args | Q(consignee_phone=query_keys)
+                if default_query_keys.isdigit():
+                    args = args | Q(consignee_phone=default_query_keys)
                 print("args++++++++++++")
                 print(args)
-                return trade_models.Order.objects.filter(args).order_by('add_time')
+                return trade_models.Order.objects.filter(args).order_by('-add_time')
             elif status_filter is not None:
                 return trade_models.Order.objects.filter(orderGoods__status=status_filter).distinct().order_by( "-add_time")
-
+            elif user_name_query is not None:
+                return trade_models.Order.objects.filter(order_owner__user_name=user_name_query).distinct().order_by( "-add_time")
+            elif order_follower_user_name is not None:
+                return trade_models.Order.objects.filter(order_follower__user_name=order_follower_user_name).distinct().order_by( "-add_time")
+            elif market_full is not None:
+                market_full = json.loads(market_full)
+                shop_market_name = market_full.get('shop_market_name')
+                shop_floor = market_full.get('shop_floor')
+                shop_stalls_no = market_full.get('shop_stalls_no')
+                art_no = market_full.get('art_no')
+                args = Q(orderGoods__shop_market_name__contains=shop_market_name) & Q(orderGoods__shop_floor__contains=shop_floor) & Q(orderGoods__shop_stalls_no__contains=shop_stalls_no) & Q(orderGoods__art_no__contains=art_no)
+                return trade_models.Order.objects.filter(args).distinct().order_by( "-add_time")
             else:
                 return trade_models.Order.objects.all().order_by('-add_time')
 
@@ -479,6 +497,204 @@ class OrderViewSet(mixins.ListModelMixin,mixins.UpdateModelMixin, GenericViewSet
             return self.request.user
 
 
+class DiscountCardViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin,mixins.DestroyModelMixin, GenericViewSet):
+    authentication_classes = [BackStageAuthentication, ]
+    permission_classes = [permission.Superpermission, ]
+    serializer_class = bserializers.BackDiscountCardQuerySerializer
+    # 设置分页的class
+    pagination_class = CommonPagination
+
+    def list(self, request, *args, **kwargs):
+        ret = {"code": 1000, "message": ""}
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        except:
+            traceback.print_exc()
+            ret = {"code": "1001", "message": "获取数据失败"}
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return Response(ret)
+
+    def get_queryset(self):
+        print(self.request.query_params)
+        query_keys = self.request.query_params.get("user_name")
+        print("query_keys")
+        print(query_keys)
+        if query_keys is not None:
+            return trade_models.DiscountCard.objects.filter(user__user_name=query_keys).order_by('-add_time')
+        else:
+            return trade_models.DiscountCard.objects.all().order_by('-add_time')
+
+    def update(self, request, *args, **kwargs):
+        ret = {"code": "1000", "message": ""}
+        try:
+            discount_card_id = kwargs.get("pk")
+            partial = True
+            instance = trade_models.DiscountCard.objects.filter(id=discount_card_id).first()
+            print(instance)
+            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+        except:
+            print(serializer.error)
+            print(traceback.print_exc())
+            ret = {"code": "1001", "message": "更改失败"}
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return Response(ret)
+
+        ret['code'] = "1000"
+        ret['message'] = "更新成功"
+        ret['data'] = serializer.data
+        return Response(ret)
+
+    def destroy(self, request, *args, **kwargs):
+        ret = {"code": "1000", "message": ""}
+        print(kwargs.get("pk"))
+        try:
+            ret = {"code": "1000", "message": ""}
+            discount_card_id = kwargs.get("pk")
+            trade_models.DiscountCard.objects.filter(id=discount_card_id).delete()
+        except:
+            print(traceback.print_exc())
+            ret['code'] = "1001"
+            ret['message'] = "删除失败"
+        return Response(ret)
+
+    def get_object(self):
+        return self.request.user
+
+
+class AlipayAccountInfoViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin,mixins.DestroyModelMixin, GenericViewSet):
+    authentication_classes = [BackStageAuthentication, ]
+    permission_classes = [permission.Superpermission, ]
+    serializer_class = bserializers.AliPayAccountInfoQuerySerializer
+    # 设置分页的class
+    pagination_class = CommonPagination
+
+    def list(self, request, *args, **kwargs):
+        ret = {"code": 1000, "message": ""}
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        except:
+            traceback.print_exc()
+            ret = {"code": "1001", "message": "获取数据失败"}
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return Response(ret)
+
+    def get_queryset(self):
+        print(self.request.query_params)
+        query_keys = self.request.query_params.get("user_name")
+        print("query_keys")
+        print(query_keys)
+        if query_keys is not None:
+            return user_models.UserAlipayRealInfo.objects.filter(user__user_name=query_keys).order_by('-add_time')
+        else:
+            return user_models.UserAlipayRealInfo.objects.all().order_by('-add_time')
+
+    def update(self, request, *args, **kwargs):
+        ret = {"code": "1000", "message": ""}
+        try:
+            with transaction.atomic():
+                alipay_info_id = kwargs.get("pk")
+                partial = True
+                user_alipay_real_info = user_models.UserAlipayRealInfo.objects.filter(id=alipay_info_id).first()
+                print(user_alipay_real_info)
+                update_info={
+                    'check_time':time.time() *1000,
+                    'check_status': request.data.get('check_status')
+                }
+
+
+
+
+                serializer = self.get_serializer(user_alipay_real_info, data=update_info, partial=partial)
+                serializer.is_valid(raise_exception=True)
+                self.perform_update(serializer)
+        except:
+            print(serializer.error)
+            print(traceback.print_exc())
+            ret = {"code": "1001", "message": "更改失败"}
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return Response(ret)
+
+        ret['code'] = "1000"
+        ret['message'] = "更新成功"
+        ret['data'] = serializer.data
+        return Response(ret)
+
+    def destroy(self, request, *args, **kwargs):
+        ret = {"code": "1000", "message": ""}
+        print(kwargs.get("pk"))
+        try:
+            ret = {"code": "1000", "message": ""}
+            alipay_info_id = kwargs.get("pk")
+            user_models.UserAlipayRealInfo.objects.filter(id=alipay_info_id).delete()
+        except:
+            print(traceback.print_exc())
+            ret['code'] = "1001"
+            ret['message'] = "删除失败"
+        return Response(ret)
+
+
+class InviteRegisterInfoViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin,mixins.DestroyModelMixin, GenericViewSet):
+    authentication_classes = [BackStageAuthentication, ]
+    permission_classes = [permission.Superpermission, ]
+    serializer_class = bserializers.InviteRegisterInfoQuerySerializer
+    # 设置分页的class
+    pagination_class = CommonPagination
+
+    def list(self, request, *args, **kwargs):
+        ret = {"code": 1000, "message": ""}
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        except:
+            traceback.print_exc()
+            ret = {"code": "1001", "message": "获取数据失败"}
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return Response(ret)
+
+    def get_queryset(self):
+        print(self.request.query_params)
+        # 邀请人 用户名
+        inviter_user_name = self.request.query_params.get("user_name")
+        print("query_keys")
+        print(inviter_user_name)
+        if inviter_user_name is not None:
+            return user_models.InviteRegisterInfo.objects.filter(inviter__user_name=inviter_user_name).order_by('-add_time')
+        else:
+            return user_models.InviteRegisterInfo.objects.all().order_by('-add_time')
+
+    def destroy(self, request, *args, **kwargs):
+        ret = {"code": "1000", "message": ""}
+        print(kwargs.get("pk"))
+        try:
+            ret = {"code": "1000", "message": ""}
+            invite_reg_info_id = kwargs.get("pk")
+            user_models.InviteRegisterInfo.objects.filter(id=invite_reg_info_id).delete()
+        except:
+            print(traceback.print_exc())
+            ret['code'] = "1001"
+            ret['message'] = "删除失败"
+        return Response(ret)
+
+
 class OrderGoodsRefundViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, GenericViewSet):
     class RefundApplyQuerySerializer(serializers.ModelSerializer):
         class Meta:
@@ -489,7 +705,7 @@ class OrderGoodsRefundViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, G
     permission_classes = [permission.Superpermission, ]
     serializer_class = RefundApplyQuerySerializer
     # 设置分页的class
-    pagination_class = OrderPagination
+    pagination_class = CommonPagination
 
     def list(self, request, *args, **kwargs):
         self.serializer_class = m_serializers.tTradeOrderQuerySerializer

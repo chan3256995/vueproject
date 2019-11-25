@@ -35,6 +35,13 @@ router.register(r'refundApply', user_views.UserRefundApplyViewSet, base_name='re
 router.register(r'orderGoods', user_views.OrderGoodsViewSet, base_name='orderGoods')
 # 用户交易信息
 router.register(r'tradeInfo', user_trade_views.TradeInfoViewSet, base_name='tradeInfo')
+# 支付宝实名认证信息
+router.register(r'userAlipayRealInfo', user_trade_views.UserAlipayRealInfoViewSet, base_name='userAlipayRealInfo')
+
+
+#  获取用户被邀请用户信息
+
+router.register(r'inviteInfo', user_views.InviteInfoViewSet, base_name='inviteInfo')
 
 
 urlpatterns = [
@@ -52,6 +59,14 @@ urlpatterns = [
     url('forget_password/', user_views.ForgetPasswordView.as_view()),  # new
     # 重置密码
     url('reset_password/', user_views.ResetPasswordView.as_view()),  # new
+    # 修改商品信息
+    url('alterOrderGoodsDetails/', user_views.AlterOrderGoodsDetailsView.as_view()),  # new
+    # 修改订单地址
+    url('alterOrderAddress/', user_views.AlterOrderAddressView.as_view()),
+    # 获取用户优惠卡信息
+    url('userDiscountCards/', user_views.GetUserDiscountCardsView.as_view()),  # new
+
+
     # url('stopDeliver/', user_views.UserStopDeliverView.as_view()),  # new
     # url('orderGoods/', user_views.OrderGoodsViewSet.as_view()),  # new
     # url('addOrders/', user_views.UserMulOrderSaveView.as_view()),  # new

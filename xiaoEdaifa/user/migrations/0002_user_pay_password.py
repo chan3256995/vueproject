@@ -2,6 +2,7 @@
 
 from django.db import migrations, models
 
+import django.db.models.deletion
 
 class Migration(migrations.Migration):
 
@@ -10,6 +11,18 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.CreateModel(
+            name='UserAlipayRealInfo',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('alipay_account', models.CharField(max_length=50, unique=True)),
+                ('alipay_real_name', models.CharField(max_length=30)),
+                ('check_status', models.SmallIntegerField(choices=[(0, '未审核'), (1, '审核通过'), (2, '审核不通过')], default=0)),
+                ('check_time', models.BigIntegerField()),
+                ('add_time', models.BigIntegerField()),
+                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='user.User')),
+            ],
+        ),
         migrations.AddField(
             model_name='user',
             name='pay_password',

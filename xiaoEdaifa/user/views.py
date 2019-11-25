@@ -22,6 +22,7 @@ from rest_framework import status
 from rest_framework import serializers
 from utils.permission import UserPermission
 from django.db import transaction
+from user import user_utils
 from rest_framework.mixins import CreateModelMixin,RetrieveModelMixin,UpdateModelMixin,ListModelMixin,DestroyModelMixin
 from rest_framework.viewsets import GenericViewSet
 from utils import encryptions
@@ -47,7 +48,6 @@ def md5(user):
 
 
 # 用户登录
-
 
 class LoginView(APIView):
     authentication_classes = []
@@ -166,8 +166,19 @@ class UserMulOrderSaveViewSet(CreateModelMixin,GenericViewSet):
                     # 默认 无质检
                     quality_testing_fee = 0.0
                     quality_testing_name = "基础质检"
-                    logistics = trade_models.Logistics.objects.filter(logistics_name = logistics_name).first()
-                    logistics_fee = logistics.logistics_price
+
+
+                    logistics_price = user_utils.get_user_logistics_after_discount_price(self,logistics_name)
+                    # logistics = trade_models.Logistics.objects.filter(logistics_name = logistics_name).first()
+                    # discount_card = trade_models.DiscountCard.objects.filter(user = request.user,discount_card_type = mcommon.discount_card_type_choices2.get("物流金额优惠卡")).first()
+                    # logistics_price = logistics.logistics_price
+                    # logistics_fee = logistics_price
+                    # if discount_card is not None:
+                    #     if discount_card.discount_card_type == mcommon.discount_card_type_choices2.get("物流金额优惠卡"):
+                    #         if logistics_price > discount_card.discount:
+                    #             logistics_fee = Decimal(str(logistics_price)) - Decimal(str(discount_card.discount))
+                    #             logistics_price = logistics_fee
+
                     # 订单里的商品总数量
                     order_goods_counts = 0
 
@@ -175,31 +186,35 @@ class UserMulOrderSaveViewSet(CreateModelMixin,GenericViewSet):
                     order_goods_fee = 0.0
                     for orderGoods in orderGoodsList:
                         # raise DatabaseError  # 报出错误，检测事务是否能捕捉错误
-                        goods_count = float(orderGoods.get('goods_count'))
-                        goods_price = float(orderGoods.get('goods_price'))
+                        goods_count = Decimal(str((orderGoods.get('goods_count'))))
+                        goods_price = Decimal(str((orderGoods.get('goods_price'))))
                         order_goods_counts = order_goods_counts+goods_count
-                        order_agency_fee = order_agency_fee*1.0 + goods_count * utils.String.AGENCY_FEE*1.0
-                        order_goods_fee = order_goods_fee + goods_price * goods_count *1.0
+                        order_agency_fee = Decimal(str(order_agency_fee))  + Decimal(str(goods_count ))* Decimal(str(utils.String.AGENCY_FEE))
+                        order_goods_fee =  Decimal(str(order_goods_fee)) +  Decimal(str(goods_price)) *  Decimal(str(goods_count))
                         self.serializer_class = m_serializers.TradeOrderGoodsSerializer
                         orderGoods['order'] = order.id
                         ser = self.get_serializer(data=orderGoods)
                         ser.is_valid(raise_exception=True)
                         ser.save()
                     if order_goods_counts > 2:
-                        logistics_fee = logistics.logistics_price + 5
+                        # 超出数量 每件3元计算
+                        extra_counts = order_goods_counts - 2
+                        logistics_fee = Decimal(str(logistics_price)) + (Decimal(str(extra_counts)) * Decimal(str(3)))
+                    else:
+                        logistics_fee = logistics_price
 
                     if req_quality_testing_name is not None and req_quality_testing_name!= "":
                         quality_test_query = trade_models.QualityTest.objects.filter(quality_testing_name = req_quality_testing_name).first()
                         # 质检服务费
                         if quality_test_query is not None:
                             quality_testing_name = quality_test_query.quality_testing_name
-                            quality_testing_fee = quality_test_query.quality_testing_price * order_goods_counts
+                            quality_testing_fee =  Decimal(str(quality_test_query.quality_testing_price)) *  Decimal(str(order_goods_counts))
 
                     order.quality_testing_name = quality_testing_name
                     order.quality_testing_fee = quality_testing_fee
                     order.logistics_fee = logistics_fee
                     order.agency_fee = order_agency_fee
-                    total_fee = order_goods_fee + logistics_fee + order_agency_fee + quality_testing_fee
+                    total_fee = Decimal(str(order_goods_fee)) + Decimal(str(logistics_fee)) + Decimal(str(order_agency_fee)) + Decimal(str(quality_testing_fee))
                     order.total_price = total_fee
                     order.save()
 
@@ -378,7 +393,7 @@ class UserOrderViewSet(ListModelMixin,DestroyModelMixin, GenericViewSet):
 
         def list(self, request, *args, **kwargs):
             print(request.data)
-            print("333333333333333333333333333")
+
             # trade_models.OrderGoods.filter()
             ret = {"code": "1000", "message": ""}
             try:
@@ -438,24 +453,26 @@ class UserOrderViewSet(ListModelMixin,DestroyModelMixin, GenericViewSet):
                 status_filter = self.request.query_params.get("status")
                 status_filter_list_str = self.request.query_params.get("status_list")
                 refund_apply_status = self.request.query_params.get("refund_apply_status")
-                print("query_keys")
-                print(query_keys)
-                print(status_filter)
+                req_order_by = self.request.query_params.get("order_by")
+                order_by = ["-add_time"]
+                if req_order_by is not None:
+                    if req_order_by == "update_time":
+                        order_by = ["-update_time",'-add_time']
                 if query_keys is not None:
-                    args = Q(order_number=query_keys) | Q(consignee_name=query_keys) | Q(logistics_number=query_keys)
+                    args = Q(order_number=query_keys) | Q(consignee_name__contains=query_keys) | Q(logistics_number=query_keys)
                     # 手机字段为数字 用字符查询会报错
                     if query_keys.isdigit():
                         args = args | Q(consignee_phone=query_keys)
-                    return trade_models.Order.objects.filter(Q(order_owner=self.request.user) & args).order_by('-add_time')
+                    return trade_models.Order.objects.filter(Q(order_owner=self.request.user) & args).order_by(*order_by)
                 elif status_filter is not None:
-                    qy = trade_models.Order.objects.filter(order_owner=self.request.user,orderGoods__status = status_filter).distinct().order_by("-add_time")
+                    qy = trade_models.Order.objects.filter(order_owner=self.request.user,orderGoods__status = status_filter).distinct().order_by(*order_by)
                     return qy
                 elif status_filter_list_str is not None:
                     status_filter_list = status_filter_list_str.split(',')
                     args = Q()
                     for status2 in status_filter_list:
                         args = args | Q(orderGoods__status=status2)
-                    qy = trade_models.Order.objects.filter(Q(order_owner=self.request.user) & args).distinct().order_by("-add_time")
+                    qy = trade_models.Order.objects.filter(Q(order_owner=self.request.user) & args).distinct().order_by(*order_by)
 
                     return qy
                 elif refund_apply_status is not None :
@@ -463,13 +480,12 @@ class UserOrderViewSet(ListModelMixin,DestroyModelMixin, GenericViewSet):
                         qy =trade_models.Order.objects.filter(Q(order_owner=self.request.user) & (Q(orderGoods__refund_apply_status = mcommon.refund_apply_choices2.get("拦截发货"))
                                                                                                   | Q(orderGoods__refund_apply_status = mcommon.refund_apply_choices2.get("退货退款"))
                                                                                                   | Q(orderGoods__refund_apply_status = mcommon.refund_apply_choices2.get("仅退款"))
-                                                                                                  )).distinct().order_by('-add_time')
+                                                                                                  )).distinct().order_by(*order_by)
                         return qy
                 else:
-                    return trade_models.Order.objects.filter(order_owner=self.request.user).order_by('-add_time')
+                    return trade_models.Order.objects.filter(order_owner=self.request.user).order_by(*order_by)
             except:
                 traceback.print_exc()
-
 
         def get_serializer_class(self):
             if self.action == "retrieve":
@@ -530,7 +546,7 @@ class UserStopDeliverView(APIView):
                             ret['message'] = "余额不足"
                             return Response(ret)
                         order_goods.save()
-                        request.user.balance = request.user.balance - trade_money
+                        request.user.balance = Decimal(str(request.user.balance)) - Decimal(str(trade_money))
                         data['user_balance'] = request.user.balance
                         trade_info = trade_models.TradeInfo.objects.create(**data)
                         request.user.save()
@@ -586,6 +602,348 @@ class ResetPasswordView(APIView):
         return JsonResponse(ret)
 
 
+# 修改商品详细信息
+class AlterOrderGoodsDetailsView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def post(self,request, *args, **kwargs):
+        try:
+            ret = {"code":"1000","message":""}
+            data = request.data
+            pwd = data.get("pay_pwd")
+            req_order_goods = data.get("new_order_goods")
+            print(req_order_goods)
+
+            # 判断非游客用户
+            if isinstance(request.user,models.User) :
+                with transaction.atomic():
+
+                    sql_order_goods = trade_models.OrderGoods.objects.filter(id=req_order_goods.get('id')).first()
+                    if sql_order_goods.order.order_owner != request.user:
+                        ret['code'] = "1001"
+                        ret['message'] = '非法查询'
+                        return JsonResponse(ret)
+                    if sql_order_goods is not None:
+                        if sql_order_goods.status != mcommon.status_choices2.get('待付款') and sql_order_goods.status != mcommon.status_choices2.get('明日有货') and sql_order_goods.status != mcommon.status_choices2.get('已下架') and  sql_order_goods.status != mcommon.status_choices2.get('2-5天有货') and sql_order_goods.status != mcommon.status_choices2.get('已付款') and sql_order_goods.status != mcommon.status_choices2.get('其他') and sql_order_goods.status != mcommon.status_choices2.get('缺货'):
+                            ret['code'] = "1001"
+                            ret['message'] = "商品状态不允许修改信息"
+                            return Response(ret)
+                        sql_order_goods_price = sql_order_goods.goods_price
+                        sql_order_goods_count = sql_order_goods.goods_count
+                        req_order_goods_price = float(req_order_goods.get('goods_price'))
+                        req_order_goods_count = int(req_order_goods.get('goods_count'))
+                        if req_order_goods_price == 1.0 or req_order_goods_price < 1.0 or req_order_goods_count < 1:
+                            raise Exception
+
+                        if sql_order_goods.status == mcommon.status_choices2.get("待付款"):
+                            # 未付款不用支付 直接保存信息
+                            self.change_order_goods_info(sql_order_goods, req_order_goods, mcommon.status_choices2.get("待付款"))
+                        else:
+
+                            sql_roder_goods_moneys_amount = Decimal(str(sql_order_goods_price)) * Decimal(str(sql_order_goods_count))
+                            req_roder_goods_moneys_amount = Decimal(str(req_order_goods_price)) * Decimal(str(req_order_goods_count))
+                            pay_moneys = req_roder_goods_moneys_amount - sql_roder_goods_moneys_amount
+                            in_out_type_str = "支出"
+                            if pay_moneys < 0:
+                                in_out_type_str = "收入"
+                            else:
+                                in_out_type_str = "支出"
+                            check_pwd_is_ok = user_utils.check_pay_password(self, self.request.user, pwd)
+                            if check_pwd_is_ok is False:
+                                ret['code'] = "1001"
+                                ret['message'] = "支付密码错误"
+                                return Response(ret)
+                            is_ok, message = self.pay_extra_moneys( request.user, sql_order_goods, sql_order_goods.order, pay_moneys,in_out_type_str)
+                            if is_ok:
+                                self.change_order_goods_info(sql_order_goods, req_order_goods, mcommon.status_choices2.get("已付款"))
+                            else:
+                                ret['code'] = "1001"
+                                ret['message'] = "支付失败，"+message
+                            print(pay_moneys)
+                    else:
+                        ret['code'] = "1001"
+                        ret['message'] = "不存在该商品"
+                        return Response(ret)
+
+
+
+
+            else:
+                ret['code'] = "1001"
+                ret['message'] = '无效参数'
+
+                return JsonResponse(ret)
+        except:
+
+            ret['code'] = "1001"
+            ret['message'] = '查询异常'
+            traceback.print_exc()
+            return JsonResponse(ret)
+
+        return JsonResponse(ret)
+
+    def change_order_goods_info(self, sql_order_goods, req_order_goods, goods_status):
+        req_order_goods_price = float(req_order_goods.get('goods_price'))
+        req_order_goods_count = int(req_order_goods.get('goods_count'))
+        sql_order_goods.goods_price = req_order_goods_price
+        sql_order_goods.goods_count = req_order_goods_count
+        sql_order_goods.shop_market_name = req_order_goods.get('shop_market_name')
+        sql_order_goods.shop_floor = req_order_goods.get('shop_floor')
+        sql_order_goods.shop_stalls_no = req_order_goods.get('shop_stalls_no')
+        sql_order_goods.art_no = req_order_goods.get('art_no')
+        sql_order_goods.goods_price = req_order_goods.get('goods_price')
+        sql_order_goods.goods_color = req_order_goods.get('goods_color')
+        sql_order_goods.goods_count = req_order_goods.get('goods_count')
+        sql_order_goods.status = goods_status
+        sql_order_goods.save()
+
+        quality_testing_fee, logistics_fee, order_agency_fee, total_fee = trade_utils.re_calc_un_pay_order_fee(self, sql_order_goods.order)
+        sql_order_goods.order.quality_testing_fee = quality_testing_fee
+        sql_order_goods.order.logistics_fee = logistics_fee
+        sql_order_goods.order.agency_fee = order_agency_fee
+        sql_order_goods.order.total_price = total_fee
+        sql_order_goods.order.save()
+
+        # order_goods_fee = 0
+        # order_goods_list = trade_models.OrderGoods.objects.filter(order=sql_order_goods.order)
+        # logistics = trade_models.Logistics.objects.filter(logistics_name=sql_order_goods.order.logistics_name).first()
+        # discount_card = trade_models.DiscountCard.objects.filter(user=self.request.user).first()
+        # logistics_price = logistics.logistics_price
+        # logistics_fee = logistics_price
+        # order_agency_fee = 0  # 代拿费用
+        # # 订单里商品送数量
+        # order_goods_counts = 0
+        # # 默认 无质检
+        # quality_testing_fee = 0.0
+        # 商品总费用
+
+        # if discount_card is not None:
+        #     if discount_card.discount_card_type == mcommon.discount_card_type_choices2.get("物流金额优惠卡"):
+        #         if logistics_price > discount_card.discount:
+        #             logistics_price = Decimal(str(logistics_price)) - Decimal(str(discount_card.discount))
+        #             logistics_fee = logistics_price
+        #
+        # for og in order_goods_list:
+        #     order_goods_counts = order_goods_counts + og.goods_count
+        #     order_agency_fee = Decimal(str(order_agency_fee)) + Decimal(str(og.goods_count)) * Decimal(str(utils.String.AGENCY_FEE))
+        #     order_goods_fee = Decimal(str(order_goods_fee)) + Decimal(str(og.goods_price)) * Decimal(str(og.goods_count))
+        # if order_goods_counts > 2:
+        #     # 超出数量 每件3元计算
+        #     extra_counts = order_goods_counts - 2
+        #     logistics_fee = Decimal(str(logistics_price)) + (Decimal(str(extra_counts)) * Decimal(str(3)))
+        #
+        # quality_test_query = trade_models.QualityTest.objects.filter(quality_testing_name=sql_order_goods.order.quality_testing_name).first()
+        # # 质检服务费
+        # if quality_test_query is not None:
+        #     quality_testing_fee = Decimal(str(quality_test_query.quality_testing_price)) * Decimal(str(order_goods_counts))
+        # total_fee = Decimal(str(order_goods_fee)) + Decimal(str(logistics_fee)) + Decimal(str(order_agency_fee)) + Decimal(str(quality_testing_fee))
+        # sql_order_goods.order.quality_testing_fee = quality_testing_fee
+        # sql_order_goods.order.logistics_fee = logistics_fee
+        # sql_order_goods.order.agency_fee = order_agency_fee
+        # sql_order_goods.order.total_price = total_fee
+        # sql_order_goods.order.save()
+
+
+
+    # 支付差价
+    def pay_extra_moneys(self, user, order_goods, order, money_amounts,in_out_type_char):
+        try:
+            # money_amounts = abs(float(money_amounts))
+            money_amounts = money_amounts
+        except:
+            return False
+        if in_out_type_char == "支出" :
+            if user.balance < abs(money_amounts):
+                return False, "余额不足"
+        update_user = models.User.objects.select_for_update().get(id=user.id)
+        data = {
+            "user":user,
+            "trade_number": trade_utils.get_trade_number(self, user.id),
+            "trade_source": mcommon.trade_source_choices2.get("其他费用"),
+            "cash_in_out_type": mcommon.cash_in_out_type_choices2.get(in_out_type_char),
+            "user_balance":update_user.balance,
+            "add_time": time.time() * 1000,
+            "trade_money": abs(money_amounts),
+            "is_pass": True,
+            "message": "商品修改差价 订单编号："+order.order_number+" 商品编号："+order_goods.goods_number,
+        }
+        # with transaction.atomic():
+        update_user.balance = Decimal(str(update_user.balance)) - Decimal(str(money_amounts))
+        data['user_balance'] = update_user.balance
+        trade_info = trade_models.TradeInfo.objects.create(**data)
+        update_user.save()
+
+        return True,""
+
+
+# 修改订单地址信息
+class AlterOrderAddressView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def post(self,request, *args, **kwargs):
+        ret = {"code": "1000", "message": ""}
+        try:
+            data = request.data
+            req_order = data.get("order")
+            print(req_order)
+
+            # 判断非游客用户
+            if isinstance(request.user,models.User):
+                with transaction.atomic():
+
+                    sql_order = trade_models.Order.objects.filter(order_number=req_order.get('order_number')).first()
+
+                    if sql_order is not None:
+                        if sql_order.order_owner != request.user:
+                            ret['code'] = "1001"
+                            ret['message'] = '非法查询'
+                            return JsonResponse(ret)
+                        sql_order_goods_list = trade_models.OrderGoods.objects.filter(order = sql_order)
+                        for sql_order_goods in sql_order_goods_list:
+                            if sql_order_goods.status == mcommon.status_choices2.get('已发货') or sql_order_goods.status == mcommon.status_choices2.get('快递打印'):
+                                ret['code'] = "1001"
+                                ret['message'] = "商品状态不允许修改地址"
+                                return Response(ret)
+                        # for sql_order_goods in sql_order_goods_list:
+                        #     if sql_order_goods.status != mcommon.status_choices2.get('已付款') and sql_order_goods.status != mcommon.status_choices2.get('拿货中') and \
+                        #              sql_order_goods.status != mcommon.status_choices2.get('已拿货') and sql_order_goods.status != mcommon.status_choices2.get('明日有货') and \
+                        #             sql_order_goods.status != mcommon.status_choices2.get('缺货') and sql_order_goods.status != mcommon.status_choices2.get('标签打印') and \
+                        #             sql_order_goods.status != mcommon.status_choices2.get('已下架') and sql_order_goods.status != mcommon.status_choices2.get('2-5天有货') and \
+                        #             sql_order_goods.status != mcommon.status_choices2.get('已退款') and sql_order_goods.status != mcommon.status_choices2.get('其他') :
+                        #         ret['code'] = "1001"
+                        #         ret['message'] = "商品状态不允许修改信息"
+                        #         return Response(ret)
+
+                        consignee_phone =req_order.get('phone')
+                        consignee_name =req_order.get('name')
+                        province =req_order.get('province')
+                        city =req_order.get('city')
+                        area =req_order.get('area')
+                        address_detail =req_order.get('address_detail')
+                        if province is not None and city is not None and area is not None and address_detail is not None and consignee_name is not None and province != '' and city !='' and consignee_phone !=''  :
+                            sql_order.consignee_phone = consignee_phone
+                            sql_order.consignee_name = consignee_name
+                            sql_order.consignee_address = province + "," + city + "," + area + "," + address_detail
+                            sql_order.save()
+                        else:
+                            ret['code'] = "1001"
+                            ret['message'] = "地址有误"
+                            return Response(ret)
+                    else:
+                        ret['code'] = "1001"
+                        ret['message'] = "不存在该商品"
+                        return Response(ret)
+            else:
+                ret['code'] = "1001"
+                ret['message'] = '无效用户'
+                return JsonResponse(ret)
+        except:
+
+            ret['code'] = "1001"
+            ret['message'] = '查询异常'
+            traceback.print_exc()
+            return JsonResponse(ret)
+        return JsonResponse(ret)
+
+
+    # 支付差价
+    def pay_extra_moneys(self, user, order_goods, order, money_amounts,in_out_type_char):
+        try:
+            # money_amounts = abs(float(money_amounts))
+            money_amounts = money_amounts
+        except:
+            return False
+        if in_out_type_char == "支出" :
+            if user.balance < abs(money_amounts):
+                return False, "余额不足"
+        update_user = models.User.objects.select_for_update().get(id=user.id)
+        data = {
+            "user":user,
+            "trade_number": trade_utils.get_trade_number(self,user.id),
+            "trade_source": mcommon.trade_source_choices2.get("其他费用"),
+            "cash_in_out_type": mcommon.cash_in_out_type_choices2.get(in_out_type_char),
+            "user_balance":update_user.balance,
+            "add_time": time.time() * 1000,
+            "trade_money": abs(money_amounts),
+            "is_pass": True,
+            "message": "商品修改差价 订单编号："+order.order_number+" 商品编号："+order_goods.goods_number,
+        }
+        # with transaction.atomic():
+        update_user.balance = Decimal(str(update_user.balance)) - Decimal(str(money_amounts))
+        data['user_balance'] = update_user.balance
+        trade_info = trade_models.TradeInfo.objects.create(**data)
+        update_user.save()
+
+        return True,""
+
+
+ # 获取用户折扣卡
+class GetUserDiscountCardsView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    class QueryUserDiscountCardSerializer(serializers.ModelSerializer):
+        class Meta:
+            model = trade_models.DiscountCard
+            fields = "__all__"
+
+    def get(self,request, *args, **kwargs):
+        ret = {'code': "1000", 'message': ""}
+        try:
+            discount_card_query = trade_models.DiscountCard.objects.filter(user = request.user,expire_time__gt = time.time()*1000)
+
+            ser = self.QueryUserDiscountCardSerializer(instance=discount_card_query, many=True)
+            ret['results'] = ser.data
+        except:
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            ret['code'] = "1001"
+            ret['message'] = '查询失败'
+        return Response(ret)
+
+
+ # 返回被邀请用户信息
+class InviteInfoViewSet(ListModelMixin, GenericViewSet):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+    # 设置分页的class
+    pagination_class = UsersPagination
+
+    class QueryInviteRegisterInfoSerializer(serializers.ModelSerializer):
+        inviter = m_serializers.UserQuerySerializer()
+        be_inviter = m_serializers.UserQuerySerializer()
+        class Meta:
+            model = models.InviteRegisterInfo
+            fields = "__all__"
+            depth = 1
+
+    serializer_class = QueryInviteRegisterInfoSerializer
+    def list(self,request, *args, **kwargs):
+        ret = {'code': "1000", 'message': ""}
+        try:
+            invite_register_info_query_set = models.InviteRegisterInfo.objects.filter(inviter = request.user).all().order_by('-add_time')
+            page = self.paginate_queryset(invite_register_info_query_set)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+
+                return self.get_paginated_response(serializer.data)
+
+            serializer = self.get_serializer(invite_register_info_query_set, many=True)
+            ret['code'] = "1000"
+            ret['result'] = serializer.data
+            return JsonResponse(ret)
+            # ser = self.QueryInviteRegisterInfoSerializer(instance=invite_register_info_query_set, many=True)
+            # ret['results'] = ser.data
+        except:
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            ret['code'] = "1001"
+            ret['message'] = '查询失败'
+        return Response(ret)
+
+
 # 忘记密码
 class ForgetPasswordView(APIView):
     authentication_classes = []
@@ -609,8 +967,9 @@ class ForgetPasswordView(APIView):
         except:
 
             ret['code'] = "1001"
-            ret['message'] = '查询异常'
+            ret['message'] = '%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method)
             traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
             return JsonResponse(ret)
 
         return JsonResponse(ret)
@@ -634,10 +993,14 @@ class UserCheckView(APIView):
             ret['message'] = '无效参数'
             return JsonResponse(ret)
         if username is not None :
-            user_obj = models.User.objects.filter(user_name=username).first()
-            if user_obj is not None:
+            if username.find(' ') !=-1 or username.find("　") !=-1 or username.find("   ") !=-1:
                 ret['code'] = "1002"
-                ret['message'] = username + ' 已经存在'
+                ret['message'] = username + ' 用户名不能有空格'
+            else:
+                user_obj = models.User.objects.filter(user_name=username).first()
+                if user_obj is not None:
+                    ret['code'] = "1002"
+                    ret['message'] = username + ' 已经存在'
         elif email is not None:
             user_obj = models.User.objects.filter(email=email).first()
             if user_obj is not None:
@@ -834,12 +1197,14 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
                         suc = self.apply_goods_operate(req_data, goods_number, refund_apply_type)
                         if suc:
                             req_goods_counts = float(req_data.get("goods_counts"))
+                            # 退货收取的费用
                             server_fee = Decimal(str(mcommon.service_fee)) * Decimal(str(req_goods_counts))
                             if self.request.user.balance < server_fee:
                                 ret['code'] = "1001"
                                 ret['message'] = "余额不足"
-                                return Response(ret)
+                                raise Exception
 
+                            # 支付退货服务费yo
                             is_ret_suc = self.pay_server_fee(self.request.user, orderGoods, order, server_fee)
                             if is_ret_suc:
                                 ret['code'] = "1000"
@@ -847,11 +1212,12 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
                             else:
                                 ret['code'] = "1001"
                                 ret['message'] = "申请退货退款失败"
-                            return Response(ret)
+                                raise Exception
+
                         else:
                             ret['code'] = "1001"
                             ret['message'] = "申请退货退款失败"
-                            return Response(ret)
+                            raise Exception
 
             if refund_apply_type == mcommon.refund_apply_choices2.get("仅退款"):  # 2 申请仅退款
                 # 支持仅退款的状态只有  2已付款 跟 7明日有货 9其他状态
@@ -862,18 +1228,17 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
                         and orderGoods.status != mcommon.status_choices2.get('其他'):
                     ret['code'] = "1001"
                     ret['message'] = "该状态不允许申请仅退款"
-                    print("该状态不允许申请仅退款")
-                    return Response(ret)
+                    raise Exception
                 else:
                     suc = self.return_moneys_only_operate(req_data, orderGoods, order)
                     if suc:
                         ret['code'] = "1000"
                         ret['message'] = "退款成功"
-                        return Response(ret)
+
                     else:
                         ret['code'] = "1001"
                         ret['message'] = "退款失败"
-                        return Response(ret)
+                        raise Exception
 
             if refund_apply_type == mcommon.refund_apply_choices2.get("拦截发货"):
                 with transaction.atomic():
@@ -898,32 +1263,32 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
                         if is_ok is False:
                             ret['code'] = "1001"
                             ret['message'] = "支付密码错误"
-                            return Response(ret)
+                            raise Exception
                         req_data["orderGoods"] = orderGoods.id
                         suc = self.apply_goods_operate(req_data, goods_number, refund_apply_type)
                         if suc:
                             if request.user.balance < trade_money:
                                 ret['code'] = "1001"
                                 ret['message'] = "余额不足"
-                                return Response(ret)
+                                raise Exception
 
                             request.user.balance = request.user.balance - trade_money
                             data['user_balance'] = request.user.balance
                             trade_info = trade_models.TradeInfo.objects.create(**data)
                             request.user.save()
-                        return Response(ret)
+
                     else:
                         ret['code'] = "1001"
                         ret['message'] = "状态异常"
-                        return Response(ret)
+                        raise Exception
         except:
             traceback.print_exc()
             logger.info('%s  数据格式错误 url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
             ret['code'] = "1001"
-            ret['message'] = "异常"
-            return Response(ret)
 
-    # 服务费退回
+        return Response(ret)
+
+    # 服务费退回 调用该函数时务必先开启事务
     def return_server_fee(self, user, order_goods, order, other_fee):
         try:
             other_fee = float(other_fee)
@@ -1026,9 +1391,9 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
                 orderGoods.status = mcommon.status_choices2.get("已退款")
                 orderGoods.refund_apply_status = mcommon.refund_apply_choices2.get("无售后")
                 orderGoods.refund_apply_status = 0
-                orderGoods.save()
 
-                data = {"trade_money": Decimal(str(orderGoods.goods_price)) + Decimal(str(mcommon.service_fee)), "add_time": time.time() * 1000}
+
+                data = {"trade_money": Decimal(str(orderGoods.goods_price)) + Decimal(str(self.calc_angency_fee_price(order))), "add_time": time.time() * 1000}
                 ser = m_serializers.OrderGoodsRefundBalanceSerializer(data=data, context={'request': self.request})
                 ser.is_valid(raise_exception=True)
                 ser.validated_data['trade_number'] = trade_views.BaseTrade(self.request.user).get_trade_number()
@@ -1036,27 +1401,33 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
                 ser.validated_data['cash_in_out_type'] = mcommon.cash_in_out_type_choices2.get("收入")
                 ser.validated_data['is_pass'] = True
                 # 是否返回其他费用 物流费
-                is_return_fee = self.is_return_order_fee(order, orderGoods)
                 return_logistics_fee = 0.0
-                if is_return_fee:
-                    return_logistics_fee = order.logistics_fee
+                return_logistics_fee = self.is_return_order_fee(order, orderGoods)
+
 
                 goods_moneys = Decimal(str(orderGoods.goods_price)) * Decimal(str(orderGoods.goods_count))
                 # 质检服务费
                 quality_fee = order.quality_testing_fee
 
                 # 代拿费
-                service_fee = order.agency_fee
-                trade_moneys = Decimal(str(goods_moneys)) + Decimal(str(service_fee)) + Decimal(str(return_logistics_fee)) + Decimal(str(quality_fee))
+                angency_price = self.calc_angency_fee_price(order)
+                angency_fee = angency_price * orderGoods.goods_count
+                trade_moneys = Decimal(str(goods_moneys)) + Decimal(str(angency_fee)) + Decimal(str(return_logistics_fee)) + Decimal(str(quality_fee))
                 ser.validated_data['trade_money'] = trade_moneys
                 money = Decimal(str(self.request.user.balance)) + Decimal(str(trade_moneys))
-                ser.validated_data['message'] = "商品退款，订单编号：" + order.order_number + " 商品编号：" + str(
-                    orderGoods.goods_number) + " 商品金额：" + str(goods_moneys) + " 代拿费：" + str(
-                    mcommon.service_fee) + "物流费：" + str(return_logistics_fee) + "质检费：" + str(quality_fee)
+                ser.validated_data['message'] = "商品退款，订单编号：" + order.order_number + " 商品编号：" + str(orderGoods.goods_number) + " 商品金额：" + str(goods_moneys) + " 代拿费：" + str(
+                    angency_fee) + "物流费：" + str(return_logistics_fee) + "质检费：" + str(quality_fee)
                 ser.validated_data['user_balance'] = money
                 ser.validated_data['add_time'] = time.time() * 1000
                 self.request.user.balance = money
                 self.request.user.save()
+                orderGoods.save()
+                quality_testing_fee, logistics_fee, order_agency_fee, total_fee = trade_utils.re_calc_payed_order_fee(self, orderGoods.order)
+                orderGoods.order.quality_testing_fee = quality_testing_fee
+                orderGoods.order.logistics_fee = logistics_fee
+                orderGoods.order.agency_fee = order_agency_fee
+                orderGoods.order.total_price = total_fee
+                orderGoods.order.save()
                 ser.save()
 
                 return True
@@ -1088,17 +1459,43 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
     # 是否退 订单其他费用
     def is_return_order_fee(self, order, orderGoods):
         # 这个函数只适合仅退款类型
+        return_logistics_fee = 0.0
         order_goods_queryset = trade_models.OrderGoods.objects.filter(order = order)
         # 只有一个商品 进行退运费
-        if len(order_goods_queryset)==1 and order_goods_queryset[0].goods_number == orderGoods.goods_number:
-            return True
+        if len(order_goods_queryset) == 1 and order_goods_queryset[0].goods_number == orderGoods.goods_number:
+            return order.logistics_fee
+        sql_active_goods_counts = 0  # 有效商品数量
 
         for order_goods in order_goods_queryset:
-            # 订单内所有商品都是已退款 只剩下最后一个商品 进行退款的时候  其他费才可以退
-            if order_goods.status != mcommon.status_choices2.get("已退款") and order_goods.goods_number !=orderGoods.goods_number:
-                return False
+            if order_goods.status != mcommon.status_choices2.get('待付款')  and order_goods.status != mcommon.status_choices2.get('已退款')  and order_goods.status != mcommon.status_choices2.get('已取消'):
+                sql_active_goods_counts = Decimal(str(sql_active_goods_counts)) + Decimal(str(order_goods.goods_count))
 
-        return True
+        # 剩余有效商品
+        after_change_active_goods_counts = sql_active_goods_counts -orderGoods.goods_count
+        if after_change_active_goods_counts == 0:
+            return_logistics_fee = order.logistics_fee
+        elif after_change_active_goods_counts > 2:
+            return_logistics_fee = orderGoods.goods_count * 3
+        elif after_change_active_goods_counts < 3  :
+            return_logistics_fee = Decimal(str(order.logistics_fee)) - Decimal(str(user_utils.get_user_logistics_after_discount_price(self,order.logistics_name)))
+        # sql_active_goods_counts = sql_active_goods_counts - orderGoods.goods_count
+        # if sql_active_goods_counts != mcommon.status_choices2.get("已退款") and order_goods.goods_number !=orderGoods.goods_number:
+        #     return False
+
+        return return_logistics_fee
+
+    # 计算单个商品应退还的代拿费用为多少  计算逻辑 ->  订单总代拿费 除于 有效商品 数量
+    def calc_angency_fee_price(self,order):
+        # 这个函数只适合仅退款类型
+        sql_active_goods_counts = 0 # 有效商品数量
+        order_goods_queryset = trade_models.OrderGoods.objects.filter(order=order)
+        for order_goods in order_goods_queryset:
+            if order_goods.status != mcommon.status_choices2.get('待付款') \
+                    and order_goods.status != mcommon.status_choices2.get('已退款') \
+                    and order_goods.status != mcommon.status_choices2.get('已取消'):
+                sql_active_goods_counts = Decimal(str(sql_active_goods_counts)) + Decimal(str(order_goods.goods_count))
+
+        return Decimal(str(order.agency_fee)) / Decimal(str(sql_active_goods_counts))
 
 
 class UserRegViewSet(CreateModelMixin, GenericViewSet):
@@ -1130,40 +1527,37 @@ class UserRegViewSet(CreateModelMixin, GenericViewSet):
 
     # 重写父类 CreateModelMixin 方法create
     def create(self, request, *args, **kwargs):
+
         ret = {"code": "1000", "message":""}
+        print(request.data)
         # 得请求数据然后得到序列化对象  得到的是上面serializer_class对象模型
         try:
-            request.data['pay_password'] = request.data.get("password")
-            serializer = self.get_serializer(data=request.data)
-            # 进行数据校验
-            serializer.is_valid(raise_exception=True)
+            with transaction.atomic():
+                request.data['pay_password'] = request.data.get("password")
+                serializer = self.get_serializer(data=request.data)
+                # 进行数据校验
+                serializer.is_valid(raise_exception=True)
+
+
+                # 额外给序列化对象添加数据 不能直接给serializer.data添加数据 要通过validated_data这个属性添加  validated_data保存
+                # 校验过的字段
+                serializer.validated_data['add_time'] = time.time()*1000
+                serializer.validated_data['balance'] = 0.0
+                serializer.validated_data['type'] = 1
+
+                user = self.perform_create(serializer)
+                ret_dict = serializer.data
+                token = md5(ret_dict['user_name'])
+                models.UserToken.objects.update_or_create(user=user, defaults={'token': token, 'add_time': time.time()*1000})
+                inviter_id = request.data.get('inviter_id')
+                if inviter_id is not None and  inviter_id.isdigit():
+                    self.save_inviter_info(inviter_id,user)
         except:
             ret['code'] = "1001"
-            ret['message'] =""
+            ret['message'] = ""
             traceback.print_exc()
             logger.debug(traceback.print_exc())
             return Response(ret)
-
-        # 额外给序列化对象添加数据 不能直接给serializer.data添加数据 要通过validated_data这个属性添加  validated_data保存
-        # 校验过的字段
-        serializer.validated_data['add_time'] = time.time()*1000
-        serializer.validated_data['balance'] = 0.0
-        serializer.validated_data['type'] = 1
-
-
-        try:
-            # 保存到数据库
-            user = self.perform_create(serializer)
-        except:
-            ret['code'] = "1001"
-            ret['message'] = '注册失败'
-            traceback.print_exc()
-            logger.error(traceback.format_exc())
-            return Response(ret)
-
-        ret_dict = serializer.data
-        token = md5(ret_dict['user_name'])
-        models.UserToken.objects.update_or_create(user=user, defaults={'token': token, 'add_time': time.time()*1000})
         ret['code'] = "1000"
         ret['message'] = '注册成功'
         ret['token'] = models.UserToken.objects.filter(user=user).first().token
@@ -1173,6 +1567,22 @@ class UserRegViewSet(CreateModelMixin, GenericViewSet):
     # 重写父类 CreateModelMixin 方法perform_create,要把用户存表里
     def perform_create(self, serializer):
         return serializer.save()
+
+    # 保存邀请人信息
+    def save_inviter_info(self, inviter_id,be_inviter):
+        inviter_obj = models.User.objects.filter(id=inviter_id).first()
+        if inviter_obj is not None:
+            data = {
+                    # 邀请人
+                'inviter': inviter_obj,
+                # 受邀人
+                'be_inviter': be_inviter,
+                # 审核状态
+                'check_status': mcommon.common_check_status_choices2['未审核'],
+                'check_time': time.time() *1000,
+                'add_time': time.time() *1000
+            }
+            models.InviteRegisterInfo.objects.create(**data)
 
 
 # 确认密码

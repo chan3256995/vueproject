@@ -94,6 +94,9 @@ class Order(models.Model):
     sender_phone = models.BigIntegerField(null=False)
     # 是否已发货
     is_delivered = models.BooleanField(default=False)
+    # 订单状态选择
+    order_status = models.SmallIntegerField(choices=mcommon.order_status_choices,null=False,default=mcommon.order_status_choices2.get('未处理'))
+
     # 物流单号是否已打印
     is_logistics_print = models.BooleanField(default=False)
     # 是否删除（逻辑删除）
@@ -114,14 +117,14 @@ class Order(models.Model):
     weight = models.FloatField(default="0.0")
     # 总价格
     total_price = models.FloatField(default="0.0")
+    update_time = models.BigIntegerField(null=False,default=0)
     add_time = models.BigIntegerField(null=False)
 
 
 # 订单商品
 class OrderGoods(models.Model):
 
-
-    # 订单状态选择
+    # 商品状态选择
     status_choices = mcommon.status_choices
     # 退款状态
     refund_apply_choices = mcommon.refund_apply_choices
@@ -192,3 +195,14 @@ class RefundInfo(models.Model):
     # 退款金额
     refund_money_amount = models.FloatField(null=False)
     add_time = models.BigIntegerField(null=False)
+
+
+# 折扣卡
+class DiscountCard(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    discount_card_type = models.SmallIntegerField(choices=mcommon.discount_card_type_choices)
+    # 折扣率 或 优惠面额
+    discount = models.FloatField(null=False)
+    add_time = models.BigIntegerField(null=False)
+    # 过期时间
+    expire_time = models.BigIntegerField(null=False)

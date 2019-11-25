@@ -4,6 +4,7 @@ from user import models as user_models
 import re
 from utils import encryptions
 import time
+import utils
 from utils import mcommon
 
 
@@ -134,10 +135,10 @@ class OrderPayBalanceSerializer(serializers.ModelSerializer):
         fields = ["user","order_number","trade_money","is_pass","add_time"]
         depth = 0
 
-import utils
+
 # 查询交易信息
 class QueryTradeInfoSerializer(serializers.ModelSerializer):
-    user  =  UserDetailSerializer()
+    user = UserDetailSerializer()
 
     class Meta:
         model = models.TradeInfo
@@ -149,7 +150,6 @@ class QueryTradeInfoSerializer(serializers.ModelSerializer):
     #         if obj.order_owner:
     #             return obj.order_owner.user_name
     #         return None
-
 
 
 class UserOrderGoodsRefundApplySerializer(serializers.ModelSerializer):
@@ -256,7 +256,7 @@ class tTradeOrderQuerySerializer(serializers.ModelSerializer):
         model = models.Order
         fields = ["id","order_number","order_owner"
                           ,"pay_no","consignee_address","consignee_name","consignee_phone","sender_address","sender_name","sender_phone","is_delete","quality_testing_name",
-                           "quality_testing_fee","logistics_fee","agency_fee","logistics_name","logistics_number","weight","total_price","add_time","orderGoods"]
+                           "quality_testing_fee","logistics_fee","agency_fee","logistics_name","logistics_number","weight","total_price","add_time","orderGoods","order_status","update_time"]
         # fields = '__all__'
         # 查表深度  关联表（父表）的数据也会查处出来  深度值官方推荐 0-10
         depth = 2
@@ -364,9 +364,6 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         fields = ("email", "phone" , "qq" )
 
 
-
-
-
 # 用户注册序列化组件
 # 不使用 ModelSerializer, 并不需要所有的字段, 会有麻烦
 class UserRegisterSerializer(serializers.ModelSerializer):
@@ -408,8 +405,11 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
         # validate_ + 字段名 的格式命名
     def validate_user_name(self, user_name):
+        if  user_name.find(' ') !=-1 or user_name.find("　") !=-1 or user_name.find("   ") !=-1:
+            raise serializers.ValidationError("用户名不能有空格")
         if models.User.objects.filter(user_name = user_name).count():
             raise serializers.ValidationError("用户名已存在")
+
         return user_name
 
     # validate_ + 字段名 的格式命名

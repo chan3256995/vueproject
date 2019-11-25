@@ -251,8 +251,8 @@ LOGGING = {
 
 EMAIL_HOST = 'smtp.qq.com'
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-
-EMAIL_PORT = 25
+EMAIL_USE_TLS = True
+EMAIL_PORT = 587
 #发送邮件的邮箱
 EMAIL_HOST_USER = '137637653@qq.com'
 #在邮箱中设置的客户端授权密码
