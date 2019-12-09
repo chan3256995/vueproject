@@ -9,15 +9,15 @@ deleteCookies(key){
   },
 getCookies(key) {
 
-let loginInfo = window.localStorage.getItem(key)
+let info = window.localStorage.getItem(key)
 
-if (loginInfo === null) {
+if (info === null) {
 
 return "";
 
 } else {
 
-return loginInfo;
+return info;
 
 }
 

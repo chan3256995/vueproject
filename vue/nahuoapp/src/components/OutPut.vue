@@ -7,7 +7,7 @@
       </div>
 
       <div style="width: 90% ; padding-bottom: 5px; border: 1px black solid">
-        <label style="color: red; margin-bottom: 5px">只导出登录账号跟进的 状态 快递打印 的订单  </label>
+        <label style="color: red; margin-bottom: 5px">只导出登录账号跟进的 状态 (已拿货 快递打印) 的订单  </label>
         <button @click="out_put_order_for_excel({'for':'for_logistics'})" :disabled="submit_btn_disable">导出快递打印地址</button>
         <a v-if="down_logistics_excel_url!==''" :href="down_logistics_excel_url">下载</a>
       </div>

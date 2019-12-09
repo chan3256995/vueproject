@@ -49,14 +49,14 @@
 
         console.log(url)
         axios.post(url,{
-          'username':this.username,
+           'username':this.username,
            'password':this.password,
        }).then((res)=>{
          console.log(res.data) ;
           console.log("token",res.data.token)
           this.submit_btn_disable = false;
          if(res.data.code === "1000"){
-
+            this.setLocalValue("user",JSON.stringify(res.data.user))
             cookiesUtils.setCookies("access_token_nh",res.data.token)
             // this.$cookies.set("access_token_nh" ,res.data.token)
             this.$router.push("/home");

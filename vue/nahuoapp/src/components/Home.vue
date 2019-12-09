@@ -5,11 +5,14 @@
        <select  v-model="market_name_selected">
           <option :value="market_name" v-for="(market_name,index) in market_name_options" :key="index">{{market_name}}</option>
        </select>
-
+        <input v-model="search_shop_floor" style="width: 5em; height: 2em ; " placeholder="楼层"/>
+        <input v-model="search_stall_no" style="width: 5em; height: 2em ; " placeholder="档口号"/>
+        <input v-model="search_art_no" style="width: 5em; height: 2em ; " placeholder="款号"/>
        <select  v-show="false"  v-model="goods_status_selected">
           <option :value="goods_status_option.value" v-for="(goods_status_option,index) in goods_status_options" :key="index">{{goods_status_option.text}}</option>
        </select>
-        <button @click="on_order_filter_load()"> 查询</button>
+      <input  style="width: 6em;" v-model="search_user_name" placeholder="用户名">
+        <button @click="on_order_filter_load({'args_and':{'user_name':search_user_name,'market_name':market_name_selected,'market_floor':search_shop_floor,'stalls_no':search_stall_no,'art_no':search_art_no,'goods_status':goods_status2['已付款']},'order_by':'orderGoods__shop_market_name,orderGoods__shop_floor,orderGoods__shop_stalls_no'})"> 查询</button>
 
      </div>
     <div style="text-align: left"> <button @click="select_all_orders(order_list,is_all_order_selected)" >全选/取消</button><button @click="add_all_to_my_follow_order(order_list)">添加</button></div>
@@ -17,7 +20,9 @@
       <div style="background: paleturquoise ;overflow:hidden">
         <input style="width: 1.2em;height: 1.2em" type="checkbox" v-model="order.is_order_selected"  />
           <label style="width: 40% ;font-size: smaller">订单号：{{order.order_number}}</label>
+        <label style="font-size: smaller;">{{return_format_time(order.add_time)}}</label>
         <button style="float: right" v-if="order.order_follower === null " @click="add_to_my_follow_order([order.order_number])">添加</button>
+        <label>下单人:{{order.order_owner.user_name}}</label>
       </div>
 
       <div style="padding-left: 4%; padding-bottom: 5px" v-for="order_goods in order.orderGoods">
@@ -62,6 +67,10 @@
             nextPageShow:true,
             goods_status_selected :"",
             market_name_selected :"",
+            search_user_name:"",
+            search_shop_floor:'',
+            search_stall_no:'',
+            search_art_no:'',
             // 后面要对 market_name_options 数据进行加工  需要另外开辟一个数组合并数据 不然会影响pGlobal.MARKET_NAME_LIST 源数据
             market_name_options :[].concat(pGlobal.MARKET_NAME_LIST),
             goods_status_options  :[].concat(pGlobal.GOODS_STATUS_OPTIONS),
@@ -145,7 +154,7 @@
               "order_list":order_number_list,
 
             }
-              let url = pGlobal.DJANGO_SERVER_BASE_URL+"/nahuo/selectOrders/"
+             let url = pGlobal.DJANGO_SERVER_BASE_URL+"/nahuo/selectOrders/"
              axios.post(url,data_).then((res)=>{
                 console.log(res.data)
                if(res.data.code==="1000"){
@@ -166,22 +175,18 @@
            this.market_name_selected = this.market_name_options[0];
             this.goods_status_selected = this.goods_status_options[0].value
         },
-          on_order_filter_load(){
+          on_order_filter_load(args_and){
                  // let query_data ;
                 let market_name = null;
                 let goods_status = null;
-                if(this.market_name_selected==='全部' || this.market_name_selected===''){
-                    market_name = null
-                }else{
-                  market_name = this.market_name_selected
+                if(args_and.args_and.market_name==='全部'){
+                    args_and.args_and.market_name =null
                 }
-                if (this.goods_status_selected === '全部' ||  this.goods_status_selected===''){
-                    goods_status = null
-                }else{
-                  goods_status = this.goods_status_selected
+                if (args_and.args_and.goods_status === '全部'  ){
+                    args_and.args_and.goods_status = null
                 }
                  // let query_data={'market':market_name,'status':goods_status}
-                     let query_data={'market':market_name,'status':this.goods_status2['已付款']}
+                let query_data=args_and
                 this.order_list = []
                 const url = this.firstPageUrl
 
@@ -205,11 +210,16 @@
             }
             return order_list
           },
-
+        return_format_time(time_stamp){
+          let  mdate = mtime.formatDateStrFromTimeSt(time_stamp);
+             return  mdate=mdate.substr(5,11)
+      }
         },
-      created(){
+
+
+        created(){
           this.init_data();
-           let query_data={'status':this.goods_status2['已付款']}
+           let query_data={'args_and':{'goods_status':this.goods_status2['已付款']}}
           this.loadOrderPage(this.firstPageUrl,query_data)
       }
     }

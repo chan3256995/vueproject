@@ -3,14 +3,14 @@
 </template>
 
 <script>
-  const DJANGO_SERVER_BASE_URL = "http://39.96.69.115:8089"
-    // const DJANGO_SERVER_BASE_URL = "http://192.168.1.110:8009"
+  // const DJANGO_SERVER_BASE_URL = "http://39.96.69.115:8089"
+    const DJANGO_SERVER_BASE_URL = "http://192.168.1.110:8009"
     export default {
         DJANGO_SERVER_BASE_URL,
       SERVER_FEE:2.0,
        LOGISTICS: [
-            { logistics_name: '圆通', price: '4.0' },
-            { logistics_name: '韵达', price: '4.0' },
+            { logistics_name: '圆通', price: '5.0' },
+            { logistics_name: '韵达', price: '5.0' },
             { logistics_name: '中通', price: '5.0' },
 
           ],

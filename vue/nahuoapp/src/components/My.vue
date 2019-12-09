@@ -6,43 +6,56 @@
         <p class="tip">...载入中...</p>
       </div>
       <div style="position: absolute;bottom: 0; width: 100%"><button style="height: 22px;" @click="mcloseScan">关闭</button></div>
+    </div>
+    <div style="margin-bottom:1em;height: 2em">
 
+      <label style="margin-bottom: 0.2em;padding-right:0.2em;color: blue;float: right" @click="log_out">退出登录</label>
+      <label style="margin-bottom: 0.2em;color: blue;float: right;padding-right:0.4em;">{{user.user_name}}</label>
     </div>
     <div>
-      <label style="margin-bottom: 0.2em;color: blue" @click="log_out">退出登录</label>
-    </div>
-    <div>
+      <div style="height: 2em;">
+        <div v-show="is_display_market_search_elems" style="float: left;" >
+          <select  v-model="market_name_selected">
+            <option :value="market_name" v-for="(market_name,index) in market_name_options" :key="index">{{market_name}}</option>
+          </select>
+          <input v-model="search_shop_floor" style="width: 5em; height: 2em ; " placeholder="楼层"/>
+          <input v-model="search_stall_no" style="width: 5em; height: 2em ; " placeholder="档口号"/>
+          <input v-model="search_art_no" style="width: 5em; height: 2em ; " placeholder="款号"/>
+        </div>
 
-       <select  v-model="market_name_selected">
-          <option :value="market_name" v-for="(market_name,index) in market_name_options" :key="index">{{market_name}}</option>
-       </select>
+        <label @click="is_display_market_search_elems = ! is_display_market_search_elems"style="float: right; overflow: hidden">▼</label>
+      </div>
 
-       <select  v-model="goods_status_selected">
+      <div style="display: block">
+            <select  v-model="goods_status_selected">
           <option :value="goods_status_option.value" v-for="(goods_status_option,index) in goods_status_options" :key="index">{{goods_status_option.text}}</option>
       </select>
-    <button @click="on_order_filter_load()"> 查询</button><button @click="un_delivered_order">未发货订单</button>
-    </div>
+        <label style="font-size: smaller">市场⇅</label>  <input type="checkbox" v-model="is_order_by_market"/>
+        <button @click="on_order_filter_load({'args_and':{'market_name':market_name_selected,'market_floor':search_shop_floor,'stalls_no':search_stall_no,'art_no':search_art_no,'goods_status':goods_status_selected}})"> 查询 {{results_count}}</button><button @click="un_delivered_order">未发货订单 {{no_delivered_counts}}</button>
+       </div>
+      </div>
     <div style="text-align: left; margin-bottom: 10px;" v-for="(order,index) in order_list" :key="index">
       <div style="background: paleturquoise">
-          <label style="width: 40% ;font-size: smaller">订单号：{{order.order_number}}</label>
-         <label  >订单ID{{order.id}}</label>
+         <label style="margin-right: 0.2em; color:black; font-size: 1.3em" > {{order.id}}</label>
+         <label style="width: 40% ;font-size: smaller">订单号：{{order.order_number}}</label>
          <label style="  padding-left: 0.2em" >{{order.consignee_name}}</label>
          <label style="  padding-left: 0.2em;font-size: 0.8em" >{{order.add_time}}</label>
+        <label>下单人:{{order.order_owner.user_name}}</label>
       </div>
-      <div style="padding-left: 4%; padding-bottom: 5px" v-for="(order_goods,goods_index) in order.orderGoods">
-        id:{{order_goods.id}}
+      <div :class="{'refunded': order_goods.status === goods_status2['已退款']}" style="padding-left: 4%; padding-bottom: 5px " v-for="(order_goods,goods_index) in order.orderGoods">
+        id:<label style="font-size: 1.2em">{{order_goods.id}}</label>
         {{order_goods.shop_market_name}}
         {{order_goods.shop_floor}}
         {{order_goods.shop_stalls_no}}
-        <label style="color:red ">{{order_goods.art_no}}</label>
+        <label :class="{'red_color': order_goods.status !== goods_status2['已退款']}">{{order_goods.art_no}}</label>
         {{order_goods.goods_color}}
-        <div>
-          <label style="color: red;">{{goods_status[order_goods.status]}}</label>
+        <div >
+          <label>{{goods_status[order_goods.status]}}</label>
           <label v-if="order_goods.status === goods_status2['其他']">({{order_goods.log}})</label>
-          <label style="color: deepskyblue;">{{refund_apply_status[order_goods.refund_apply_status]}}</label>
-           <label style="color: red;">{{order_goods.goods_price}}元</label>
-           <label style="color: red;">{{order_goods.goods_count}}件</label>
-<label style="padding-left: 0.5em" @click="force_show_message(order_goods)">▼</label>
+          <label >{{refund_apply_status[order_goods.refund_apply_status]}}</label>
+           <label :class="{'red_color': order_goods.status !== goods_status2['已退款']}"  >{{order_goods.goods_price}}元</label>
+           <label :class="{'red_color': order_goods.status !== goods_status2['已退款']}">{{order_goods.goods_count}}件</label>
+            <label style="padding-left: 0.5em" @click="force_show_message(order_goods)">▼</label>
         </div>
         <div>
         <label v-show="order_goods.customer_message !== null && order_goods.customer_message !== ''" style="color:red">客户留言：{{order_goods.customer_message}}</label>
@@ -55,16 +68,21 @@
         </div>
 
 
+        <div  v-if="order_goods.status!== goods_status2['已退款']">
+          <button   :class="{'red_border_btn':order_goods.status ===  pGLOBAL.GOODS_STATUS2['明日有货']}" @click="tomorrow_goods([{'order_number':order.order_number,'order_goods_list':[{'goods_number':order_goods.goods_number }]}], pGLOBAL.GOODS_STATUS2['明日有货'])">明天有货</button>
+          <button  :class="{'red_border_btn':order_goods.status ===  pGLOBAL.GOODS_STATUS2['已下架']}" @click="tomorrow_goods([{'order_number':order.order_number,'order_goods_list':[{'goods_number':order_goods.goods_number }]}], pGLOBAL.GOODS_STATUS2['已下架'])">已下架</button>
+          <button  :class="{'red_border_btn':order_goods.status ===  pGLOBAL.GOODS_STATUS2['2-5天有货']}" @click="tomorrow_goods([{'order_number':order.order_number,'order_goods_list':[{'goods_number':order_goods.goods_number }]}], pGLOBAL.GOODS_STATUS2['2-5天有货'])">2-5天有货</button>
+          <button  :class="{'red_border_btn':order_goods.status ===  pGLOBAL.GOODS_STATUS2['已拿货']}" @click="tomorrow_goods([{'order_number':order.order_number,'order_goods_list':[{'goods_number':order_goods.goods_number }]}], pGLOBAL.GOODS_STATUS2['已拿货'])">已拿货</button>
+          <button  :class="{'red_border_btn':order_goods.status ===  pGLOBAL.GOODS_STATUS2['其他']}" @click="tomorrow_goods([{'order_number':order.order_number,'order_goods_list':[{'goods_number':order_goods.goods_number,'message':order_goods.selected_reason}]}], pGLOBAL.GOODS_STATUS2['其他'])">其他</button>
+          <select  v-model="order_goods.selected_reason">
+              <option :value="option.reason" v-for="(option,index) in options" :key="index">{{option.reason}}</option>
+          </select>
+       </div>
+        <div style="text-align: left">
+          <label style="color: gainsboro">--------------------------------------------</label>
 
+        </div>
 
-        <button  @click="tomorrow_goods([{'order_number':order.order_number,'order_goods_list':[{'goods_number':order_goods.goods_number }]}], pGLOBAL.GOODS_STATUS2['明日有货'])">明天有货</button>
-        <button  @click="tomorrow_goods([{'order_number':order.order_number,'order_goods_list':[{'goods_number':order_goods.goods_number }]}], pGLOBAL.GOODS_STATUS2['已下架'])">已下架</button>
-        <button  @click="tomorrow_goods([{'order_number':order.order_number,'order_goods_list':[{'goods_number':order_goods.goods_number }]}], pGLOBAL.GOODS_STATUS2['2-5天有货'])">2-5天有货</button>
-        <button  @click="tomorrow_goods([{'order_number':order.order_number,'order_goods_list':[{'goods_number':order_goods.goods_number }]}], pGLOBAL.GOODS_STATUS2['已拿货'])">已拿货</button>
-        <button  @click="tomorrow_goods([{'order_number':order.order_number,'order_goods_list':[{'goods_number':order_goods.goods_number,'message':order_goods.selected_reason}]}], pGLOBAL.GOODS_STATUS2['其他'])">其他</button>
-        <select  v-model="order_goods.selected_reason">
-            <option :value="option.reason" v-for="(option,index) in options" :key="index">{{option.reason}}</option>
-        </select>
       </div>
       <div>
         <div>
@@ -74,11 +92,11 @@
         </select>
           <label v-text="order.logistics_name">单号</label>
 
-          <input v-model="order.logistics_number"/>
+          <input v-model="order.logistics_number" v-bind:disabled="order.logistics_number_input_disabled" />
           <button v-if="order.is_delivered === true" @click="modify_logistics(order,order.logistics_number)">修改快递</button>
         </div>
         <button  :disabled="print_tag_btn_disable" @click="print_tag([order_list[index].order_number])" >打印标签</button>
-        <button :disabled="print_logistics_btn_disable" @click="print_logistics([order_list[index].order_number])" >打印物流单</button>
+        <button v-if="False" :disabled="print_logistics_btn_disable" @click="print_logistics([order_list[index].order_number])" >打印物流单</button>
         <button :disabled="purchase_goods_btn_disable" @click="purchase_goods_submit([order_list[index]])" >拿货</button>
         <button  :disabled="scan_qr_code_btn_disable" @click="mstartRecognize(index)">扫描填单</button>
         <button :disabled="deliver_ok_btn_disable" @click="deliver_submit([order_list[index]])">确定发货</button>
@@ -98,23 +116,34 @@
 
 <script>
     import pGlobal from '../utils/pGlobal'
-      import mscan from '../utils/mscan.js'
+    import mscan from '../utils/mscan.js'
     import mtime from '../utils/mtime';
-    import cookieUtis from '../utils/cookieUtil';
-  import  axios  from 'axios'
+
+    import  cookiesUtils from '../utils/cookieUtil'
+    import  axios  from 'axios'
+    // import pcommon_function from "../utils/pcommon_function2";
     export default {
       name: "My",
       data() {
         return {
+          is_display_market_search_elems:false,
+          user:'',
+          is_order_by_market:false,
           order_list: "",
+          results_count:"",
           pGLOBAL: pGlobal,
-           goods_status: pGlobal.GOODS_STATUS,
-           goods_status2: pGlobal.GOODS_STATUS2,
-           refund_apply_status:pGlobal.REFUND_APPLY_STATUS,
-           market_name_options:[].concat(pGlobal.MARKET_NAME_LIST),
+          goods_status: pGlobal.GOODS_STATUS,
+          goods_status2: pGlobal.GOODS_STATUS2,
+          refund_apply_status:pGlobal.REFUND_APPLY_STATUS,
+          market_name_options:[].concat(pGlobal.MARKET_NAME_LIST),
           goods_status_options :[].concat(pGlobal.GOODS_STATUS_OPTIONS),
           goods_status_selected :"",
           market_name_selected :"",
+          search_shop_floor:'',
+          search_stall_no:'',
+          search_art_no:'',
+          // 未发货数量
+          no_delivered_counts:"",
           options: [
             {reason: '价格有误', reason_value: '价格有误'},
             {reason: '尺码缺货', reason_value: '尺码缺货'},
@@ -168,6 +197,7 @@
               mdate=mdate.substr(5,11)
 
               item.add_time =mdate;
+              item['logistics_number_input_disabled'] = true
               item['force_show_service_message'] =false;
             }
             return order_list
@@ -197,6 +227,13 @@
 
         // 修改物流
         modify_logistics(order,new_logistics_number){
+            if(order.logistics_number_input_disabled === true){
+
+           this.$delete(order, 'logistics_number_input_disabled');
+           this.$set(order, 'logistics_number_input_disabled', false);
+
+              return
+            }
             if(!confirm("该订单已发货，确定修改物流信息吗？")) {
                 return ;
               }
@@ -290,7 +327,7 @@
         },
         //
         log_out(){
-          cookieUtis.deleteCookies("access_token_nh")
+          cookiesUtils.deleteCookies("access_token_nh")
           this.$router.push("/login");
         },
         // 打印标签
@@ -322,8 +359,12 @@
             if (res.data.code === "1000") {
               // #状态发生改变的订单
               let exception_order_list = res.data.exception_order
+              if(exception_order_list.length > 0){
+                this.$toast(exception_order_list.length+"失败")
+              }else{
+                 this.$toast("提交成功")
+              }
 
-              this.$toast("提交成功,"+exception_order_list.length+"失败")
             } else {
               alert("提交失败")
             }
@@ -356,9 +397,11 @@
             if (res.data.code === "1000") {
               // #状态发生改变的订单
               let exception_order_list = res.data.exception_order
-
-
-              this.$toast("失败：" + exception_order_list.length)
+                if(exception_order_list.length > 0){
+                this.$toast(exception_order_list.length+"失败")
+              }else{
+                 this.$toast("提交成功")
+              }
             } else {
               alert("提交失败")
             }
@@ -399,16 +442,19 @@
               // #状态发生改变的订单
 
               let exception_order_list = res.data.exception_order
-              this.$toast("提交成功,"+exception_order_list.length+"失败")
-
+              if(exception_order_list.length > 0){
+                alert(exception_order_list.length+"个订单发货失败")
+              }else{
+                this.$toast("提交成功")
+              }
 
             } else {
-              alert("提交失败")
+              alert("提交失败，"+res.data.message)
             }
           }).catch(error => {
 
             console.log(error)
-            alert("提交失败")
+            alert("访问异常")
           })
         },
         //拿货
@@ -424,7 +470,11 @@
             if (res.data.code === "1000") {
               // #状态发生改变的订单
               let exception_order_list = res.data.exception_order
-              this.$toast("提交成功,"+exception_order_list.length+"失败")
+              if(exception_order_list.length > 0){
+                this.$toast(exception_order_list.length+"失败")
+              }else{
+                 this.$toast("提交成功")
+              }
             } else {
               alert("提交失败")
             }
@@ -539,18 +589,25 @@
 
       },
 
-      loadOrderPage(url, query_data) {
-          console.log("query_data",query_data)
+      loadOrderPage(url, query_data,tag) {
+
           // console.log("default_query_params",this.default_query_params)
         // let cur_query_params = {}
         // Object.assign(cur_query_params, this.default_query_params);
         // Object.assign(cur_query_params, query_data);
+
         axios.defaults.withCredentials = true;
         this.$axios.get(url, {
           params: query_data,
           }
         ).then((res) => {
           console.log(res.data)
+
+          if (tag !== null && tag==="no_delivered_tag"){
+          this.no_delivered_counts =  res.data.count
+        }else{
+             this.results_count = res.data.count
+          }
           this.order_list = res.data.results;
           this.order_list = this.analysis_order_data(this.order_list)
           this.order_list = this.replace_data(this.order_list)
@@ -576,29 +633,24 @@
       },
 
         un_delivered_order(){
+          let tag='no_delivered_tag'
           let query_data = {'status_list':this.goods_status2['已付款']+','+this.goods_status2['标签打印']+','+this.goods_status2['拿货中']+','+this.goods_status2['已拿货']+','+this.goods_status2['明日有货']+','+this.goods_status2['2-5天有货']+','+this.goods_status2['其他']}
            this.order_list = []
             const url = this.firstPageUrl
             Object.assign(query_data,this.default_query_params)
-            this.loadOrderPage(url,query_data)
+            this.loadOrderPage(url,query_data,tag)
         },
 
         //按选择状态过滤订单查询
-      on_order_filter_load(){
+      on_order_filter_load(args_and){
            // let query_data ;
                let market_name = null;
                 let goods_status = null;
-                if(this.market_name_selected==='全部'){
-                    market_name = null
-                }else{
-                  market_name = this.market_name_selected
+                if(args_and.args_and.market_name==='全部'){
+                    args_and.args_and.market_name =null
                 }
-
-                if (this.goods_status_selected === '全部'){
-                    goods_status = null
-                    this.all_btn_disable()
-                }else {
-                  goods_status = this.goods_status_selected
+                if (args_and.args_and.goods_status === '全部'  ){
+                    args_and.args_and.goods_status = null
                 }
 
 
@@ -615,24 +667,51 @@
                 }else if(this.goods_status2['快递打印']===this.goods_status_selected ){
                   this.is_print_logistics_status_btn_disable()
                 }
-                 let query_data={'market':market_name,'status':goods_status}
+            let query_data=args_and
             this.order_list = []
             const url = this.firstPageUrl
+            if(this.is_order_by_market){
+              Object.assign(query_data,{'order_by':'-orderGoods__shop_market_name,orderGoods__shop_floor,orderGoods__shop_stalls_no'})
+            }
             Object.assign(query_data,this.default_query_params)
             this.loadOrderPage(url,query_data)
         },
+
+          load_user_info(){
+        // cookiesUtils.setCookies("access_token_nh",res.data.token)
+             let user_info = this.getLocalValue("user");
+             console.log("create----------------",user_info)
+            if(user_info !==""){
+              this.user = JSON.parse(user_info)
+            }
+      },
       },
 
 
       created(){
-         this.init_data();
+          this.init_data();
           this.loadOrderPage(this.firstPageUrl,this.default_query_params)
           this.load_logistics()
+          this.load_user_info()
       }
     }
 </script>
 
-<style scoped>
+<style lang="less" scoped>
+  /*// 已退款样式*/
+  .refunded{
+    color: #878d99;
+    .refunded label{
+      color: #878d99;
+    }
+  }
+  .red_color{
+    color:red
+  }
+
+  .red_border_btn{
+    border: red solid 1px;
+  }
     .status_ul{
       display: block;
       height: 1.5em;
