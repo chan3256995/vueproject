@@ -187,6 +187,7 @@ class TradeOrderGoodsSerializer(serializers.ModelSerializer):
     goods_color = serializers.CharField(required=True,max_length=20)
     goods_size = serializers.CharField(required=False,max_length=20)
     goods_count = serializers.IntegerField(min_value=1,default=1)
+    customer_message = serializers.CharField(required = False,allow_blank=True, max_length=2048)
     add_time = serializers.IntegerField(default=time.time(), write_only=True)
     is_delete = serializers.BooleanField(default=False)
     # refund_apply 做为属性  是在RefundApply模型中关联的 related_name 一致

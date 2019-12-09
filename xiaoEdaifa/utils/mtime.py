@@ -1,18 +1,18 @@
 
 import datetime
 import threading
-
+import time
 
 # 等到当天0点的时间戳
 def get_time_0clock_of_today():
-    import time
+
     # 当天0点时间戳
     zero_point = int(time.time()) - int(time.time() - time.timezone) % 86400
     return zero_point
 
 
 def get_time_0clock_of_yestoday():
-    import time
+
     # 当天0点时间戳
     zero_point = int(time.time()) - int(time.time() - time.timezone) % 86400
     # 昨天0点时间戳
@@ -20,11 +20,33 @@ def get_time_0clock_of_yestoday():
     return yesterday_zero_point
 
 
-def format_from_time_stamp(time_stamp):
-    import time
+def stamp_to_time(time_stamp):
+
     time_array = time.localtime(time_stamp)
     other_style_time = time.strftime("%Y-%m-%d %H:%M:%S", time_array)
     return other_style_time
+
+# -*- coding: utf-8 -*-
+
+
+def get_time_stamp13(datetime_str):
+    import datetime, time
+    # 生成13时间戳   eg:1557842280000
+    datetime_obj = datetime.datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S.%f")
+
+    # 10位，时间点相当于从1.1开始的当年时间编号
+    date_stamp = str(int(time.mktime(datetime_obj.timetuple())))
+    # 3位，微秒
+    data_microsecond = str("%06d" % datetime_obj.microsecond)[0:3]
+    date_stamp = date_stamp + data_microsecond
+    return int(date_stamp)
+
+
+def get_time_stamp10(time_sj):
+    # 传入单个时间比如'2019-8-01 00:00:00'，类型为str
+    data_sj = time.strptime(time_sj,"%Y-%m-%d %H:%M:%S")       # 定义格式
+    time_int = int(time.mktime(data_sj))
+    return time_int             # 返回传入时间的时间戳，类型为int
 
 
 # 得到距离第二天某一时刻的时间长度 单位为秒

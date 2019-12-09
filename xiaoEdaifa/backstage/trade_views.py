@@ -60,6 +60,28 @@ class TradeInfoViewSet(mixins.ListModelMixin,GenericViewSet):
                 queryset = trade_models.TradeInfo.objects.filter(trade_number=trade_number).order_by("-add_time")
             elif user_name is not None :
                 queryset = trade_models.TradeInfo.objects.filter(user__user_name=user_name).order_by("-add_time")
+            elif mul_args_and is not None :
+                import json
+
+                args_and = json.loads(mul_args_and)
+                user_name = args_and.get('user_name')
+                trade_source = args_and.get('trade_source')
+                cash_in_out_type = args_and.get('cash_in_out_type')
+                args = Q()
+                if user_name !='':
+                    args =args & Q(user__user_name=user_name)
+                if trade_source != '':
+                    args = args & Q(trade_source=trade_source)
+                if cash_in_out_type != '':
+                    args = args & Q(cash_in_out_type=cash_in_out_type)
+                is_pass = args_and.get('is_pass')
+                if is_pass != '':
+                    args = args & Q(is_pass = is_pass)
+
+
+                print("args:")
+                print(args)
+                queryset = trade_models.TradeInfo.objects.filter(args).order_by("-add_time")
             else:
                 queryset = trade_models.TradeInfo.objects.filter().order_by("-add_time")
 
@@ -360,6 +382,7 @@ class ChangePurchasingStatus(APIView):
         return ""
 
 
+
 # 明日有货
 class TomorrowGoodsView(APIView):
     authentication_classes = [BackStageAuthentication, BackStageNahuoAuthentication]
@@ -453,7 +476,7 @@ class DeliverGoodsView(APIView):
 
                         if sql_order_goods.status == mcommon.status_choices2.get("已退款") :
                             pass
-                        elif (sql_order_goods.status == mcommon.status_choices2.get("快递打印") ) and sql_order_goods.refund_apply_status == mcommon.refund_apply_choices2.get("无售后"):
+                        elif (sql_order_goods.status == mcommon.status_choices2.get("快递打印") or sql_order_goods.status == mcommon.status_choices2.get("已拿货")) and sql_order_goods.refund_apply_status == mcommon.refund_apply_choices2.get("无售后"):
                             tem_nomal_order_goods.append(sql_order_goods)
                         else:
                             # 商品状态已经改变了 比如改为拦截发货  并且 客户端提交了该商品
@@ -555,6 +578,7 @@ class DeliverFrom315View(APIView):
                         sql_order.logistics_number = req_order_logistic_number
                         sql_order.logistics_name = req_order_logistic_name
                         sql_order.is_delivered = True
+                        sql_order.update_time = time.time() * 1000
                         sql_order.order_status = mcommon.order_status_choices2.get('已发货')
                         sql_order.save()
                 ret['exception_order'] = exception_order_list

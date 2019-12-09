@@ -120,6 +120,7 @@ class UserMulOrderSaveViewSet(CreateModelMixin,GenericViewSet):
     def create(self, request, *args, **kwargs):
         data_list = request.data.get("order_list")
         data_list = json.loads(data_list)
+        print(request.data)
         ret = {"code":"1000", "message":""}
         try:
             # 先对数据进行一次全面检测-------------------------------------------------

@@ -24,7 +24,9 @@ from utils import mglobal
 from trade import trade_utils
 from backstage import bserializers
 from _decimal import Decimal
+from utils import mtime
 import time
+
 import xlwt
 import traceback
 import logging
@@ -429,32 +431,51 @@ class OrderViewSet(mixins.ListModelMixin,mixins.UpdateModelMixin, GenericViewSet
             default_query_keys = self.request.query_params.get("q")
             status_filter = self.request.query_params.get("status")
             user_name_query = self.request.query_params.get("user_name")
+            during_time = self.request.query_params.get("during_time")
             order_follower_user_name = self.request.query_params.get("order_follower_user_name")
             market_full = self.request.query_params.get("market_full")
             print("query_keys")
             print(default_query_keys)
+            args = Q()
+            if during_time is not None:
+                if during_time.find('/') != -1:
+                    time_arr = during_time.split('/')
+                    start_time_str = time_arr[0].strip()
+                    end_time_str = time_arr[1].strip()
+                    print(start_time_str)
+                    print(end_time_str)
+
+                    start_stamp = mtime.get_time_stamp13(start_time_str+" 00:00:00.000")
+                    end_stamp = mtime.get_time_stamp13(end_time_str+" 00:00:00.000") + 24 * 60 * 60 * 1000  # 下一天 毫秒级时间戳
+                    args = args & Q(add_time__gte=start_stamp ) & Q(add_time__lt=end_stamp)
+                else:
+                    start_stamp = mtime.get_time_stamp13(during_time.strip() + " 00:00:00.000")
+                    end_stamp = mtime.get_time_stamp13( during_time.strip() + " 00:00:00.000") + 24 * 60 * 60 * 1000  # 下一天 毫秒级时间戳
+                    args = args & Q(add_time__gte=start_stamp) & Q(add_time__lt=end_stamp)
             if default_query_keys is not None:
 
-                args = Q(order_number=default_query_keys) | Q(consignee_name__contains=default_query_keys) | Q(logistics_number=default_query_keys)
+                query_keys_args = Q(order_number=default_query_keys) | Q(consignee_name__contains=default_query_keys) | Q(logistics_number=default_query_keys)
                 # 手机字段为数字 用字符查询会报错
                 if default_query_keys.isdigit():
-                    args = args | Q(consignee_phone=default_query_keys)
-                print("args++++++++++++")
-                print(args)
+                    query_keys_args = query_keys_args | Q(consignee_phone=default_query_keys)
+                args = args & query_keys_args
                 return trade_models.Order.objects.filter(args).order_by('-add_time')
             elif status_filter is not None:
-                return trade_models.Order.objects.filter(orderGoods__status=status_filter).distinct().order_by( "-add_time")
+                args = args & Q(orderGoods__status=status_filter)
+                return trade_models.Order.objects.filter(args).distinct().order_by( "-add_time")
             elif user_name_query is not None:
-                return trade_models.Order.objects.filter(order_owner__user_name=user_name_query).distinct().order_by( "-add_time")
+                args = args & Q(order_owner__user_name=user_name_query)
+                return trade_models.Order.objects.filter(args).distinct().order_by( "-add_time")
             elif order_follower_user_name is not None:
-                return trade_models.Order.objects.filter(order_follower__user_name=order_follower_user_name).distinct().order_by( "-add_time")
+                args = args & Q(order_follower__user_name=order_follower_user_name)
+                return trade_models.Order.objects.filter(args).distinct().order_by( "-add_time")
             elif market_full is not None:
                 market_full = json.loads(market_full)
                 shop_market_name = market_full.get('shop_market_name')
                 shop_floor = market_full.get('shop_floor')
                 shop_stalls_no = market_full.get('shop_stalls_no')
                 art_no = market_full.get('art_no')
-                args = Q(orderGoods__shop_market_name__contains=shop_market_name) & Q(orderGoods__shop_floor__contains=shop_floor) & Q(orderGoods__shop_stalls_no__contains=shop_stalls_no) & Q(orderGoods__art_no__contains=art_no)
+                args = args & Q(orderGoods__shop_market_name__contains=shop_market_name) & Q(orderGoods__shop_floor__contains=shop_floor) & Q(orderGoods__shop_stalls_no__contains=shop_stalls_no) & Q(orderGoods__art_no__contains=art_no)
                 return trade_models.Order.objects.filter(args).distinct().order_by( "-add_time")
             else:
                 return trade_models.Order.objects.all().order_by('-add_time')
