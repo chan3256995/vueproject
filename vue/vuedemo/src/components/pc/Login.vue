@@ -70,6 +70,8 @@
             this.setLocalValue("user",JSON.stringify(res.data.user))
             this.$router.push("/pc/home/porder");
             this.$cookies.set("access_token" ,res.data.token)
+            console.log(this.$cookies.get("access_token" ))
+
             this.$router.push("/pc/home/porder");
          }else{
            alert("登录失败："+res.data.message)

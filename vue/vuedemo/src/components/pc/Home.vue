@@ -34,6 +34,7 @@
             window.open(routeData.href, '_blank')
           },
           on_logout(){
+             this.setLocalValue("user","")
             this.$cookies.set("access_token" ,"");
             this.$router.replace("/pc/login/")
           },
@@ -41,8 +42,8 @@
       },
       created(){
             let user_info = this.getLocalValue("user");
-            console.log("user_info--------------------------")
-            console.log(user_info)
+
+
             if(user_info !==""){
               this.user = JSON.parse(user_info).user_name
             }

@@ -1,12 +1,19 @@
 <template>
   <div class="container">
     <ul class = "items_ul">
+      <div style="width: 50% ;text-align: center;margin: 0px auto;" id="calendar" v-if="calendar_show">
+          <inlineCalendar    mode="during"  :disabledDate="disabledDate"  :defaultDate="defaultDate" @change="on_calendar_change"/>
+          <button @click="calendar_show = false">确定</button>
+          <button @click="during_str='' ;calendar_show = false">取消</button>
+        <label style="color:red;display: block"> 可以指定某一天，也可以选择时间段</label>
+      </div>
       <div >
         <input v-model="search_market_name" style="width: 5em; height: 2em ; " placeholder="市场名"/>
         <input v-model="search_shop_floor" style="width: 5em; height: 2em ; " placeholder="楼层"/>
         <input v-model="search_stall_no" style="width: 5em; height: 2em ; " placeholder="档口号"/>
         <input v-model="search_art_no" style="width: 5em; height: 2em ; " placeholder="款号"/>
         <button @click='on_orders_query("market_full",{"shop_market_name":search_market_name, "shop_floor":search_shop_floor,"shop_stalls_no":search_stall_no,"art_no":search_art_no})' style="margin-left: 0.5em">市场查询</button>
+        <label style="margin-left: 0.5em">时间选择</label><input style="width: 12em" placeholder="点击选择时间" @click="calendar_show = !calendar_show" v-model="during_str">
       </div>
       <div style="margin-top:0.5em" >
         <select  style="width: 5em"  v-model="query_by_selected">
@@ -16,6 +23,7 @@
       </div>
         <li class="item_order" v-for="(item,index) in order_list" :key="index">
           <div  class="order_div" >
+            <label style="margin-right: 0.2em; color:black; font-size: 1.2em">{{item.id}}</label>
             <a style="cursor:pointer; text-decoration:underline; " @click="show_user(item.order_owner)">下单人:{{item.order_owner.user_name}}</a>
               <label  class="order_label" >订单号：{{item.order_number}}</label>
              <label   style="color:black">跟单人：</label>
@@ -126,14 +134,19 @@
         name: "MyOrder",
       data(){
           return{
+            calendar_show:false,
+            defaultDate:[],
+            disabledDate:[],
+            during_str:"",
+
             search_market_name:"",
             search_shop_floor:"",
             search_stall_no:"",
             search_art_no:"",
 
-            query_by_selected : {value:"default:",text:"订单号 ，收货人名，手机号，快递单号"},
+            query_by_selected : {value:"default:",text:"订单ID，订单号 ，收货人名，手机号，快递单号"},
             query_by_options:[
-              {value:"default",text:"订单号 ，收货人名，手机号，快递单号"},
+              {value:"default",text:"订单ID，订单号 ，收货人名，手机号，快递单号"},
               {value:"by_user_name",text:"下单用户名"},
               {value:"by_order_follower_user_name",text:"跟单人用户名"},
 
@@ -156,6 +169,21 @@
       },
 
       methods:{
+        on_calendar_change(date) {
+            this.during_str = ""
+            for(let i = 0;i<date.length;i++){
+              let tem_date = date[i].format("YYYY-MM-DD")
+              console.log();
+              if(this.during_str !== ""){
+                this.during_str = this.during_str+" / " +tem_date
+              }else{
+                this.during_str = tem_date
+              }
+
+            }
+
+    },
+
           // 显示用户信息
         show_user(user){
            this.$msgBox.showMsgBox({
@@ -217,6 +245,9 @@
                   "art_no":query_keys.art_no
                 }
               }
+            }
+            if(this.during_str!==""){
+              Object.assign(query_data,{"during_time":this.during_str})
             }
 
             this.loadOrderPage(url,query_data)

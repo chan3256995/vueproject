@@ -24,6 +24,10 @@ import VueClipboard from 'vue-clipboard2'
 VueClipboard.config.autoSetContainer = true
 Vue.use(VueClipboard)
 
+ // 日历组件
+import Calendar from 'vue-mobile-calendar'
+Vue.use(Calendar);
+
 import Axios from 'axios'
 Vue.prototype.$axios = Axios
 

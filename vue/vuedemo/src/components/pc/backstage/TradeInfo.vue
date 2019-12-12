@@ -3,8 +3,8 @@
       <div>
         <input placeholder="交易号" style="width: 40%" v-model="trade_number"><button @click="filter_data({'trade_number':trade_number})">查询</button>
       </div>
-      <div>
-        <input placeholder="用户名" style="width: 10%" v-model="query_user_name" >
+      <div style="margin-top:0.4em; margin-bottom: 0.4em">
+        <input placeholder="用户名" style="width: 10%" v-model="query_user_name2" >
 
         <select   v-model="trade_source_selected">
                   <option :value="option" v-for="(option,index) in trade_info_source_option" :key="index">{{option.text}}</option>
@@ -16,7 +16,7 @@
                   <option :value="option" v-for="(option,index) in pass_type_option" :key="index">{{option.text}}</option>
         </select>
 
-        <button @click="filter_data({'user_name':query_user_name})">查询</button> <button @click="filter_data({'check_status':0})">未通过</button><button @click="filter_data({})">全部</button>
+        <button @click="filter_data({'args_and':{'user_name':query_user_name2, 'trade_source':trade_source_selected.value , 'cash_in_out_type':trade_type_selected.value,'is_pass':pass_type_selected.value}})">查询2</button> <button @click="filter_data({'check_status':0})">未通过</button><button @click="filter_data({})">全部</button>
       </div>
         <table class = "list_table">
           <tr>
@@ -46,7 +46,7 @@
             <td>{{item.user_balance}}</td>
             <td v-if="item.is_pass === false">
               <button  @click="recharge_pass(item)">通过</button>
-              <input  v-model="item.validation_recharge_number"  />
+              <input style="border: #3bb4f2 1px solid; margin-top: 0.2em" v-model="item.validation_recharge_number"  />
             </td>
 
           </tr>
@@ -88,13 +88,14 @@
             pass_type_option:[
 
               {text:"全部",value:""},
-              {text:"通过",value:1},
-              {text:"未通过",value:2},
+              {text:"通过",value:true},
+              {text:"未通过",value:false},
 
             ],
             mGlobal:mGlobal,
             query_trade_number:"",
             query_user_name:"",
+            query_user_name2:"",
             prePageShow:true,
             nextPageShow:true,
             account_log_list:[],
@@ -105,6 +106,7 @@
       },
       methods:{
           filter_data(params){
+
              this.loadCapitalPage(this.user_trade_info_url,params)
           },
 

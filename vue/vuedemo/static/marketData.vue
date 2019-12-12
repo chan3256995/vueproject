@@ -34,15 +34,15 @@
               ],
 
 
-        get_goods_list(goods_str){
+        get_goods_list(goods_str,goods_str_format){
           let goods_str_list = this.get_goods_str_list(goods_str);
-          let tt = this.ret_goods_list(goods_str_list)
+          let tt = this.ret_goods_list(goods_str_list,goods_str_format)
           return tt
         },
 
       // 根据商品字符串list  返回商品对象list
-       ret_goods_list(goods_str_list){
-            console.log("889898989898",goods_str_list)
+       ret_goods_list(goods_str_list,goods_str_format){
+
              let goods_list = [];
              for(let i=0;i<goods_str_list.length;i++){
                let goods_info = {"shop_market_name":"","shop_floor":"","shop_stalls_no":"","art_no":"","goods_price":"","goods_color":"",'goods_count':""}
@@ -53,7 +53,7 @@
                goods_str_list[i] = this.replace_stall_char(goods_str_list[i]);
 
                let goods_pro_list = goods_str_list[i].trim().split(/[@/_,， # .。-]/);
-                  console.log(goods_pro_list,"555555")
+
                   goods_info['shop_market_name'] =typeof (goods_pro_list[0]) === "undefined"?"":goods_pro_list[0];
                   goods_info['shop_floor'] = typeof (goods_pro_list[1]) === "undefined"?"":goods_pro_list[1];
                   let stalls_no = goods_pro_list[2];
@@ -65,35 +65,51 @@
                     }
                   }
                   goods_info['shop_stalls_no'] = stalls_no;
-                  goods_info['art_no'] = typeof (goods_pro_list[3]) === "undefined"?"":goods_pro_list[3];
+
                    let goods_price = "";
                    let goods_color = "";
                    let goods_count = "";
 
-                    //如果价格是非数字字符串 就做特殊处理
-                  if( typeof (goods_pro_list[4])!=='undefined' && isNaN(goods_pro_list[4])) {
-                    let goods_price_arr = goods_pro_list[4].match(/\d+\.?\d*/g);
+                   // *********************************************************
+                  //  goods_info['art_no'] = typeof (goods_pro_list[3]) === "undefined"?"":goods_pro_list[3];
+                  //   //如果价格是非数字字符串 就做特殊处理
+                  // if( typeof (goods_pro_list[4])!=='undefined' && isNaN(goods_pro_list[4])) {
+                  //   let goods_price_arr = goods_pro_list[4].match(/\d+\.?\d*/g);
+                  //
+                  //   if(goods_price_arr !==null) {
+                  //     goods_price = goods_price_arr[0];
+                  //     let price_index = goods_pro_list[4].indexOf(goods_price_arr[0]);
+                  //          goods_color = goods_pro_list[4].substring(price_index+goods_price.length,goods_pro_list[4].length);
+                  //          console.log("数量---------");
+                  //          console.log(goods_pro_list[5])
+                  //          if( typeof (goods_pro_list[5])!=='undefined') {
+                  //            let goods_count_arr = goods_pro_list[5].match(/\d+\.?\d*/g)
+                  //            if (goods_count_arr !== null) {
+                  //              goods_count = goods_count_arr[0];
+                  //            }
+                  //          }
+                  //            console.log(goods_count)
+                  //   }else{
+                  //     goods_price = "";
+                  //     }
+                  // }else{
+                  //   goods_price = goods_pro_list[4];
+                  // }
+                  // *************************************
+                let price_count_art_stall = {}
 
-                    if(goods_price_arr !==null) {
-                      goods_price = goods_price_arr[0];
-                      let price_index = goods_pro_list[4].indexOf(goods_price_arr[0]);
-                           goods_color = goods_pro_list[4].substring(price_index+goods_price.length,goods_pro_list[4].length);
-                           console.log("数量---------");
-                           console.log(goods_pro_list[5])
-                           if( typeof (goods_pro_list[5])!=='undefined') {
-                             let goods_count_arr = goods_pro_list[5].match(/\d+\.?\d*/g)
-                             if (goods_count_arr !== null) {
-                               goods_count = goods_count_arr[0];
-                             }
-                           }
-                             console.log(goods_count)
-                    }else{
-                      goods_price = "";
-                      }
+                  if(goods_str_format === "vvic"){
+
+                     price_count_art_stall= this.ret_art_no_goods_colors_and_price2(goods_pro_list)
                   }else{
-                    goods_price = goods_pro_list[4];
+
+                     price_count_art_stall= this.ret_art_no_goods_colors_and_price(goods_pro_list)
                   }
 
+                 goods_price = price_count_art_stall.goods_price
+                 goods_info['art_no'] = price_count_art_stall.art_no
+                 goods_color = price_count_art_stall.goods_color
+                 goods_count = price_count_art_stall.goods_count
                   goods_info['goods_price'] = typeof (goods_price) === "undefined" || parseInt(goods_price)<0 ?"":goods_price;
 
                   if(goods_color!==""){
@@ -121,6 +137,72 @@
             }
             return goods_list;
   },
+
+      ret_art_no_goods_colors_and_price(goods_pro_list){
+            let art_no = typeof (goods_pro_list[3]) === "undefined"?"":goods_pro_list[3];
+            let goods_color = ""
+            let goods_price = ""
+            let goods_count = ""
+            // goods_info['art_no'] = typeof (goods_pro_list[3]) === "undefined"?"":goods_pro_list[3];
+                    //如果价格是非数字字符串 就做特殊处理
+                  if( typeof (goods_pro_list[4])!=='undefined' && isNaN(goods_pro_list[4])) {
+                    let goods_price_arr = goods_pro_list[4].match(/\d+\.?\d*/g);
+
+                    if(goods_price_arr !==null) {
+                      goods_price = goods_price_arr[0];
+                      let price_index = goods_pro_list[4].indexOf(goods_price_arr[0]);
+                           goods_color = goods_pro_list[4].substring(price_index+goods_price.length,goods_pro_list[4].length);
+                           console.log("数量---------");
+                           console.log(goods_pro_list[5])
+                           if( typeof (goods_pro_list[5])!=='undefined') {
+                             let goods_count_arr = goods_pro_list[5].match(/\d+\.?\d*/g)
+                             if (goods_count_arr !== null) {
+                               goods_count = goods_count_arr[0];
+                             }
+                           }
+                             console.log(goods_count)
+                    }else{
+                      goods_price = "";
+                      }
+                  }else{
+                    goods_price = goods_pro_list[4];
+                  }
+            return { "art_no":art_no,"goods_color":goods_color,"goods_price":goods_price,"goods_count":goods_count}
+      },
+
+      ret_art_no_goods_colors_and_price2(goods_pro_list){
+
+            let goods_color = ""
+
+            let goods_count = ""
+            let goods_price = typeof (goods_pro_list[3]) === "undefined"?"":goods_pro_list[3];
+            let art_no = typeof (goods_pro_list[4]) === "undefined"?"":goods_pro_list[4];
+            // // goods_info['art_no'] = typeof (goods_pro_list[3]) === "undefined"?"":goods_pro_list[3];
+            //         //如果价格是非数字字符串 就做特殊处理
+            //       if( typeof (goods_pro_list[4])!=='undefined' && isNaN(goods_pro_list[4])) {
+            //         let goods_price_arr = goods_pro_list[4].match(/\d+\.?\d*/g);
+            //
+            //         if(goods_price_arr !==null) {
+            //           goods_price = goods_price_arr[0];
+            //           let price_index = goods_pro_list[4].indexOf(goods_price_arr[0]);
+            //                goods_color = goods_pro_list[4].substring(price_index+goods_price.length,goods_pro_list[4].length);
+            //                console.log("数量---------");
+            //                console.log(goods_pro_list[5])
+            //                if( typeof (goods_pro_list[5])!=='undefined') {
+            //                  let goods_count_arr = goods_pro_list[5].match(/\d+\.?\d*/g)
+            //                  if (goods_count_arr !== null) {
+            //                    goods_count = goods_count_arr[0];
+            //                  }
+            //                }
+            //                  console.log(goods_count)
+            //         }else{
+            //           goods_price = "";
+            //           }
+            //       }else{
+            //         goods_price = goods_pro_list[4];
+            //       }
+            return { "art_no":art_no,"goods_color":goods_color,"goods_price":goods_price,"goods_count":goods_count}
+      },
 
 //判断档口号有“-”并且把他处理掉替换成“$”
    replace_stall_char(goods_str){
@@ -166,12 +248,12 @@
 console.log("-----------------------------------------------------------------------------------")
           // 寻找第一次出现市场明的位置 返回 该位置的市场名 索引 等信息
           let goods_start_info = this.isfind_market(tem_goods_str,this.market_name_list,0);
-           console.log("goods_start_info",goods_start_info)
+
            // 寻找下一次出现市场明的位置 返回 该位置的市场名 索引 等信息
-          console.log("next_goods_info_find_market ",tem_goods_str,goods_start_info.market_name.length)
+
           let next_goods_info = this.isfind_market(tem_goods_str,this.market_name_list,goods_start_info.market_name.length);
 
-          console.log("next_goods_info",next_goods_info)
+
           if(next_goods_info !==""){
              let goods_info = tem_goods_str.substring(0,next_goods_info.index).trim();
              goods_str_list.push(goods_info);
@@ -183,10 +265,10 @@ console.log("-------------------------------------------------------------------
              tem_goods_str = "";
           }
 
-console.log("------------------------------- ")
+
 
   }
- console.log(goods_str+"999999999999")
+
     return goods_str_list;
   },
 

@@ -1,11 +1,19 @@
 <template>
   <div id= 'container_id' class="container">
+
     <div style="text-align: center">
       <p style="color:red;font-size: 1.2em;padding-left: 5em"> 只有商品状态为明日有货的第二天才默认继续拿货，其余的状态要申请退款重新下单</p>
+      <div style="width: 50% ;text-align: center;margin: 0px auto;" id="calendar" v-if="calendar_show">
+          <inlineCalendar    mode="during"  :disabledDate="disabledDate"  :defaultDate="defaultDate" @change="on_calendar_change"/>
+          <button @click="calendar_show = false">确定</button>
+          <button @click="during_str='' ;calendar_show = false">取消</button>
+      </div>
+
     </div>
     <div style="padding-left: 5em">
         <input v-model="query_q" style="width: 85%;height: 2em;max-width: 40em; " placeholder="订单号 ，收货人名，手机号，快递单号"/><button @click='on_orders_query(query_q)' style="margin-left: 0.5em">查询</button>
-      </div>
+        <!--<label>时间选择</label><input @click="calendar_show = !calendar_show" v-model="during_str">-->
+    </div>
     <ul  class = "status_ul" >
       <li ><a @click="on_order_filter({'status':goods_status2['未付款']},'未付款')" :class="{status_select:cur_order_status_filter==='未付款'}">未付款{{un_pay_counts}}</a></li>
       <li ><a @click="on_order_filter({'status':goods_status2['已付款']},'已付款')" :class="{status_select:cur_order_status_filter==='已付款'}">已付款{{is_payed_counts}}</a></li>
@@ -64,7 +72,7 @@
                          <!--</select>-->
                 </div>
 
-                  <div style="float: left" > <label style="width: 5em;float: left" >商品状态:</label>  <label style="width:3em;color: red" >{{goods_status[goods.status]}}  </label> </div>
+                  <div style="float: left" > <label style="width: 5em;float: left" >商品状态:</label>  <label style="width:3em;color: red" >{{goods_status[goods.status]}}  </label><label style="color: red" v-if="goods.log !== null && goods.log!==''">({{goods.log}})</label> </div>
                   <div  >
                     <label style="padding-left: 2em">售后状态:</label>
                     <label  style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> {{refund_apply_status[goods.refund_apply_status]}}</label>
@@ -113,6 +121,11 @@
         name: "MyOrder",
       data(){
           return{
+            calendar_show:false,
+            defaultDate:[],
+            disabledDate:[],
+            during_str:"",
+
             is_order_by_update_time :false,
             // 加载数据后是否滚动到顶端
             is_scroll_top:true,
@@ -155,6 +168,21 @@
       },
 
       methods:{
+          on_calendar_change(date) {
+            this.during_str = ""
+            for(let i = 0;i<date.length;i++){
+              let tem_date = date[i].format("YYYY-MM-DD")
+              console.log();
+              if(this.during_str !== ""){
+                this.during_str = this.during_str+" / " +tem_date
+              }else{
+                this.during_str = tem_date
+              }
+
+            }
+
+    },
+
           return_format_time(stmp){
             if (stmp === 0){
                return ""

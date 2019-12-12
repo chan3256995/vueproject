@@ -1,6 +1,6 @@
 <template >
  <div class="root">
-   <div><button @click="test()">test</button></div>
+
   <div class="orders_str_div" >
     <div class="review_order_div" >
       <div>
@@ -35,12 +35,15 @@
       <button class = "default_button global_btn_normal_style" @click="onHandAddGoodsClick">添加商品</button>
       <div>
         <div>
-          <input placeholder="市场名_楼层_档口号_货号_价格_颜色尺码_件数" class="global_input_default_style defalut_input  auto_goods_input" v-model="raw_goods_txt"/>
+          <input :placeholder="goods_str_format_selected.text" class="global_input_default_style defalut_input  auto_goods_input" v-model="raw_goods_txt"/>
          <button style="height: 2.8em" class = "default_button global_btn_normal_style" @click="onAddGoodsClick">识别商品</button>
+          <select v-model="goods_str_format_selected">
+              <option :value="option" v-for="(option,index) in goods_str_format_options" :key="index">{{option.abbreviate}}</option>
+          </select>
         </div>
 
 
-        <label style="color: red" class = "defalut_input auto_goods_input" v-model="raw_goods_txt">市场名_楼层_档口号_货号_价格_颜色尺码_件数(用空格 逗号 下划线 隔开)</label>
+        <label style="color: red" class = "defalut_input auto_goods_input"  v-text="goods_str_format_selected.text" >市场名_楼层_档口号_货号_价格_颜色尺码_件数(用空格 逗号 下划线 隔开)</label>
 
 
         </div>
@@ -125,10 +128,6 @@
             </div>
 
   </div>
-
-
-
-
    <div    style="font-size:1.5em; text-align: left">
       <label>共</label>
       <label style="color:red">{{order_obj.order_list.length}}</label>
@@ -165,7 +164,7 @@
                  <td><input  class="global_input_default_style defalut_input " :class="{'input_tip':goodsitem.goods_color===''}"    v-model="goodsitem.goods_color"/></td>
                  <td><input  class="global_input_default_style defalut_input " :class="{'input_tip':goodsitem.goods_count===''}" type="number"   v-model="goodsitem.goods_count"/> </td>
             </tr>
-                <tr  v-if="my_account!=='' && my_account.id === 1 " style="display: block; color:red">
+                <tr  v-if="my_account!=='' && my_account.id === 12 " style="display: block; color:red">
                       <label>留言：</label><input style="color:red"  class="global_input_default_style defalut_input "      v-model="goodsitem.customer_message" />
               </tr>
         </table>
@@ -228,6 +227,7 @@
              this.load_quality_test()
              this.load_logistics()
              this.load_discount_card()
+
            if(typeof(this.$route.query.data) !== 'undefined'){
               let goods =  JSON.parse(this.$route.query.data);
               this.raw_goods_txt = goods.shop_market_name + "_" + goods.shop_floor + "_" + goods.shop_stalls_no +"_" + goods.art_no+"_"+goods.goods_price+"_"
@@ -240,6 +240,13 @@
 
       data(){
         return{
+            goods_str_format_selected:{'text':'市场名_楼层_档口号_货号_价格_颜色尺码_件数(用空格 逗号 下划线 隔开)','value':'default',"abbreviate":"默认"},
+           goods_str_format_options:[
+             {'text':'市场名_楼层_档口号_货号_价格_颜色尺码_件数(用空格 逗号 下划线 隔开)','value':'default',"abbreviate":"默认"},
+             {'text':'市场名_楼层_档口号_价格_货号_颜色尺码_件数(用空格 逗号 下划线 隔开)','value':'vvic',"abbreviate":'搜款网格式'},
+
+           ],
+
             my_account:"",
           // 显示批量添加
           is_multi_add:false,
@@ -261,7 +268,7 @@
               "goods_color":"",
               "goods_price":"",
               "goods_count":"",
-              "customer_message":"",
+
 
             }
 
@@ -294,21 +301,16 @@
 　　　　},
      }},
        methods:{
-        test(){
-          let str = "_4楼 459-B-7068-43 薄@国投";
-          for(let i = 0;i<str.length;i++){
-            console.log("index:",i,"value:",str[i])
-          }
-        },
+
        time_format(time_stmp){
          return mtime.formatDateStrFromTimeSt(time_stmp)
         },
-        on_multi_add_div_clicked(){
+       on_multi_add_div_clicked(){
             this.is_multi_add = ! this.is_multi_add
           },
 
          // 加载用户优惠卡信息
-         load_discount_card(){
+       load_discount_card(){
               const url  = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDiscountCards/"
            //设为true 就会带cookies 访问
            axios.defaults.withCredentials=true
@@ -334,7 +336,7 @@
               })
          },
            // 加载物流选项信息
-          load_logistics(){
+       load_logistics(){
             const url  = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/trade/logistics/"
            //设为true 就会带cookies 访问
            axios.defaults.withCredentials=true
@@ -355,9 +357,8 @@
               })
           },
 
-
           // 加载质检选项信息
-          load_quality_test(){
+       load_quality_test(){
             const url  = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/trade/qualityTest/"
            //设为true 就会带cookies 访问
            axios.defaults.withCredentials=true
@@ -365,8 +366,28 @@
 
            ).then((res)=>{
              if("1000" === res.data.code){
-                 console.log(res.data)
+                  console.log(res.data)
                   this.quality_test_options = this.analysis_quality_test_data(res.data.data)
+
+                  let user_info = this.getLocalValue("user");
+                  console.log("create----------------",user_info)
+                  if(user_info !==""){
+                  this.user = JSON.parse(user_info)
+                 }
+                 for(let i = 0;i< this.quality_test_options.length;i++){
+                   if(this.user.id === 12){
+                     if( this.quality_test_options[i].quality_testing_name === '精检2'){
+                       this.quality_test_options.splice(i,1)
+                     }
+
+
+                   }else  {
+                      if( this.quality_test_options[i].quality_testing_name === '精检'){
+                       this.quality_test_options.splice(i,1)
+                     }
+
+                   }
+                 }
                   this.selected_quality_test =  this.quality_test_options[0]
 
              }else{
@@ -379,7 +400,7 @@
           },
 
          // 解析 数据
-          analysis_logistics(data){
+       analysis_logistics(data){
             let logistics_list = []
             for(let i = 0;i<data.length;i++){
               let item = {}
@@ -393,7 +414,7 @@
 
 
          // 解析 数据
-          analysis_quality_test_data(data){
+       analysis_quality_test_data(data){
             let quality_test_server_list = []
             for(let i = 0;i<data.length;i++){
               let item = {}
@@ -404,7 +425,7 @@
             return quality_test_server_list
           },
          // 判断列表最后一组是否为有效数据  有空 等情况 为无效数据
-          is_last_order_goods_item_valid(order_goods_list){
+       is_last_order_goods_item_valid(order_goods_list){
             if(order_goods_list.length>0){
                let item = order_goods_list[order_goods_list.length-1]
                if(this.checkGoodsIsNull(item)){
@@ -418,7 +439,7 @@
           onDeleteRawGoods(index,list){
             list.splice(index,1)
           },
-         onHandAddGoodsClick(){
+       onHandAddGoodsClick(){
             this.is_tip = false;
             this.processed_goods_list.push( {
               "shop_market_name":"",
@@ -428,12 +449,12 @@
               "goods_color":"",
               "goods_price":"",
               "goods_count":"",
-              "customer_message":"",
+
             })
          },
-          onAddGoodsClick(){
+       onAddGoodsClick(){
             // let goodsObj = this.analysis_goods_str(this.raw_goods_txt)
-            let goods_list = marketData.get_goods_list(this.raw_goods_txt)
+            let goods_list = marketData.get_goods_list(this.raw_goods_txt,this.goods_str_format_selected.value)
 
 
             if(this.is_last_order_goods_item_valid(this.processed_goods_list) === false){
@@ -448,7 +469,8 @@
           //   this.processed_goods_list = this.processed_goods_list.concat(goods_list)
           },
 
-          onAddOrderOk(){
+       onAddOrderOk(){
+           console.log("processed_goods_list:",this.processed_goods_list)
             this.is_tip = true;
              let logistics = this.selected_logistics;
              let orderItem = {"quality_test":this.selected_quality_test,"logistics":logistics,"address":this.processed_address_object,"orderGoods":this.processed_goods_list};
@@ -470,13 +492,13 @@
                         "goods_color":"",
                         "goods_price":"",
                         "goods_count":"",
-                        "customer_message":"",
+
                       }]
                alert("添加成功")
             }
 
           },
-          onAddAddressClick(){
+       onAddAddressClick(){
             let order_list = [];
            let str= this.raw_address;
           // 替换掉英文引号
@@ -519,7 +541,7 @@
           },
 
           //重新统计金额
-          calcAgainAllAmount(new_order_list){
+       calcAgainAllAmount(new_order_list){
             for(let i = 0;i<new_order_list.length;i++){
            // 统计每单的金额
               this.calcOneOrderAmount(new_order_list[i]);
@@ -529,14 +551,38 @@
 
           //检查页面上商品参数是否正确
           checkGoodsIsNull(goodsObj){
-            let key_arr = Object.keys(goodsObj);
-            for(let x = 0;x<key_arr.length;x++) {
-              console.log( key_arr[x])
-              let eValue = eval('goodsObj.' + key_arr[x]).trim();//根据对象属性名得到值
-              if (eValue == null || !eValue.length) {
-                return  true;
-              }
+            console.log(goodsObj)
+            if(goodsObj.shop_market_name == null || !goodsObj.shop_market_name.length){
+                                return  true;
             }
+            if(goodsObj.shop_floor == null || !goodsObj.shop_floor.length){
+                return  true;
+            }
+            if(goodsObj.shop_stalls_no == null || !goodsObj.shop_stalls_no.length){
+                return  true;
+            }
+            if(goodsObj.art_no == null || !goodsObj.art_no.length){
+                return  true;
+            }
+            if(goodsObj.goods_price == null || !goodsObj.goods_price.length){
+                return  true;
+            }
+            if(goodsObj.goods_color == null || !goodsObj.goods_color.length){
+                 return  true;
+            }
+            if(goodsObj.goods_count == null || !goodsObj.goods_count.length){
+                return  true;
+            }
+
+            // let key_arr = Object.keys(goodsObj);
+            // for(let x = 0;x<key_arr.length;x++) {
+            //   console.log( key_arr[x])
+            //   let eValue = eval('goodsObj.' + key_arr[x]).trim();//根据对象属性名得到值
+            //   if (eValue == null || !eValue.length) {
+            //     alert('goodsObj.' + key_arr[x])
+            //     return  true;
+            //   }
+            // }
             return false
           },
          //
