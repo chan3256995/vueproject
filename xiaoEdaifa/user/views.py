@@ -69,8 +69,17 @@ class LoginView(APIView):
                 ret['code'] = "1001"
                 ret['message'] = '用户名或密码错误'
             else:
-                token = commom_utils.md5(name)
-                models.UserToken.objects.update_or_create(user=user_obj, defaults={'token': token,'add_time':time.time()})
+
+                user_token_obj = models.UserToken.objects.filter(user=user_obj).first()
+                token = user_token_obj.token
+                if user_token_obj is not None:
+                    cur_time_stmp = time.time() * 1000
+                    if cur_time_stmp - user_token_obj.add_time >3 *  24 * 60 * 60 *1000 :
+                        token = commom_utils.md5(name)
+                        models.UserToken.objects.update_or_create(user=user_obj, defaults={'token': token, 'add_time': time.time()*1000})
+                else:
+                    token = commom_utils.md5(name)
+                    models.UserToken.objects.update_or_create(user=user_obj,defaults={'token': token, 'add_time': time.time()*1000})
                 user_ser = m_serializers.UserQuerySerializer(instance=user_obj, many=False)
                 ret['code'] = "1000"
                 ret['message'] = '登录成功'

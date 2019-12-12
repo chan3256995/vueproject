@@ -458,6 +458,8 @@ class OrderViewSet(mixins.ListModelMixin,mixins.UpdateModelMixin, GenericViewSet
                 # 手机字段为数字 用字符查询会报错
                 if default_query_keys.isdigit():
                     query_keys_args = query_keys_args | Q(consignee_phone=default_query_keys)
+                    if len(query_keys_args) < 10:
+                        query_keys_args = query_keys_args | Q(id=default_query_keys)
                 args = args & query_keys_args
                 return trade_models.Order.objects.filter(args).order_by('-add_time')
             elif status_filter is not None:
