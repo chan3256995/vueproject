@@ -87,7 +87,7 @@
       <div>
         <div>
           <label>快递</label>
-          <select  v-model="order.logistics_selected" >
+          <select v-if="search_shop_floor === '666'"  v-model="order.logistics_selected" >
             <option :value="option" v-for="(option,index) in logistics_options" :key="index">{{option.logistics_name}}</option>
         </select>
           <label v-text="order.logistics_name">单号</label>
@@ -95,9 +95,9 @@
           <input v-model="order.logistics_number" v-bind:disabled="order.logistics_number_input_disabled" />
           <button v-if="order.is_delivered === true" @click="modify_logistics(order,order.logistics_number)">修改快递</button>
         </div>
-        <button  :disabled="print_tag_btn_disable" @click="print_tag([order_list[index].order_number])" >打印标签</button>
-        <button v-if="False" :disabled="print_logistics_btn_disable" @click="print_logistics([order_list[index].order_number])" >打印物流单</button>
-        <button :disabled="purchase_goods_btn_disable" @click="purchase_goods_submit([order_list[index]])" >拿货</button>
+        <button  v-if="search_shop_floor === '666'" :disabled="print_tag_btn_disable" @click="print_tag([order_list[index].order_number])" >打印标签</button>
+        <button v-if="search_shop_floor === '666'" :disabled="print_logistics_btn_disable" @click="print_logistics([order_list[index].order_number])" >打印物流单</button>
+        <button v-if="search_shop_floor === '666'" :disabled="purchase_goods_btn_disable" @click="purchase_goods_submit([order_list[index]])" >拿货</button>
         <button  :disabled="scan_qr_code_btn_disable" @click="mstartRecognize(index)">扫描填单</button>
         <button :disabled="deliver_ok_btn_disable" @click="deliver_submit([order_list[index]])">确定发货</button>
       </div>

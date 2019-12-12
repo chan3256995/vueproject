@@ -9,7 +9,7 @@
 
 
        </div>
-      <button @click="mstartRecognize"> 开始扫描</button><button @click="mcloseScan">关闭</button>
+      <button @click="mstartRecognize"> 开始扫描</button><button style="margin-left: 1em" @click="mcloseScan">关闭</button>
     <div  >
       <table v-for="(order_goods,index) in order_goods_list" :key="index">
         <tr>
@@ -25,7 +25,7 @@
 
     </div>
     <div>
-      <button @click="submit_order_goods(order_goods_list)">提交</button>
+      <button style="margin-top: 1em" @click="submit_order_goods(order_goods_list)">提交</button>
     </div>
     </div>
 </template>
@@ -41,9 +41,9 @@
           return{
             is_scan_show:false,
             order_goods_list: [
-              {'id':99, 'message':'状态异常'},
-              {'id':'ll6++','message':'字符异常' },
-              {'id':9787, }
+              // {'id':99, 'message':'状态异常'},
+              // {'id':'ll6++','message':'字符异常' },
+              // {'id':9787, }
             ]
           }
         },

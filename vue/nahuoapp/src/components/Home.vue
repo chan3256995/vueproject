@@ -32,8 +32,9 @@
         {{order_goods.shop_stalls_no}}
         {{order_goods.art_no}}
         {{order_goods.goods_color}}
-      <div style="color: red;">{{goods_status[order_goods.status]}}</div>
-      <div style="color: red;">{{order_goods.goods_price}}元</div>
+      <div style="color: red;">{{goods_status[order_goods.status]}} {{order_goods.goods_price}}元  {{order_goods.goods_count}}件</div>
+      <div style="color: red;"></div>
+      <div style="color: red;"></div>
       </div>
 
 
