@@ -80,6 +80,8 @@ class Order(models.Model):
     order_follower = models.ForeignKey(User,null = True,default=None,on_delete=models.SET_NULL,related_name="orderFollower")
     # 订单号
     order_number = models.CharField(max_length=30, null=False ,unique=True)
+    # 淘宝订单号
+    tb_order_number = models.CharField(max_length=30, null=True ,unique=True)
     # 付款单号
     pay_no = models.CharField(max_length=128, null=True)
 

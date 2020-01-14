@@ -20,10 +20,12 @@ def get_time_0clock_of_yestoday():
     return yesterday_zero_point
 
 
-def stamp_to_time(time_stamp):
-
+def stamp_to_time(time_stamp,time_format):
+    mformat = "%Y-%m-%d %H:%M:%S"
+    if time_format is not None:
+        mformat = time_format
     time_array = time.localtime(time_stamp)
-    other_style_time = time.strftime("%Y-%m-%d %H:%M:%S", time_array)
+    other_style_time = time.strftime(mformat, time_array)
     return other_style_time
 
 # -*- coding: utf-8 -*-

@@ -127,25 +127,40 @@ class UserMulOrderSaveViewSet(CreateModelMixin,GenericViewSet):
         return order_sn
 
     def create(self, request, *args, **kwargs):
-        data_list = request.data.get("order_list")
-        data_list = json.loads(data_list)
+        order_list = request.data.get("order_list")
+        order_list = json.loads(order_list)
         print(request.data)
         ret = {"code":"1000", "message":""}
         try:
-            # 先对数据进行一次全面检测-------------------------------------------------
-            for item in data_list:
+            # 先对数据进行一次全面检测 把不符合条件的剔除-------------------------------------------------
+            new_order_list = []
+            # 异常订单
+            exception_order_list = []
+            for order in order_list:
                 self.serializer_class = m_serializers.TradeAddOrdersSerializer
                 # 得请求数据然后得到序列化对象  得到的是上面serializer_class对象模型
-                serializer = self.get_serializer(data=item)
+                serializer = self.get_serializer(data=order)
                 # serializer = TradeOrderSerializer(data=item)
                 # 进行数据校验
-                serializer.is_valid(raise_exception=True)
-                orderGoodsList = item['orderGoods']
+                try:
+                     serializer.is_valid(raise_exception=True)
+                except:
+
+                    exception_order_list.append(order)
+                    if json.dumps(serializer.errors).find("order with this tb order number already exists"):
+                        order['return_message'] = "淘宝订单号已存在"
+                        ret['message'] = '淘宝订单号已存在'
+                        continue
+                    else:
+                        raise Exception(serializer.errors)
+
+                orderGoodsList = order['orderGoods']
                 for orderGoods in orderGoodsList:
                     self.serializer_class = self.TemOrderGoodsSer
                     ser = self.get_serializer(data=orderGoods)
                     ser.is_valid(raise_exception=True)
-            # 先对数据进行一次全面检测-------------------------------------------------
+                new_order_list.append(order)
+            # 先对数据进行一次全面检测 把不符合条件的剔除-------------------------------------------------
         except:
             traceback.print_exc()
             ret['code']="1001"
@@ -156,10 +171,10 @@ class UserMulOrderSaveViewSet(CreateModelMixin,GenericViewSet):
 
         try:
             with transaction.atomic():
-                for item in data_list:
+                for item_order in new_order_list:
                     self.serializer_class = m_serializers.TradeAddOrdersSerializer
                     # 得请求数据然后得到序列化对象  得到的是上面serializer_class对象模型
-                    serializer = self.get_serializer(data=item)
+                    serializer = self.get_serializer(data=item_order)
 
                     # 进行数据校验
                     serializer.is_valid(raise_exception=True)
@@ -167,33 +182,25 @@ class UserMulOrderSaveViewSet(CreateModelMixin,GenericViewSet):
                     serializer.validated_data['add_time'] = time.time()*1000
                     print("添加时间-----")
                     order = self.perform_create(serializer)
-                    orderGoodsList = item['orderGoods']
+                    orderGoodsList = item_order['orderGoods']
                     order_agency_fee = 0  # 代拿费用
-                    logistics_name = item.get('logistics_name')
-                    logistics_id = item.get('logistics_id')
+                    logistics_name = item_order.get('logistics_name')
+                    logistics_id = item_order.get('logistics_id')
                     # 请求的质检服务
-                    req_quality_testing_name = item.get('quality_testing_name')
+                    req_quality_testing_name = item_order.get('quality_testing_name')
                     # 默认 无质检
                     quality_testing_fee = 0.0
                     quality_testing_name = "基础质检"
-
-
                     logistics_price = user_utils.get_user_logistics_after_discount_price(self,logistics_name)
-                    # logistics = trade_models.Logistics.objects.filter(logistics_name = logistics_name).first()
-                    # discount_card = trade_models.DiscountCard.objects.filter(user = request.user,discount_card_type = mcommon.discount_card_type_choices2.get("物流金额优惠卡")).first()
-                    # logistics_price = logistics.logistics_price
-                    # logistics_fee = logistics_price
-                    # if discount_card is not None:
-                    #     if discount_card.discount_card_type == mcommon.discount_card_type_choices2.get("物流金额优惠卡"):
-                    #         if logistics_price > discount_card.discount:
-                    #             logistics_fee = Decimal(str(logistics_price)) - Decimal(str(discount_card.discount))
-                    #             logistics_price = logistics_fee
 
                     # 订单里的商品总数量
                     order_goods_counts = 0
 
                     # 商品总费用
                     order_goods_fee = 0.0
+                    if len(orderGoodsList) < 1:
+                        raise Exception
+
                     for orderGoods in orderGoodsList:
                         # raise DatabaseError  # 报出错误，检测事务是否能捕捉错误
                         goods_count = Decimal(str((orderGoods.get('goods_count'))))
@@ -234,6 +241,8 @@ class UserMulOrderSaveViewSet(CreateModelMixin,GenericViewSet):
             ret['message'] = "保存数据失败"
             return Response(ret)
         headers = self.get_success_headers(serializer.data)
+        if len(exception_order_list) != 0:
+            ret['exception_order_list'] = json.dumps(exception_order_list)
         return Response(ret, status=status.HTTP_201_CREATED, headers=headers)
 
     def perform_create(self, serializer):
@@ -912,6 +921,61 @@ class GetUserDiscountCardsView(APIView):
             ret['code'] = "1001"
             ret['message'] = '查询失败'
         return Response(ret)
+
+
+class GetOrderByTBOrderNumberListViewSet(ListModelMixin, GenericViewSet):
+        authentication_classes = []
+        permission_classes = []
+        serializer_class = m_serializers.tTradeOrderQuerySerializer
+        # 设置分页的class
+        pagination_class = UsersPagination
+
+        def list(self, request, *args, **kwargs):
+            print(request.data)
+
+            # trade_models.OrderGoods.filter()
+            ret = {"code": "1000", "message": ""}
+            try:
+                queryset = self.filter_queryset(self.get_queryset())
+
+                page = self.paginate_queryset(queryset)
+                if page is not None:
+                    serializer = self.get_serializer(page, many=True)
+                    return self.get_paginated_response(serializer.data)
+
+                serializer = self.get_serializer(queryset, many=True)
+                return Response(serializer.data)
+            except:
+                traceback.print_exc()
+                logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+                ret['code'] = "1001"
+                ret['message'] = " 查询异常"
+                return Response(ret)
+
+
+        def get_queryset(self):
+            try:
+                print(self.request.query_params)
+
+                tb_order_number_list = json.loads(self.request.query_params.get("tb_order_number_list"))
+
+                return trade_models.Order.objects.filter(Q(tb_order_number__in = tb_order_number_list)).order_by('-add_time')
+            except:
+                traceback.print_exc()
+
+        def get_serializer_class(self):
+            if self.action == "retrieve":
+                return m_serializers.tTradeOrderQuerySerializer
+            elif self.action == "create":
+                return m_serializers.tTradeOrderQuerySerializer
+            elif self.action == "update":
+                return m_serializers.tTradeOrderQuerySerializer
+            elif self.action == "delete":
+                return m_serializers.tTradeOrderQuerySerializer
+
+            return m_serializers.tTradeOrderQuerySerializer
+
+
 
 
  # 返回被邀请用户信息

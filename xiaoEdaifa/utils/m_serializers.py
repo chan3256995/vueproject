@@ -257,7 +257,7 @@ class tTradeOrderQuerySerializer(serializers.ModelSerializer):
         model = models.Order
         fields = ["id","order_number","order_owner"
                           ,"pay_no","consignee_address","consignee_name","consignee_phone","sender_address","sender_name","sender_phone","is_delete","quality_testing_name",
-                           "quality_testing_fee","logistics_fee","agency_fee","logistics_name","logistics_number","weight","total_price","add_time","orderGoods","order_status","update_time"]
+                           "quality_testing_fee","logistics_fee","agency_fee","logistics_name","logistics_number","weight","total_price","add_time","orderGoods","order_status","update_time", "tb_order_number"]
         # fields = '__all__'
         # 查表深度  关联表（父表）的数据也会查处出来  深度值官方推荐 0-10
         depth = 2

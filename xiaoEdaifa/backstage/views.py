@@ -461,26 +461,28 @@ class OrderViewSet(mixins.ListModelMixin,mixins.UpdateModelMixin, GenericViewSet
                     if len(query_keys_args) < 10:
                         query_keys_args = query_keys_args | Q(id=default_query_keys)
                 args = args & query_keys_args
-                return trade_models.Order.objects.filter(args).order_by('-add_time')
-            elif status_filter is not None:
+                # return trade_models.Order.objects.filter(args).order_by('-add_time')
+            if status_filter is not None:
                 args = args & Q(orderGoods__status=status_filter)
-                return trade_models.Order.objects.filter(args).distinct().order_by( "-add_time")
-            elif user_name_query is not None:
+                # return trade_models.Order.objects.filter(args).distinct().order_by( "-add_time")
+            if user_name_query is not None:
                 args = args & Q(order_owner__user_name=user_name_query)
-                return trade_models.Order.objects.filter(args).distinct().order_by( "-add_time")
-            elif order_follower_user_name is not None:
+                # return trade_models.Order.objects.filter(args).distinct().order_by( "-add_time")
+            if order_follower_user_name is not None:
                 args = args & Q(order_follower__user_name=order_follower_user_name)
-                return trade_models.Order.objects.filter(args).distinct().order_by( "-add_time")
-            elif market_full is not None:
+                # return trade_models.Order.objects.filter(args).distinct().order_by( "-add_time")
+            if market_full is not None:
                 market_full = json.loads(market_full)
                 shop_market_name = market_full.get('shop_market_name')
                 shop_floor = market_full.get('shop_floor')
                 shop_stalls_no = market_full.get('shop_stalls_no')
                 art_no = market_full.get('art_no')
                 args = args & Q(orderGoods__shop_market_name__contains=shop_market_name) & Q(orderGoods__shop_floor__contains=shop_floor) & Q(orderGoods__shop_stalls_no__contains=shop_stalls_no) & Q(orderGoods__art_no__contains=art_no)
-                return trade_models.Order.objects.filter(args).distinct().order_by( "-add_time")
-            else:
-                return trade_models.Order.objects.all().order_by('-add_time')
+                # return trade_models.Order.objects.filter(args).distinct().order_by( "-add_time")
+
+
+            return trade_models.Order.objects.filter(args).distinct().order_by("-add_time")
+
 
         def update(self, request, *args, **kwargs):
             ret = {"code": "1000", "message": ""}

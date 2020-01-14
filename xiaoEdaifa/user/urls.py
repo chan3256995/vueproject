@@ -38,6 +38,7 @@ router.register(r'tradeInfo', user_trade_views.TradeInfoViewSet, base_name='trad
 # 支付宝实名认证信息
 router.register(r'userAlipayRealInfo', user_trade_views.UserAlipayRealInfoViewSet, base_name='userAlipayRealInfo')
 
+router.register(r'getOrderByTBOrderNumberList', user_views.GetOrderByTBOrderNumberListViewSet,base_name='getOrderByTBOrderNumberList')  # new
 
 #  获取用户被邀请用户信息
 
@@ -65,6 +66,9 @@ urlpatterns = [
     url('alterOrderAddress/', user_views.AlterOrderAddressView.as_view()),
     # 获取用户优惠卡信息
     url('userDiscountCards/', user_views.GetUserDiscountCardsView.as_view()),  # new
+
+
+
 
 
     # url('stopDeliver/', user_views.UserStopDeliverView.as_view()),  # new

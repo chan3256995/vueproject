@@ -16,5 +16,21 @@ def send(subject, message, sender, receiver, html_message):
     # html_message = '八嘎牙路'		#发送html格式
     send_mail(subject=subject, message=message, sender=sender, receiver=receiver, html_message=html_message)
 
-send()	#使用函数)
+# send()	#使用函数)
+
+
+import time
+def stamp_to_time(time_stamp,*time_format):
+    mformat = "%Y-%m-%d %H:%M:%S"
+    if time_format is not None:
+        mformat = time_format.format
+    time_array = time.localtime(time_stamp)
+    other_style_time = time.strftime(mformat, time_array)
+    return other_style_time
+
+
+if __name__ == "__main__":
+
+    tem = stamp_to_time(time.time())
+    print(tem)
 

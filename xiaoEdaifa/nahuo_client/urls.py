@@ -29,6 +29,7 @@ urlpatterns = [
 
     # 选取已付款的订单
     url('selectOrders/', nahuo_views.SelectOrderView.as_view()),  # new
+    url('removeOrders/', nahuo_views.RemoveOrderView.as_view()),  # new
     url('outputExcel/', nahuo_views.OutPutOrdersView.as_view()),  # new
     # 已发货状态的订单修改物流信息
     url('modifyLogistics/', nahuo_views.ModifyOrdersLogisticsView.as_view()),  # new
