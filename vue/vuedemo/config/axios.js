@@ -15,17 +15,14 @@ axios.interceptors.request.use(function (config) {
         console.log("拦截器--------------------------")
         console.log(config)
           Vue.prototype.$nprogress.start()
-        console.log(VueCookies.get("access_token"))
-        console.log("url")
-        console.log(config.url)
-        console.log(mGlobal.DJANGO_SERVER_BASE_URL+"/back")
+       // config.headers.token = 'adhfkadflajflakdlajsdhkj';
         if(config.url.startsWith(mGlobal.DJANGO_SERVER_BASE_URL+"/back")){
           if(config.url.search("access_token_bk") === -1){
             config.url = config.url+"?access_token_bk="+VueCookies.get("access_token_bk")
           }
         }else{
           if(config.url.search("access_token") === -1){
-            config.url = config.url+"?access_token="+VueCookies.get("access_token")
+            // config.url = config.url+"?access_token="+VueCookies.get("access_token")
           }
 
         }

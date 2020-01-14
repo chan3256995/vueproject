@@ -133,11 +133,13 @@
       <label style="color:red">{{order_obj.order_list.length}}</label>
       <label>件</label>
     </div>
-   <div   >
+   <div id="div-id"   >
       <li class = "items_li" v-for="(item,index) in order_obj['order_list']" >
        <div class="review_order_div" >
          <div class = "order_div global_background ">
-            <label style="color:black">订单：{{index+1}}</label>
+            <label style="color:black">订单:{{index+1}}</label>
+            <label   v-if="item.tb_order_number!==undefined && item.tb_order_number!==''" style="color:black;margin-left: 1em">淘宝订单号:{{item.tb_order_number}}</label>
+            <label   v-if="item.return_message!==undefined && item.return_message!==''" style="color:red;margin-left: 1em"> {{item.return_message}}</label>
           <button style=" width:4em;height:2em;float: right; margin-right: 2em" @click="onDeleteRawGoods(index,order_obj['order_list'])">删除</button>
          </div>
 
@@ -223,16 +225,25 @@
     export default {
         name: "PlaceOrder",
       created(){
-          this.my_account = JSON.parse(this.getLocalValue("user"))
-             this.load_quality_test()
-             this.load_logistics()
-             this.load_discount_card()
+             this.my_account = JSON.parse(this.getLocalValue("user"))
+             let p1 =this.load_quality_test()
+             let p2 = this.load_logistics()
+             let p3 =  this.load_discount_card()
+
+             Promise.all([p1, p2, p3]).then((res) => {
+               if(typeof(this.$route.query.plug_order_data) !== 'undefined'){
+              this.analysis_tb_plug_order_data(this.$route.query.plug_order_data)
+                  console.log('mount:',document.getElementById('div-id').offsetTop);
+              window.scrollTo(0,document.getElementById('div-id').offsetTop);
+           }
+})
 
            if(typeof(this.$route.query.data) !== 'undefined'){
               let goods =  JSON.parse(this.$route.query.data);
               this.raw_goods_txt = goods.shop_market_name + "_" + goods.shop_floor + "_" + goods.shop_stalls_no +"_" + goods.art_no+"_"+goods.goods_price+"_"
                             +goods.goods_color+"/1@"
            }
+
       },
       mounted(){
 
@@ -309,18 +320,71 @@
             this.is_multi_add = ! this.is_multi_add
           },
 
+
+         //解析淘宝插件传 过来的数据
+       analysis_tb_plug_order_data(tb_plug_order_data){
+                     // tb_plug_order_data = "[{\"tb_order_number\":\"795556705506266015\",\"phone\":\"13123940906\",\"name\":\"水影\",\"address\":\"安徽省阜阳市临泉县 陈集镇   安徽省阜阳市临泉县陈集镇农村淘宝服务站\",\"order_goods_list\":[{\"code\":\"金富丽 3F 3F030-52#9323\",\"img\":\"//img.alicdn.com/bao/uploaded/i3/467630318/O1CN01VlxsyO1EDgWOFxIt8_!!467630318.jpg_sum.jpg\",\"size\":\"4XL(140-160斤)\",\"color\":\"黑色\",\"count\":\"1\"}]}]"
+               console.log(tb_plug_order_data)
+                let plug_order_data = JSON.parse(tb_plug_order_data )
+               for(let i = 0;i<plug_order_data.length;i++){
+
+                  let address_str = plug_order_data[i]['name']+","+ plug_order_data[i]['phone']+ ","+plug_order_data[i].address
+                  let tb_order_number = plug_order_data[i]['tb_order_number']
+console.log("tb_order_number==================--->",tb_order_number)
+                  let addressObj = mStringUtils.getAddressInfo(address_str);
+                  let order_goods_list = []
+
+
+                 for(let g = 0 ;g<plug_order_data[i].order_goods_list.length;g++){
+                   plug_order_data[i].order_goods_list[g]['code'] = plug_order_data[i].order_goods_list[g].code.replace("^^^","#")
+                    let color = plug_order_data[i].order_goods_list[g].color.trim()
+                   let size = ""
+                   if(plug_order_data[i].order_goods_list[g].size !==undefined){
+                      size = plug_order_data[i].order_goods_list[g].size.replace("-",'^').replace("/","^").trim()
+                   }
+
+                   let goods_str =  plug_order_data[i].order_goods_list[g].code +" "+color+size+" "+plug_order_data[i].order_goods_list[g].count
+                    order_goods_list = marketData.get_goods_list(goods_str,this.goods_str_format_options[1].value)
+
+                 }
+                  let orderItem = {"quality_test":this.selected_quality_test,"logistics":this.selected_logistics,"address":addressObj,"orderGoods":order_goods_list};
+                 if(tb_order_number !== undefined && tb_order_number.trim() !==""){
+                   orderItem['tb_order_number']=tb_order_number
+
+                 }
+                  console.log("orderItem-------------------------------------------",orderItem)
+                  this.order_obj.order_list.unshift(orderItem);
+               }
+         },
          // 加载用户优惠卡信息
        load_discount_card(){
-              const url  = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDiscountCards/"
+           const url  = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDiscountCards/"
            //设为true 就会带cookies 访问
            axios.defaults.withCredentials=true
-            axios.get(url,
-
-           ).then((res)=>{
+            // axios.get(url,).then((res)=>{
+            //  if("1000" === res.data.code){
+            //      console.log(res.data)
+            //    for(let i = 0;i<res.data.data.length;i++){
+            //      let discount_card =res.data.data[i]
+            //      if (discount_card.discount_card_type === mGlobal.DISCOUNT_CARD_TYPE2['物流金额优惠卡']){
+            //        this.logistics_discount_card = discount_card
+            //        break;
+            //      }
+            //    }
+            //
+            //  }else{
+            //
+            //  }
+            //   }).catch(error => {
+            //     console.log(error) ;
+            //
+            //   })
+          let p1 = new Promise((resolve, reject) => {
+           axios.get(url).then(res=>{
              if("1000" === res.data.code){
                  console.log(res.data)
-               for(let i = 0;i<res.data.data.length;i++){
-                 let discount_card =res.data.data[i]
+               for(let i = 0;i<res.data.results.length;i++){
+                 let discount_card =res.data.results[i]
                  if (discount_card.discount_card_type === mGlobal.DISCOUNT_CARD_TYPE2['物流金额优惠卡']){
                    this.logistics_discount_card = discount_card
                    break;
@@ -330,19 +394,35 @@
              }else{
 
              }
-              }).catch(error => {
-                console.log(error) ;
+              resolve(res)
+          }).catch(err=>{
+            console.log(err) ;
+              reject(err)
+          })
+      });
 
-              })
+           return p1
          },
            // 加载物流选项信息
        load_logistics(){
             const url  = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/trade/logistics/"
            //设为true 就会带cookies 访问
-           axios.defaults.withCredentials=true
-            axios.get(url,
+            axios.defaults.withCredentials=true
+            // axios.get(url,).then((res)=>{
+            //  if("1000" === res.data.code){
+            //      console.log(res.data)
+            //       this.logistics_options = this.analysis_logistics(res.data.data)
+            //       this.selected_logistics =  this.logistics_options[0]
+            //
+            //  }else{
+            //
+            //  }
+            //   }).catch(error => {
+            //     console.log(error) ;
+            //   })
 
-           ).then((res)=>{
+           let p1 = new Promise((resolve, reject) => {
+           axios.get(url).then(res=>{
              if("1000" === res.data.code){
                  console.log(res.data)
                   this.logistics_options = this.analysis_logistics(res.data.data)
@@ -351,21 +431,55 @@
              }else{
 
              }
-              }).catch(error => {
-                console.log(error) ;
+              resolve(res)
+          }).catch(err=>{
+            console.log(err) ;
+              reject(err)
+          })
+      });
 
-              })
+           return p1
           },
 
           // 加载质检选项信息
        load_quality_test(){
             const url  = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/trade/qualityTest/"
            //设为true 就会带cookies 访问
-           axios.defaults.withCredentials=true
-            axios.get(url,
+            axios.defaults.withCredentials=true
+            // axios.get(url,).then((res)=>{
+            //  if("1000" === res.data.code){
+            //       console.log(res.data)
+            //       this.quality_test_options = this.analysis_quality_test_data(res.data.data)
+            //
+            //       let user_info = this.getLocalValue("user");
+            //       console.log("create----------------",user_info)
+            //       if(user_info !==""){
+            //       this.user = JSON.parse(user_info)
+            //      }
+            //      for(let i = 0;i< this.quality_test_options.length;i++){
+            //        if(this.user.id === 12){
+            //          if( this.quality_test_options[i].quality_testing_name === '精检2'){
+            //            this.quality_test_options.splice(i,1)
+            //          }
+            //        }else  {
+            //           if( this.quality_test_options[i].quality_testing_name === '精检'){
+            //            this.quality_test_options.splice(i,1)
+            //          }
+            //        }
+            //      }
+            //       this.selected_quality_test =  this.quality_test_options[0]
+            //
+            //  }else{
+            //
+            //  }
+            //   }).catch(error => {
+            //     console.log(error) ;
+            //
+            //   })
 
-           ).then((res)=>{
-             if("1000" === res.data.code){
+           let p1 = new Promise((resolve, reject) => {
+           axios.get(url).then(res=>{
+               if("1000" === res.data.code){
                   console.log(res.data)
                   this.quality_test_options = this.analysis_quality_test_data(res.data.data)
 
@@ -379,13 +493,10 @@
                      if( this.quality_test_options[i].quality_testing_name === '精检2'){
                        this.quality_test_options.splice(i,1)
                      }
-
-
                    }else  {
                       if( this.quality_test_options[i].quality_testing_name === '精检'){
                        this.quality_test_options.splice(i,1)
                      }
-
                    }
                  }
                   this.selected_quality_test =  this.quality_test_options[0]
@@ -393,10 +504,15 @@
              }else{
 
              }
-              }).catch(error => {
-                console.log(error) ;
+              resolve(res)
+          }).catch(err=>{
+              console.log(err) ;
+              reject(err)
+          })
+      });
 
-              })
+           return p1
+
           },
 
          // 解析 数据
@@ -470,7 +586,7 @@
           },
 
        onAddOrderOk(){
-           console.log("processed_goods_list:",this.processed_goods_list)
+
             this.is_tip = true;
              let logistics = this.selected_logistics;
              let orderItem = {"quality_test":this.selected_quality_test,"logistics":logistics,"address":this.processed_address_object,"orderGoods":this.processed_goods_list};
@@ -478,6 +594,7 @@
               arr.push(orderItem)
              if(this.check_data(arr)){
                this.order_obj.order_list.unshift(orderItem);
+
                this.is_tip = false;
                 this.raw_goods_txt="";
                 this.raw_address="";
@@ -638,12 +755,14 @@
                           order_list[i].address.address_detail+",";
                 let consignee_name =order_list[i].address.name;
                 let consignee_phone =order_list[i].address.phone;
+                let tb_order_number =order_list[i].tb_order_number;
 
                 let orderGoods = order_list[i].orderGoods;
                 news_list.push(
-                  {"consignee_address":consignee_address,"consignee_name":consignee_name,'logistics_name':order_list[i].logistics.logistics_name,
+                  {"tb_order_number":tb_order_number,
+                    "consignee_address":consignee_address,"consignee_name":consignee_name,'logistics_name':order_list[i].logistics.logistics_name,
                     'logistics_id':order_list[i].logistics.logistics_id,
-                "consignee_phone":consignee_phone,"orderGoods":orderGoods,"quality_testing_name":order_list[i].quality_test.quality_testing_name
+                   "consignee_phone":consignee_phone,"orderGoods":orderGoods,"quality_testing_name":order_list[i].quality_test.quality_testing_name
                 })
             }
             let jsonStr = JSON.stringify(news_list);
@@ -663,10 +782,46 @@
 
         ).then((res)=>{
          if("1000" === res.data.code){
-           alert("提交成功！")
-           this.order_obj = {
-            order_list: [],
-          };
+
+           if(res.data.exception_order_list !== undefined){
+
+               let exception_order_list=  JSON.parse(res.data.exception_order_list)
+               let new_exception_order_list = []
+             for(let e = 0;e<exception_order_list.length;e++){
+              let addressObj = mStringUtils.getAddressInfo(exception_order_list[e].consignee_name +" "+  exception_order_list[e].consignee_phone+" "+exception_order_list[e].consignee_address);
+              //str.replace(/word/g,"Excel") ;//g 的意义是：执行全局匹配（查找所有匹配而不是在找到第一个匹配后停止）。
+              addressObj.address_detail = addressObj.address_detail.replace(/,/g,' ').trim()
+
+               let logistics = {"logistics_name":exception_order_list[e]['logistics_name'],"logistics_id":exception_order_list[e]['logistics_id']}
+               for(let l = 0;l<this.logistics_options.length;l++){
+                if(this.logistics_options[l].logistics_id === exception_order_list[e].logistics_id){
+                  logistics = this.logistics_options[l]
+                  break
+                }
+              }
+              let quality_test = {}
+              for(let q = 0;q<this.quality_test_options.length;q++){
+                if(this.quality_test_options[q].quality_testing_name === exception_order_list[e].quality_testing_name){
+                  quality_test = this.quality_test_options[q]
+                  break
+                }
+              }
+              let order_item  = {'address':addressObj,'logistics':logistics,"quality_test":quality_test,"orderGoods":exception_order_list[e].orderGoods,"phone":exception_order_list[e].consignee_phone,"name":exception_order_list[e].consignee_name}
+              if(exception_order_list[e].tb_order_number !== undefined){
+                order_item['tb_order_number'] = exception_order_list[e].tb_order_number
+              }
+              if(exception_order_list[e].return_message !== undefined){
+                order_item['return_message'] = exception_order_list[e].return_message
+              }
+              new_exception_order_list.push(order_item)
+
+             }
+             this.order_obj.order_list = new_exception_order_list
+           }else{
+             alert("提交成功！")
+           }
+
+
            this.order_text = ""
 
          }else{

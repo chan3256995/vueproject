@@ -12,6 +12,7 @@
       <router-link class="nav" to = "/pc/home/porder" >下订单</router-link>
       <router-link class="nav" to = "/pc/home/myorder" >我的订单</router-link>
       <router-link class="nav" to = "/pc/personal/recharge2" >充值</router-link>
+      <a class="nav" href="https://www.baidu.com"  >百度</a>
 
     </div>
     <div style="width: 100%; " >

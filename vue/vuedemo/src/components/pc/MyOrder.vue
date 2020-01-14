@@ -609,7 +609,9 @@
           if(this.is_scroll_top){
             window.scrollTo(0,0);
           }
+
           this.replaceData()
+
           this.update_order_counts(this.cur_order_status_filter,res.data.count)
           if(res.data.previous == null){
             this.prePageShow = false;

@@ -10,21 +10,28 @@ module.exports = {
     // Paths
     assetsSubDirectory: 'static',
     assetsPublicPath: '/',
-    // proxyTable: {
-    //    '/api333':{
-    //       target: "http://pv.sohu.com/",
-    //       changeOrigin:true,
-    //       pathRewrite:{
-    //           '^/api333':''
-    //       }
-    //   }
-    // },
+    proxyTable: {
+       '/api333':{
+          target: "http://api.onebound.cn",
+          changeOrigin:true,
+          pathRewrite:{
+              '^/api333':'http://api.onebound.cn'
+          }
+      },
+      '/api444':{
+          target: "https://trade.taobao.com",
+          changeOrigin:true,
+          pathRewrite:{
+              '^/api444':'https://trade.taobao.com'
+          }
+      },
+    },
 
 
     // Various Dev Server settings
-    // host: '192.168.1.110', // can be overwritten by process.env.HOST
-    host: '172.17.1.38', // can be overwritten by process.env.HOST
-    port: 80, // can be overwritten by process.env.PORT, if port is in use, a free one will be determined
+    host: '192.168.1.110', // can be overwritten by process.env.HOST
+    // host: '172.17.1.38', // can be overwritten by process.env.HOST
+    port: 8082, // can be overwritten by process.env.PORT, if port is in use, a free one will be determined
     autoOpenBrowser: false,
     errorOverlay: true,
     notifyOnErrors: true,
