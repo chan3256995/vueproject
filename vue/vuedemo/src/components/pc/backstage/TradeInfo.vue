@@ -1,7 +1,7 @@
 <template>
     <div class="root">
       <div>
-        <input placeholder="交易号" style="width: 40%" v-model="trade_number"><button @click="filter_data({'trade_number':trade_number})">查询</button>
+        <input placeholder="交易号" style="width: 40%" v-model="query_trade_number"><button @click="filter_data({'trade_number':query_trade_number})">查询</button>
       </div>
       <div style="margin-top:0.4em; margin-bottom: 0.4em">
         <input placeholder="用户名" style="width: 10%" v-model="query_user_name2" >
@@ -73,6 +73,7 @@
       name: "TradeInfo",
       data(){
         return {
+
           // 交易来源
             trade_source_selected:{text:"全部",value:""},
             trade_type_selected:{text:"全部",value:""},

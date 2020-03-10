@@ -4,11 +4,12 @@
 
 <script>
   //后台服务器地址
+
   // const DJANGO_SERVER_BASE_URL = "http://39.96.69.115:8089"
-    const DJANGO_SERVER_BASE_URL = "http://192.168.1.110:8009"
+    const DJANGO_SERVER_BASE_URL = "http://192.168.2.110:8009"
   // 前段访问地址
   //   const VUE_REQUEST_BASE_URL = "http://17daina.com/#"
-    const VUE_REQUEST_BASE_URL = "http://192.168.1.110:8082/#"
+    const VUE_REQUEST_BASE_URL = "http://192.168.2.110:8082/#"
     export default {
      DJANGO_SERVER_BASE_URL,
      VUE_REQUEST_BASE_URL,
@@ -67,6 +68,29 @@
               {text:"已下架",value:12},
               {text:"2-5天有货",value:13},
               {text:"其他",value:14},
+            ],
+      //空包订单状态
+     NULL_ORDER_STATUS:{
+        1:'未付款',
+        2:'已付款',
+        3:'快递打印',
+        4:'已发货',
+        5:'已退款',
+      },
+ NULL_ORDER_STATUS2:{
+    '未付款': 1,
+    '已付款': 2,
+    '快递打印': 3,
+    '已发货': 4,
+    '已退款': 5,
+ },
+     NULL_ORDER_STATUS_OPTIONS:[
+              {text:"未付款",value:1},
+              {text:"已付款",value:2},
+              {text:"快递打印",value:3},
+              {text:"已发货",value:4},
+              {text:"已退款",value:5},
+
             ],
 // 订单状态
      ORDER_STATUS:{

@@ -6,6 +6,9 @@ import pRegister from '../components/pc/Register.vue'
 import pForgetPassword from '../components/pc/ForgotPassword'
 import pResetPassword from '../components/pc/ResetPassword'
 import pHome from '../components/pc/Home.vue'
+import pNullPackageHome from '../components/pc/NullPackageHome.vue'
+import pNullOrder from '../components/pc/PlaceNullOrder.vue'
+import pMyNullOrder from '../components/pc/MyNullOrder.vue'
 import ppOrder from '../components/pc/PlaceOrder.vue'
 import pMyOrder from '../components/pc/MyOrder.vue'
 import pRefundApply from '../components/pc/RefundApply'
@@ -20,6 +23,7 @@ import pbkHome from '../components/pc/backstage/Home'
 import pbkLogin from '../components/pc/backstage/Login'
 import pbkQR from '../components/pc/backstage/qrtest.vue'
 import pbkOrder from '../components/pc/backstage/Order'
+import pbkNullOrder from '../components/pc/backstage/NullOrder'
 import pbRefund from '../components/pc/backstage/Refund'
 import pbkOutPutOrdersForExcel from '../components/pc/backstage/OutPutOrderForExcel'
 import pbkExcelToString from '../components/pc/backstage/ExcelToString'
@@ -124,6 +128,25 @@ export default new VueRouter({
          },
       ]
     },
+      {
+      path: '/pc/nullPackageHome',
+      name: 'pNullPackageHome',
+      component: pNullPackageHome,
+        children: [
+           {
+            path:'/pc/nullPackageHome/pNullOrder',
+            name:'pNullOrder',
+            component:pNullOrder
+         },
+          {
+            path:'/pc/nullPackageHome/pMyNullOrder',
+            name:'pMyNullOrder',
+            component:pMyNullOrder
+         },
+        ]
+
+    },
+
 
 
 
@@ -155,6 +178,11 @@ export default new VueRouter({
           path:'/pc/back/home/order',
           name:'pbkOrder',
           component:pbkOrder
+         },        
+        {
+          path:'/pc/back/home/nullOrder',
+          name:'pbkNullOrder',
+          component:pbkNullOrder
          },
 
          {

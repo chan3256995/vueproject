@@ -18,6 +18,7 @@
     "vue": "^2.5.2",
     "vue-clipboard2": "^0.3.1",
     "vue-cookies": "^1.5.13",
+    "vue-jsonp": "^0.1.8",
     "vue-mobile-calendar": "^3.3.0",
     "vue-qart": "^2.2.0",
     "vue-qr": "^2.1.0",
@@ -26,6 +27,7 @@
     "xlsx": "^0.15.1"
   },
   "devDependencies": {
+    "ajax-hook": "^1.8.3",
     "autoprefixer": "^7.1.2",
     "babel-core": "^6.22.1",
     "babel-eslint": "^8.2.1",
@@ -52,6 +54,7 @@
     "file-loader": "^1.1.4",
     "friendly-errors-webpack-plugin": "^1.6.1",
     "html-webpack-plugin": "^2.30.1",
+    "jquery": "^3.4.1",
     "less": "^3.9.0",
     "less-loader": "^5.0.0",
     "node-notifier": "^5.1.2",

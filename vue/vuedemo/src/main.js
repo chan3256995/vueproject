@@ -19,6 +19,8 @@ import AlterGoodsBox from './utils/AlterOrderGoodsbox/OrderGoodsBox'
 import AlterOrderAddress from './utils/AlterOrderAddressbox/OrderAddressBox'
  Vue.use(AlterOrderAddress);
 
+import VueJsonp from 'vue-jsonp'
+ Vue.use(VueJsonp)
 //复制到粘贴板插件
 import VueClipboard from 'vue-clipboard2'
 VueClipboard.config.autoSetContainer = true
@@ -71,7 +73,17 @@ Vue.prototype.getLocalValue = function (name) {
     }
 };
 
-
+// Vue.http.interceptors.push((request, next)  =>{
+//
+//
+//     console.log("request",request)
+//
+//     next((response) => {
+//         console.log("response",response)
+//         return response
+//     });
+//
+// });
 new Vue({
   el: '#app',
   components: { App },

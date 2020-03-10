@@ -222,10 +222,17 @@
     import mGlobal from "../../utils/mGlobal"
     import marketData from "../../../static/marketData"
     import mtime from '../../utils/mtime.js';
+     import router from '../../../src/router'
     export default {
         name: "PlaceOrder",
       created(){
-             this.my_account = JSON.parse(this.getLocalValue("user"))
+             if(this.getLocalValue("user")!==''){
+               this.my_account = JSON.parse(this.getLocalValue("user"))
+             }else{
+                router.replace("/pc/back/Login")
+             }
+
+
              let p1 =this.load_quality_test()
              let p2 = this.load_logistics()
              let p3 =  this.load_discount_card()
@@ -819,6 +826,7 @@ console.log("tb_order_number==================--->",tb_order_number)
              this.order_obj.order_list = new_exception_order_list
            }else{
              alert("提交成功！")
+             this.order_obj.order_list = []
            }
 
 
@@ -894,40 +902,6 @@ console.log("tb_order_number==================--->",tb_order_number)
               return [goods_str,address_str];
           },
 
-         // //去除替换冗余的数据
-         // replace_redundance_str(orderStr){
-         //     while(orderStr.search("\t") !== -1){
-         //          orderStr = orderStr.replace("\t"," ");
-         //        }
-         //        while(orderStr.search(",") !== -1){
-         //          orderStr = orderStr.replace(",","，");
-         //        }
-         //         while(orderStr.search("，，") !== -1){
-         //          orderStr = orderStr.replace("，，","，");
-         //        }
-         //         while(orderStr.search("//") !== -1 ){
-         //          orderStr = orderStr.replace("//","/");
-         //        }
-         //        while(orderStr.search("  ") !== -1){
-         //          orderStr = orderStr.replace("  "," ");
-         //        }
-         //         while(orderStr.search("\n ") !== -1  ) {
-         //        orderStr = orderStr.replace("\n ", "\n");
-         //      }
-         //      while(orderStr.search(" \n") !== -1  ) {
-         //        orderStr = orderStr.replace(" \n", "\n");
-         //      }
-         //
-         //         while(orderStr.search("\n\n") !== -1) {
-         //        orderStr = orderStr.replace("\n\n", "\n");
-         //      }
-         //
-         //         while(orderStr.search("\n") !== -1) {
-         //        orderStr = orderStr.replace("\n", "@");
-         //      }
-         //    return orderStr
-         // },
-         //给出特地字符 从后面开始查找 找到就返回索引值
          get_index_for_special_chars(chars,str){
            for(let i = str.length;i--; i> -1){
                 for(let c = 0 ;c<chars.length;c++){

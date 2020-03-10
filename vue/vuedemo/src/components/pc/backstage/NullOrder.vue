@@ -12,18 +12,15 @@
           <option :value="option" v-for="(option,index) in query_by_options" :key="index">{{option.text}}</option>
         </select>
         <input v-model="name_search" width="3em" :placeholder="query_by_selected.text">
-        <input v-model="search_market_name" style="width: 5em; height: 2em ; " placeholder="市场名"/>
-        <input v-model="search_shop_floor" style="width: 5em; height: 2em ; " placeholder="楼层"/>
-        <input v-model="search_stall_no" style="width: 5em; height: 2em ; " placeholder="档口号"/>
-        <input v-model="search_art_no" style="width: 5em; height: 2em ; " placeholder="款号"/>
-        <select  v-model="goods_status_selected">
-          <option :value="goods_status_option" v-for="(goods_status_option,index) in goods_status_options" :key="index">{{goods_status_option.text}}</option>
+
+        <select  v-model="null_order_status_selected">
+          <option :value="null_order_status_option" v-for="(null_order_status_option,index) in null_order_status_options" :key="index">{{null_order_status_option.text}}</option>
       </select>
 
         <button @click='mul_condition_query()' style="margin-left: 0.5em">条件查询{{search_mul_or_order_counts}}</button>
 
       </div>
-      <div style="margin-top:0.5em" >
+      <div style="margin-top:0.5em" id="query_div2" >
         <input v-model="query_q" placeholder="订单ID，订单号，收货人名，手机号，快递单号" style="width: 30em; height: 2em ; "  /><button @click='on_orders_query({"q":query_q.trim()})' style="margin-left: 0.5em">查询</button><button style="margin-left: 0.5em" @click='on_orders_query(null,null,"search_all_order_btn")' >查询全部{{all_order_counts}}</button>
         <label style="margin-left: 0.5em">时间选择</label><input style="width: 12em" placeholder="点击选择时间" @click="calendar_show = !calendar_show" v-model="during_str">
       </div>
@@ -32,71 +29,21 @@
             <label style="margin-right: 0.2em; color:black; font-size: 1.2em">{{item.id}}</label>
             <a style="cursor:pointer; text-decoration:underline; " @click="show_user(item.order_owner)">下单人:{{item.order_owner.user_name}}</a>
               <label  class="order_label" >订单号：{{item.order_number}}</label>
-             <label   style="color:black">跟单人：</label>
-             <label v-if="item.order_follower !==null" style="color:black">{{item.order_follower.user_name}}</label>
-            <label>包裹状态：{{order_status[item.order_status]}}</label>
+              <label  class="order_label" style="color: red;" v-if="item.tb_order_number !==null && item.tb_order_number !==''" >淘宝订单号：{{item.tb_order_number}}</label>
+
               <label> {{item.consignee_name}} {{item.consignee_phone}} {{item.consignee_address}}</label>
           </div>
-          <div style="display: inline-block;width: 100%" ><button @click="item_detail_show(index,item)" style="float: right">显示/隐藏</button></div>
-          <div :class="{'refunded_style': goods.status === goods_status2['已退款'],'refunded_style input':goods.status === goods_status2['已退款'],'refunded_style button':goods.status === goods_status2['已退款'],'refunded_style select':goods.status === goods_status2['已退款']}"  class="item_goods"  v-for="(goods,index2) in item.orderGoods" v-if="item.show">
-          <div   class="order_goods_div" >
-          <table class="" >
-            <tr>
-                 <td>市场</td>
-                 <td>楼层</td>
-                 <td>档口</td>
-                 <td>款号</td>
-                  <td>颜色尺码</td>
-                 <td>价格</td>
-                 <td>件数</td>
-            </tr>
-            <tr >
-                 <td><input  v-model="goods.shop_market_name" /></td>
-                 <td><input  v-model="goods.shop_floor" /></td>
-                 <td><input  v-model="goods.shop_stalls_no"/></td>
-                 <td><input  v-model="goods.art_no"/></td>
-                 <td><input  v-model="goods.goods_color" style="width: 8em;"/></td>
-                 <td><input  v-model="goods.goods_price" type="number" /></td>
-                 <td><input  v-model="goods.goods_count" type="number" /> </td>
-                 <td><button  @click="alter_order_goods_info(goods.id,{'shop_market_name':goods.shop_market_name,
-                                                                             'shop_floor':goods.shop_floor,
-                                                                             'shop_stalls_no':goods.shop_stalls_no,
-                                                                             'art_no':goods.art_no,
-                                                                             'goods_color':goods.goods_color,
-                                                                             'goods_price':goods.goods_price,
-                                                                             'goods_count':goods.goods_count})">确定修改</button></td>
 
-            </tr>
-            </table>
-            </div>
-           <div style="float:right;margin-right: 4em">
-                         <label>{{goods.refund_apply.value}}</label>
-                         <label>{{goods.goods_price}} x {{goods.goods_count}} =  {{goods.goods_price * goods.goods_count}}元 </label>
-           </div>
-           <div>   商品状态：
-                       <select class="" v-model="goods.status">
-                            <option :value="option.value" v-for="(option,index) in goods_status_options" :key="index">{{option.text}}</option>
-                       </select>
-                        <button @click="alter_order_goods_info(goods.id,{'status':goods.status})">确定修改</button>
-                  </div>
-           <div>
-                    售后状态：
-                   <select class="" v-model="goods.refund_apply_status">
-                            <option :value="option.value" v-for="(option,index) in refund_apply_status_options" :key="index">{{option.text}}</option>
-                       </select>
-                        <button @click="alter_order_goods_info(goods.id,{'refund_apply_status':goods.refund_apply_status})">确定修改</button>
-                </div>
-           <label :class="{'color_red':goods.status !==goods_status2['已退款']}" >   下单备注：{{goods.customer_message}}</label>
-                 <label :class="{'color_red':goods.status !==goods_status2['已退款']}">   客服留言：{{goods.customer_service_message}}</label>
-                 <input   v-model="goods.customer_service_message"/>
-                 <button  @click="alter_order_goods_info(goods.id,{'customer_service_message':goods.customer_service_message})" >确定修改</button>
-           </div>
+
 
 
 
               <div>
-                <label>订单总价：{{item.orderGoodsTotalMoney}}+ {{item.logistics_fee}} + {{item.agency_fee}} + {{item.quality_testing_fee}}  =
-                              {{item.logistics_fee + item.agency_fee + item.orderGoodsTotalMoney + item.quality_testing_fee}}
+                  <label  v-if="item.tag_type ===1" style="margin-left: 0.5em;color:red;font-size: 1.4em" @click="alter_order_info(item.id,{'tag_type':null},'确定清除标记？')">⚫</label>
+                  <label >订单状态:</label>
+                  <label style="color: red">{{null_order_status[item.order_status]}}</label>
+                  <label style="margin-left: 0.5em">订单总价： {{item.logistics_fee}}
+
                 </label>
               </div>
               <div>
@@ -151,17 +98,16 @@
             query_by_options:[
               {value:"none",text:"请选择"},
               {value:"user_name",text:"下单用户名"},
-              {value:"order_follower_user_name",text:"跟单人用户名"},
+
 
             ],
-            order_status:mGlobal.ORDER_STATUS,
-            goods_status: mGlobal.GOODS_STATUS,
-            goods_status2: mGlobal.GOODS_STATUS2,
 
+
+            null_order_status:mGlobal.NULL_ORDER_STATUS,
             refund_apply_status:mGlobal.REFUND_APPLY_STATUS,
             refund_apply_status_options:mGlobal.REFUND_APPLY_TYPE_OPTIONS,
-            goods_status_options :[].concat(mGlobal.GOODS_STATUS_OPTIONS),
-            goods_status_selected :"",
+            null_order_status_options :[].concat(mGlobal.NULL_ORDER_STATUS_OPTIONS),
+            null_order_status_selected :"",
             prePageShow:true,
             nextPageShow:true,
             // 全部条件
@@ -225,7 +171,7 @@
           // 加载物流选项信息
         load_logistics(){
             let return_value = ""
-            const url  = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/trade/logistics/"
+            const url  = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/trade/nullPackageLogistics/"
            //设为true 就会带cookies 访问
            axios.defaults.withCredentials=true
             axios.get(url,
@@ -259,8 +205,8 @@
               if (this.name_search.trim() !== ""){
                 query_data[this.query_by_selected.value] = this.name_search.trim()
               }
-              if(this.goods_status_selected.text !== '全部'){
-                 query_data['status'] = this.goods_status_selected.value
+              if(this.null_order_status_selected.text !== '全部'){
+                 query_data['status'] = this.null_order_status_selected.value
               }
 
            this.on_orders_query(query_data,"search_mul_or_order_btn")
@@ -268,26 +214,8 @@
         },
 
         on_orders_query(query_data,btn_tag){
-            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/orders/"
+            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/nullOrders/"
 
-
-            // let query_data = {}
-            // if(query_by==="default"){
-            //   query_data = {'q':query_keys.trim()}
-            // }else if(query_by==="by_order_follower_user_name"){
-            //    query_data = {'order_follower_user_name':query_keys.trim()}
-            // }else if(query_by==="by_user_name"){
-            //    query_data = {'user_name':query_keys.trim()}
-            // }else if (query_by==="market_full"){
-            //
-            //   query_data={
-            //       "market_full":{
-            //       "shop_market_name":query_keys['shop_market_name'],
-            //       "shop_floor":query_keys['shop_floor'],
-            //       "shop_stalls_no":query_keys['shop_stalls_no'],
-            //       "art_no":query_keys.art_no
-            //     }
-            //   }
             // }
             if(this.during_str!==""){
               Object.assign(query_data,{"during_time":this.during_str})
@@ -296,14 +224,19 @@
             this.loadOrderPage(url,query_data,btn_tag)
           },
         on_orders_query_by_user_name(user_name){
-            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/orders/"
+            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/nullOrders/"
             let query_data = {"user_name":user_name.trim()}
             this.loadOrderPage(url,query_data)
           },
           //修改订单信息
-        alter_order_info(id,data){
+        alter_order_info(id,data,alert_message){
             console.log("订单id",id)
-          const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/orders/"+id+"/";
+          if(alert_message!==null && alert_message !== ""){
+             if(!confirm(alert_message)) {
+                return ;
+              }
+          }
+          const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/nullOrders/"+id+"/";
           axios.defaults.withCredentials=true;
            axios.put(url,data)
              .then(res=>{
@@ -318,28 +251,8 @@
           })
 
           },
-          //修改商品信息
-        alter_order_goods_info(id ,data){
-          const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/orderGoods/"+id+"/";
-          axios.defaults.withCredentials=true;
-           axios.put(url,data)
-             .then(res=>{
-               if(res.data.code === "1000"){
-               alert("修改成功")
-               }else{
-                 alert("修改失败"+res.data.message)
-               }
 
-              console.log(res.data);
-           }).catch(error =>{
-              alert("修改失败"+error)
-          })
-        },
 
-        goto_place_order_page(data){
-
-          this.$router.push({path:"/pc/home/porder",query:{data:data}})
-        },
 
         replaceData() {
             for(let i = 0;i<this.order_list.length;i++){
@@ -347,16 +260,8 @@
                let  mdate = mtime.formatDateStrFromTimeSt(item.add_time);
               console.log(mdate)
               item.add_time =mdate;
-              let orderGoodsTotalMoney = 0;
-                for(let g = 0; g < item.orderGoods.length;g++){
-                  if(item.orderGoods[g].status !== mGlobal.GOODS_STATUS2['已退款']){
 
-                     orderGoodsTotalMoney = orderGoodsTotalMoney + item.orderGoods[g].goods_price * item.orderGoods[g].goods_count
-                  }
 
-                }
-                item['orderGoodsTotalMoney'] = orderGoodsTotalMoney;
-                item['show'] = true;
             }
           },
 
@@ -440,14 +345,14 @@
         },
         init_data(){
            this.query_by_selected = this.query_by_options[0]
-           this.goods_status_options.unshift({text:"全部",value:"全部"},)
-          this.goods_status_selected = this.goods_status_options[0].value
+           this.null_order_status_options.unshift({text:"全部",value:"全部"},)
+          this.null_order_status_selected = this.null_order_status_options[0].value
         }
       },
 
       created(){
 
-          const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/orders/";
+          const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/nullOrders/";
           this.loadOrderPage(url,null,"search_all_order_btn");
           this.load_logistics();
           this.init_data()

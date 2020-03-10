@@ -10,6 +10,8 @@
       <li > <router-link class="nav"  to = "/pc/back/home/refund/" >售后订单</router-link></li>
       <li > <router-link class="nav"  to = "/pc/back/home/outPutExcel/" >导出订单</router-link></li>
       <li > <router-link class="nav"  to = "/pc/back/home/print/" >打 印</router-link></li>
+      <li > <router-link class="nav"  to = "/pc/back/home/nullOrder/" >空包订单</router-link></li>
+
       <li > <router-link class="nav"  to = "/pc/back/home/tradeInfo/" >交易信息</router-link></li>
       <li > <router-link class="nav"  to = "/pc/back/home/discountCard/" >优惠卡</router-link></li>
       <li > <router-link class="nav"  to = "/pc/back/home/userAliPayAccountInfo/" >用户认证</router-link></li>

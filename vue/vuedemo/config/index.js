@@ -19,17 +19,24 @@ module.exports = {
           }
       },
       '/api444':{
-          target: "https://trade.taobao.com",
+          target: "https://wuliu.taobao.com/user/order_list_new.htm",
           changeOrigin:true,
           pathRewrite:{
-              '^/api444':'https://trade.taobao.com'
+              '^/api444':'https://wuliu.taobao.com/user/order_list_new.htm'
+          }
+      },
+      '/api555':{
+          target: "https://www.baidu.com",
+          changeOrigin:true,
+          pathRewrite:{
+              '^/api555':'https://www.baidu.com'
           }
       },
     },
 
 
     // Various Dev Server settings
-    host: '192.168.1.110', // can be overwritten by process.env.HOST
+    host: '192.168.2.110', // can be overwritten by process.env.HOST
     // host: '172.17.1.38', // can be overwritten by process.env.HOST
     port: 8082, // can be overwritten by process.env.PORT, if port is in use, a free one will be determined
     autoOpenBrowser: false,

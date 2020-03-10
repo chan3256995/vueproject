@@ -3,7 +3,7 @@
 <div class="login">
   <button @click="test">test</button>
   <button @click="test2">test2</button>
-  <button @click="test3">test3</button>
+  <button class="test3">test3</button>
   <table style="margin: 0 auto">
     <tr>
       <td>用户名：</td>

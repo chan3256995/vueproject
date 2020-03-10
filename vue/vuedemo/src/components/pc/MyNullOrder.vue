@@ -2,7 +2,7 @@
   <div id= 'container_id' class="container">
 
     <div style="text-align: center">
-      <p style="color:red;font-size: 1.2em;padding-left: 5em"> 只有商品状态为明日有货的第二天才默认继续拿货，其余的状态要申请退款重新下单</p>
+
       <div style="width: 50% ;text-align: center;margin: 0px auto;" id="calendar" v-if="calendar_show">
           <inlineCalendar    mode="during"  :disabledDate="disabledDate"  :defaultDate="defaultDate" @change="on_calendar_change"/>
           <button @click="calendar_show = false">确定</button>
@@ -15,15 +15,14 @@
         <!--<label>时间选择</label><input @click="calendar_show = !calendar_show" v-model="during_str">-->
     </div>
     <ul  class = "status_ul" >
-      <li ><a @click="on_order_filter({'status':goods_status2['未付款']},'未付款')" :class="{status_select:cur_order_status_filter==='未付款'}">未付款{{un_pay_counts}}</a></li>
-      <li ><a @click="on_order_filter({'status':goods_status2['已付款']},'已付款')" :class="{status_select:cur_order_status_filter==='已付款'}">已付款{{is_payed_counts}}</a></li>
-      <li ><a @click="on_order_filter({'status':goods_status2['已发货']},'已发货')" :class="{status_select:cur_order_status_filter==='已发货'}">已发货{{is_delivered_counts}}</a></li>
-      <li ><a @click="on_order_filter({'status_list':goods_status2['已付款']+','+goods_status2['标签打印']+','+goods_status2['拿货中']+','+goods_status2['快递打印']+','+goods_status2['已拿货']+','+goods_status2['明日有货']+','+goods_status2['2-5天有货']+','+goods_status2['已下架']+','+goods_status2['其他']},'未发货')" :class="{status_select:cur_order_status_filter==='未发货'}">未发货 {{un_delivered_counts}}</a></li>
+      <li ><a @click="on_order_filter({'status':null_order_status2['未付款']},'未付款')" :class="{status_select:cur_order_status_filter==='未付款'}">未付款{{un_pay_counts}}</a></li>
+      <li ><a @click="on_order_filter({'status':null_order_status2['已付款']},'已付款')" :class="{status_select:cur_order_status_filter==='已付款'}">已付款{{is_payed_counts}}</a></li>
+      <li ><a @click="on_order_filter({'status':null_order_status2['已发货']},'已发货')" :class="{status_select:cur_order_status_filter==='已发货'}">已发货{{is_delivered_counts}}</a></li>
+      <li ><a @click="on_order_filter({'status_list':null_order_status2['已付款']+','+null_order_status2['快递打印']},'未发货')" :class="{status_select:cur_order_status_filter==='未发货'}">未发货 {{un_delivered_counts}}</a></li>
       <li ><a @click="on_order_filter({},'全部订单')" :class="{status_select:cur_order_status_filter==='全部订单'}">全部订单{{all_counts}}</a></li>
-      <li ><a @click="on_order_filter({'refund_apply_status':'有售后订单'},'售后订单')" :class="{status_select:cur_order_status_filter==='售后订单'}">售后订单{{refund_counts}}</a></li>
+      <li ><a @click="on_order_filter({'refund_apply_status':'退款订单'},'退款订单')" :class="{status_select:cur_order_status_filter==='退款订单'}">退款订单{{refund_counts}}</a></li>
 
-      <li style="padding-left: 1em"><input style=" width: 1.3em;height:1.5em; color:red; background: #3bb4f2" type="checkbox" v-model="is_order_by_update_time"> </li>
-      <li><label style=" font-size: 1.2em;">拿/发货时间排序</label> </li>
+
     </ul>
 
     <div style="padding-left: 3em" v-if="cur_order_status_filter==='未付款'">
@@ -41,8 +40,8 @@
                     <label  class="order_label"  style="color: red" v-if="item.tb_order_number!=='' && item.tb_order_number!==null " >淘宝订单号：{{item.tb_order_number}}</label>
                     <label> {{item.consignee_name}} {{item.consignee_phone}} {{item.consignee_address}}</label></td>
                 <td style="text-align: right ;width:20% ">
-                  <button @click="delete_order(item.order_number)" v-if="item.orderGoods[0].status == goods_status2['未付款']">删除订单</button>
-                  <a class = "refund_apply_btn"  @click="alter_address(item)"   v-if="item.orderGoods[0].status == goods_status2['未付款']" >修改地址</a>
+                  <button @click="delete_order(item.order_number)" v-if="item.order_status === null_order_status2['未付款']">删除订单</button>
+                  <a class = "refund_apply_btn" @click="apply_refund(item.id,'确定退款？')"   v-if="item.order_status === null_order_status2['已付款']" >申请退款</a>
                   <!--<a class = "refund_apply_btn"  @click="alter_address(item)"  v-if="item.is_address_alter" >修改地址</a>-->
 
                 </td>
@@ -51,48 +50,12 @@
 
           </div>
 
-              <div class="item_goods"  v-for="(goods,index2) in item.orderGoods">
-                <div style="   margin-bottom: 0.4em;">
-                  <label >商品:{{index2+1}}
-                    {{goods.shop_market_name}}_{{goods.shop_floor}}_{{goods.shop_stalls_no}}_{{goods.art_no}}_{{goods.goods_price}}元_{{goods.goods_color}}_{{goods.goods_count}}件
-                 </label>
-                  <!--<button @click="test(goods)">修改商品</button>-->
-                  <!--<a  @click="alter_goods(goods)"  style="margin-bottom: 1em" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='未付款' || goods_status[goods.status] ==='已付款' ||goods_status[goods.status] ==='明日有货' || goods_status[goods.status] ==='已下架' ||  goods_status[goods.status] ==='2-5天有货' ||  goods_status[goods.status] ==='其他' || goods_status[goods.status] ==='缺货') &&  refund_apply_status[goods.refund_apply_status] ==='无售后'">修改商品</a>-->
-                  <a  @click="alter_goods(goods)"  style="margin-bottom: 1em" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='未付款' )">修改商品</a>
-                </div>
-
-                 <div style="float:right;margin-right: 4em">
-                         <label>{{goods.refund_apply.value}}</label>
-                         <label>{{goods.goods_price}} x {{goods.goods_count}} =  {{goods.goods_price * goods.goods_count}}元 </label>
-                          <a  @click="apply_click(goods,item)" class = "refund_apply_btn" v-if="goods_status[goods.status] ==='已发货' ">申请售后</a>
-                          <!--<a  @click="apply_refund(goods.goods_number,refund_apply_type['拦截发货'],'确定拦截发货吗？申请后不能恢复发货，系统自动转为售后订单')" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='拿货中' ||  goods_status[goods.status] ==='已拿货') &&  refund_apply_status[goods.refund_apply_status] ==='无售后' ">拦截发货</a>-->
-                          <a  @click="apply_refund(goods.goods_number,refund_apply_type['仅退款'], '确定申请退款吗？')" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='2-5天有货' || goods_status[goods.status] ==='已下架' || goods_status[goods.status] ==='已下架' || goods_status[goods.status] ==='明日有货' ||  goods_status[goods.status] ==='其他' || goods_status[goods.status] ==='已付款') &&  refund_apply_status[goods.refund_apply_status] ==='无售后'">申请退款</a>
-                          <a  @click="goto_place_order_page(JSON.stringify(goods))" class = "refund_apply_btn">再次下单</a>
-                         <!--<select @change="selectVal($event,goods)" >-->
-                           <!--<option :value="option.value" v-for="(option,index) in options" :key="index">{{option.text}}</option>-->
-                         <!--</select>-->
-                </div>
-
-                  <div style="float: left" > <label style="width: 5em;float: left" >商品状态:</label>  <label style="width:3em;color: red" >{{goods_status[goods.status]}}  </label><label style="color: red" v-if="goods.log !== null && goods.log!==''">({{goods.log}})</label> </div>
-                  <div  >
-                    <label style="padding-left: 2em">售后状态:</label>
-                    <label  style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> {{refund_apply_status[goods.refund_apply_status]}}</label>
-                    <label v-if="refund_apply_status[goods.refund_apply_status]!=='无售后' && goods.refund_apply.length === 0 " style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> （已处理）</label>
-                    <label v-else-if="refund_apply_status[goods.refund_apply_status]!=='无售后' && goods.refund_apply.length >0 " style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> （处理中）</label>
-                  </div>
-                  <div v-if="goods.return_logistics_name !== null " ><label style="float: left">售后物流:</label><label  > {{goods.return_logistics_name}}:{{goods.return_logistics_number}}  </label> </div>
-                 <label style="display:block;color: red"v-if="goods.customer_message!==null && goods.customer_message!==''">  我的留言：{{goods.customer_message}}</label>
-
-                 <label style="float:none;display:block;color: red" v-if="goods.customer_service_message!==null && goods.customer_service_message!==''">   客服留言:{{goods.customer_service_message}}</label>
-
+              <div>
+                <label style="padding-left: 0.5em">订单状态：{{null_order_status[item.order_status]}} </label>
+                <label style="padding-left: 0.5em">运费：{{item.logistics_fee}} </label>
               </div>
               <div>
-                <label style="padding-left: 0.5em">订单总价：{{item.logistics_fee}} + {{item.agency_fee}}+ {{item.quality_testing_fee}}+{{item.orderGoodsTotalMoney}} =
-                              {{item.logistics_fee + item.agency_fee + item.quality_testing_fee + item.orderGoodsTotalMoney}}
-                </label>
-              </div>
-              <div>
-                <label style="display:block;padding-left: 0.5em;color:red">拿/发货时间:{{return_format_time(item.update_time)}}</label>
+
                 <label style="padding-left: 0.5em;">下单时间:{{item.add_time}}</label>
                 <label>快递：{{item.logistics_name}}</label>
                <label>单号：{{item.logistics_number}}</label>
@@ -119,7 +82,7 @@
      //设为ttrue 就会带cookies 访问
     axios.defaults.withCredentials=true;
     export default {
-        name: "MyOrder",
+        name: "MyNullOrder",
       data(){
           return{
             calendar_show:false,
@@ -156,13 +119,13 @@
             },
               refund_apply_type:mGlobal.REFUND_APPLY_TYPE,
               refund_apply_status :mGlobal.REFUND_APPLY_STATUS,
-              goods_status: mGlobal.GOODS_STATUS,
-              goods_status2: mGlobal.GOODS_STATUS2,
+              null_order_status: mGlobal.NULL_ORDER_STATUS,
+              null_order_status2: mGlobal.NULL_ORDER_STATUS2,
 
             prePageShow:true,
             nextPageShow:true,
             order_list:[],
-            firstPageUrl:this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/orders/",
+            firstPageUrl:this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/nullOrders/",
             prePageUrl:"",
             nextPageUrl:"",
           }
@@ -234,10 +197,10 @@
         calc_unpay_order_moneys(go_pay_order_list){
             // go_pay_order_list = this.get_unpay_order_list();
             let go_pay_money_totals = 0;
-            console.log(go_pay_order_list)
+
             for(let i  = 0;i<go_pay_order_list.length;i++){
-              go_pay_money_totals = go_pay_money_totals+ go_pay_order_list[i].total_price
-              console.log(go_pay_money_totals)
+              go_pay_money_totals = go_pay_money_totals+ go_pay_order_list[i].logistics_fee
+
             }
             return go_pay_money_totals
         },
@@ -250,18 +213,18 @@
             }
              for(let i = 0;i< this.order_list.length;i++){
               let is_continue = true
-              for(let g = 0 ; g< this.order_list[i].orderGoods.length;g++){
-                  if(this.order_list[i].orderGoods[g].status !== mGlobal.GOODS_STATUS2['未付款']){
-                    // 不是未付款的 跳过
-                    is_continue = false
-                  }else{
-                    console.log(is_selected)
-                    this.$delete(this.order_list[i], 'is_order_selected');
-                    this.$set(this.order_list[i], 'is_order_selected', is_selected);
+
+              if(this.order_list[i].order_status !== mGlobal.NULL_ORDER_STATUS2['未付款']){
+                // 不是未付款的 跳过
+                is_continue = false
+              }else{
+                console.log(is_selected)
+                this.$delete(this.order_list[i], 'is_order_selected');
+                this.$set(this.order_list[i], 'is_order_selected', is_selected);
 
 
-                  }
-                }
+              }
+
             }
             this.is_all_unpay_order_selected = !is_selected;
 
@@ -272,17 +235,16 @@
         get_unpay_order_list(){
             let go_pay_order_list= []
             for(let i = 0;i< this.order_list.length;i++){
-              console.log(this.order_list[i].is_order_selected)
-              let is_continue = true
+
               if(this.order_list[i].is_order_selected ===true){
-                for(let g = 0 ; g< this.order_list[i].orderGoods.length;g++){
-                  if(this.order_list[i].orderGoods[g].status !== mGlobal.GOODS_STATUS2['未付款']){
-                    is_continue = false
-                  }
+
+                if(this.order_list[i].order_status !== mGlobal.NULL_ORDER_STATUS2['未付款']){
+                  continue;
                 }
-                if(is_continue === true){
-                   go_pay_order_list.push(this.order_list[i])
-                }
+
+
+                go_pay_order_list.push(this.order_list[i])
+
 
               }
             }
@@ -357,7 +319,7 @@
                   content: '支付金额'+go_pay_money_totals+' ，账户余额'+user_balance,
                   isShowInput: true
               }).then(async (val) => {
-                   const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/ordersPay/";
+                   const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/nullOrdersPay/";
                    console.log(val)
                    if(val ==="" || typeof(val) ==="undefined"){
                      this.$toast("密码不能为空")
@@ -383,55 +345,36 @@
                   // ...
               });
           },
-// 修改订单地址
-         alter_address(order){
-            let name = order.consignee_name
-            let phone = order.consignee_phone;
-            let address_arr = order.consignee_address.split(',')
-            let province = address_arr[0]
-            let city = address_arr[1]
-            let area = address_arr[2]
-            let address_detail = address_arr[3]
-            let orderBackUp = {
-              'name':name,
-              'phone':phone,
-              'province':province,
-              'city':city,
-              'area':area,
-              'address_detail' : address_detail
+
+    apply_refund(order_id,alter_message){
+              if(!confirm(alter_message)) {
+                return ;
+              }
+              let data_ = {
+              "order_id":order_id,
             }
-            this.$orderAddressBox.showMsgBox({
-                  title: '修改商品信息',
-                  isShowInput: false,
-                  order:order,
-                  orderBackUp:orderBackUp
-              }).then(async (val) => {
+            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/nullOrderRefund/";
+            axios.post(url,data_).then((res)=>{
+             if(res.data.code === "1000"){
+               this.$toast("提交成功");
 
-                   // axios.post(url,data).then((res)=>{)
-                   // if(res.data.code === "1000"){
-                   //      this.$toast("支付成功")
-                   //     this.refresh_cur_page();
-                   // }else if(res.data.code === "1001"){
-                   //     console.log("支付失败")
-                   //    alert(res.data.message+" 请刷新")
-                   //   return false
-                   // }
-                   //  }).catch(error => {
-                   //       alert("提交失败")
-                   //  })
+                this.refresh_cur_page();
+             }else if(res.data.code === "1001"){
+                alert(res.data.message+" 请刷新")
+             }
+          }).catch(error => {
+               alert("提交失败")
+          })
 
-              }).catch(() => {
-                  // ...
-              });
-      },
 
+       },
 
           // 删除订单(未付款订单)
           delete_order(order_number){
               if(!confirm("确定删除订单吗？删除后不可恢复。")) {
                 return ;
               }
-            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/orders/"+order_number+"/";
+            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/nullOrders/"+order_number+"/";
             axios.delete(url).then((res)=>{
              if(res.data.code === "1000"){
                alert("删除订单成功")
@@ -457,7 +400,7 @@
             this.cur_order_status_filter = btn_tag
 
             this.order_list = []
-            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/orders/";
+            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/nullOrders/";
 
             this.loadOrderPage(url,query_data)
           },
@@ -466,42 +409,13 @@
            on_orders_query(query_keys){
 
              console.log(query_keys)
-            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/orders/";
+            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/nullOrders/";
             let query_data = {"q":query_keys.trim()};
             this.loadOrderPage(url,query_data)
           },
-            apply_refund(goods_number, refund_apply_type,alter_message){
-
-
-              if(!confirm(alter_message)) {
-                return ;
-              }
-              let data_ = {
-              "goods_number":goods_number,
-              "refund_apply_type":refund_apply_type,
-            }
-              if (refund_apply_type === mGlobal.REFUND_APPLY_TYPE["拦截发货"]){
-                  this.to_stop_deliver(data_)
-              }else{
-
-                const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/refundApply/";
-                axios.post(url,data_).then((res)=>{
-                 if(res.data.code === "1000"){
-                   this.$toast("提交成功");
-                   console.log("提交成功")
-                    this.refresh_cur_page();
-                 }else if(res.data.code === "1001"){
-                    alert(res.data.message+" 请刷新")
-                 }
-            }).catch(error => {
-                 alert("提交失败")
-            })
-              }
-
-       },
 
         //刷新当前页面
-        refresh_cur_page(goods_status){
+        refresh_cur_page(null_order_status){
               let cur_page_url = "";
               let cur_page_num ;
 
@@ -521,18 +435,18 @@
                let  cur_page_num = parseInt(pre_page_num)-1;
                cur_page_url = base_url+"page="+cur_page_num;
             }else{
-                cur_page_url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/orders/";
+                cur_page_url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/nullOrders/";
             }
 
             let query_data =""
             if(this.cur_order_status_filter!==""){
                 if(this.cur_order_status_filter ==="未付款"){
 
-                  query_data = {"status":this.goods_status2["未付款"]}
+                  query_data = {"status":this.null_order_status2["未付款"]}
                 }else if(this.cur_order_status_filter ==="已发货"){
-                  query_data = {"status":this.goods_status2["已发货"]}
+                  query_data = {"status":this.null_order_status2["已发货"]}
                 }else if(this.cur_order_status_filter ==="已付款"){
-                  query_data = {"status":this.goods_status2["已付款"]}
+                  query_data = {"status":this.null_order_status2["已付款"]}
                 }else if(this.cur_order_status_filter ==="全部订单"){
 
                 }
@@ -540,17 +454,8 @@
 
              this.loadOrderPage(cur_page_url,query_data);
         },
-        goto_place_order_page(data){
 
-          this.$router.push({path:"/pc/home/porder",query:{data:data}})
-        },
 
-        apply_click(goods,order){
-
-              // this.$router.push({path:"/pc/refund",query:{goods:goods,order:order}})
-               //传参传对象当跳转后的页面刷新参数会丢失 用字符串传不会丢失
-              this.$router.push({path:"/pc/refund",query:{order_goods_id:goods.id,order:JSON.stringify(order)}})
-        },
 
           replaceData() {
             for(let i = 0;i<this.order_list.length;i++){
@@ -559,23 +464,11 @@
               console.log(mdate)
               item.add_time =mdate;
               let is_address_alter = true
-              let orderGoodsTotalMoney = 0;
-                for(let g = 0; g < item.orderGoods.length;g++){
-                   if(item.orderGoods[g].status !== mGlobal.GOODS_STATUS2['已退款']){
-                    orderGoodsTotalMoney = orderGoodsTotalMoney + item.orderGoods[g].goods_price * item.orderGoods[g].goods_count
-                  }
 
-                }
 
-                for(let g = 0; g < item.orderGoods.length;g++){
-                     if(item.orderGoods[g].status !== this.goods_status2['已付款'] && item.orderGoods[g].status !== this.goods_status2['未付款']){
-                      is_address_alter = false
-                       break;
-                    }
-                }
-                item['orderGoodsTotalMoney'] = orderGoodsTotalMoney
-                item['is_order_selected'] = false
-                item['is_address_alter'] = is_address_alter
+
+              item['is_order_selected'] = false
+              item['is_address_alter'] = is_address_alter
             }
           },
 
@@ -646,7 +539,7 @@
                    this.un_delivered_counts = counts
                 }else if(this.cur_order_status_filter ==="全部订单"){
                   this.all_counts = counts
-                }else if(this.cur_order_status_filter ==="售后订单"){
+                }else if(this.cur_order_status_filter ==="退款订单"){
                   this.refund_counts = counts
                 }
         },
@@ -664,7 +557,7 @@
       },
       created(){
           // const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/orders/?access_token="+this.$cookies.get("access_token");
-          const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/orders/"
+          const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/nullOrders/"
           this.loadOrderPage(url);
       },
       mount(){
