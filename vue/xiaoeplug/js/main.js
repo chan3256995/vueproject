@@ -1,16 +1,307 @@
 var curLocation = window.location.href.toString();
-var daifa_vue_url = "http://192.168.1.110:8082";
-if (curLocation.indexOf("list_sold_items.htm") != -1) {}
+var daifa_vue_url = "http://192.168.2.110:8082";
+
+if(curLocation.indexOf("/pc/home")!==-1) {
+    window.onload = function () {
+
+        $(".tb_order").click(function () {
+
+          let text =  $(".tb_order").text();
+            $(".tb_order").text("正在同步淘宝订单...")
+            $(".tb_order").attr("disabled",true)
+            $(".tb_order").css("color","grey")
+
+             setTimeout(function(){
+                   chrome.runtime.sendMessage({ method:'get_order_from_tb'},function(response) {
+                         $(".tb_order").text(text)
+                        $(".tb_order").attr("disabled",false)
+                       $(".tb_order").css("color","black")
+                   console.log("response8888888888888",response)
+                    let order_page = JSON.parse(response)
+                    let is_success = order_page.is_success
+                    let message = order_page.message
+                    if(is_success===false && message==="go_to_login_tb"){
+                        window.open("https://login.taobao.com/");
+                        return
+                    }
+                    let order_list = order_page.result
+                    let tb_order_number_list = []
+
+                   for(let i = 0;i<order_list.length;i++){
+                      let  tb_order_number = order_list[i].tb_order_number
+                      tb_order_number_list.push(tb_order_number)
+                   }
+                   chrome.runtime.sendMessage({order_number_list: JSON.stringify(tb_order_number_list),method:'get_orders2'},function(response) {
+
+                   let response_order_list = JSON.parse(response)
+                   let new_order_list = []
+                   console.log("order_list:",order_list)
+                   console.log("response_order_list:",response_order_list)
+                   for(let i = 0;i<order_list.length;i++){
+                       let is_exits = false
+                       for(let g = 0 ;g<response_order_list.length;g++){
+                           if (order_list[i].tb_order_number === response_order_list[g].tb_order_number){
+                               is_exits = true
+                                break
+                           }
+                       }
+                       if(!is_exits){
+                           new_order_list.push(order_list[i])
+                       }
+
+
+                   }
+                   if(!confirm("共 "+new_order_list.length+" 单，确定跳转下单？")) {
+                     return ;
+                   }
+                   window.open(daifa_vue_url+"/#/pc/home/porder/?plug_order_data="+JSON.stringify(new_order_list));
+
+	                });
+              })
+          },2000)
+
+        })
+        $(".tb_order").css({'display':'inline' });
+    }
+}
+if(curLocation.indexOf("main.m.taobao.com/mytaobao/index.html")!==-1){
+    window.onload=function(){
+       set_timeout()
+    }
+}
+function get_my_order_div(){
+
+    return $(".main-layout").children("div:eq(1)")
+}
+function set_timeout(){
+    setTimeout(function () {
+    if(get_my_order_div().length !==0){
+        get_my_order_div().after(" <button style=' background: #3bb4f2; border-color: #3bb4f2;color:white ;padding: 0.2em;border-radius: 4px;' class='tb_logout'  >退出登录</button> ")
+        get_my_order_div().after(" <button style=' background: #3bb4f2; border-color: #3bb4f2;color:white ;padding: 0.2em;border-radius: 4px;' class='synchronization_all_order_to17'  >同步所有订单到17代发网</button> ")
+         let request_url = "https://wuliu.taobao.com/user/order_list_new.htm"
+        $(".tb_logout").click(function () {
+             chrome.runtime.sendMessage({order_number_list: "",method:'remove_cookies'},function(response) {
+             location.reload()
+	    });
+
+        })
+         $(".synchronization_all_order_to17").click(function () {
+
+
+         $($(".synchronization_all_order_to17")[0]).attr("disabled",true) ;
+          setTimeout(function(){
+               let order_page = get_all_page_order_from_tb()
+
+               let order_list =  order_page.result
+               let tb_order_number_list = []
+
+                for(let i = 0;i<order_list.length;i++){
+                    let  tb_order_number = order_list[i].tb_order_number
+                    tb_order_number_list.push(tb_order_number)
+                }
+                //*********
+               chrome.runtime.sendMessage({order_number_list: JSON.stringify(tb_order_number_list),method:'get_orders2'},function(response) {
+                   console.log("response",response)
+               let response_order_list = JSON.parse(response)
+               let new_order_list = []
+                   console.log("order_list:",order_list)
+                   console.log("response_order_list:",response_order_list)
+                   for(let i = 0;i<order_list.length;i++){
+                       let is_exits = false
+                       for(let g = 0 ;g<response_order_list.length;g++){
+                           if (order_list[i].tb_order_number === response_order_list[g].tb_order_number){
+                               is_exits = true
+                                break
+                           }
+                       }
+                       if(!is_exits){
+                           new_order_list.push(order_list[i])
+                       }
+
+
+                   }
+                 if(!confirm("共 "+new_order_list.length+" 单，确定跳转下单？")) {
+                    return ;
+                }
+               window.open(daifa_vue_url+"/#/pc/home/porder/?plug_order_data="+JSON.stringify(new_order_list));
+
+	    });
+
+               $($(".synchronization_all_order_to17")[0]).attr("disabled",false) ;
+          },500)
+
+         })
+    }else{
+        set_timeout()
+    }
+
+}, 1000);
+}
+function get_page_order_from_tb(page_number,page_counts){
+
+    if(page_number === undefined || page_number === null){
+        page_number = 1
+    }
+    if(page_counts === undefined ||  page_counts === null){
+        page_counts = 1
+    }
+    let request_url = "https://wuliu.taobao.com/user/order_list_new.htm"
+    let parms = {
+                 "source":"",
+                 "callUrl":"",
+                 // "_tb_token_":"ffe0157689337",
+                 "orderStatusShow" :"send",
+                 "receiverName" :"",
+                 "receiverWangWangId":"" ,
+                 "beginDate" :"",
+                 "endDate" :"",
+                 "taobaoTradeId" :"",
+                 "shipping2":"-1",
+                 "orderType":"-1",
+                 "orderSource":"0",
+                 "currentPage" :page_number,
+
+             }
+    let  return_data = null
+    $.ajax({
+            async : false,
+            url :request_url,
+            type : "POST",
+            // dataType : 'json',
+            data : parms,
+            timeout : 5000,
+            success : function(result) {
+                    console.log("result777777777777777",result)
+                    let html = result.substring(result.indexOf("<html>"),result.indexOf("</html>")+7)
+                         html = $.parseHTML(html)
+                     if(page_number===1){
+                          let dom = html
+                          let page_dom = $(dom).find(".page-top")[0]
+                          let  papge_a = $(page_dom).find("a")
+                          papge_a.each(function () {
+                          if(!isNaN($(this).text())){
+                            page_counts = $(this).text()
+                        }
+                    })
+                     }
+                    result = get_order_goods_str_from_elems(html)
+
+
+                    $(html).find(".J_Trigger").each(function () {
+                        // console.log("11",$(this))
+
+                    })
+                    console.log("page_number",page_number)
+                    console.log("page_counts99999999",page_counts)
+                     return_data =  {
+                         "result":result,
+                         "page_number":page_number,
+                         "page_counts":page_counts
+                     }
+
+
+            },
+            error:function (err) {
+                console.log("错了:" + err);
+                console.log("错了:" + JSON.stringify(err));
+                return null
+            }
+        });
+
+
+     return return_data
+}
+function get_all_page_order_from_tb(){
+
+         let order_list = []
+         let order_page = null
+
+          order_page = get_page_order_from_tb()
+          console.log("oooooooooooooooooooo",order_page)
+          let order_page_result = order_page.result;
+
+         order_list = order_list.concat(order_page_result)
+         let page_numb =order_page.page_number
+         let page_counts = order_page.page_counts
+         console.log("page_numb1",page_numb)
+         console.log("page_counts1",page_counts)
+         while(page_numb < page_counts){
+                console.log("page_numb",page_numb)
+                console.log("page_counts",page_counts)
+                  order_page = get_page_order_from_tb(page_numb+1,page_counts)
+                 console.log("order_page",order_page_result)
+                 page_numb =order_page.page_number
+                 page_counts = order_page.page_counts
+                 order_list = order_list.concat(order_page.result)
+         }
+
+
+          return  order_list
+
+}
+
 //已卖列表
 if (curLocation.indexOf("trade.taobao.com/trade/itemlist/list_sold_items.htm") != -1) {
     window.onload=function() {   //此处为是否加载完成
         let tb_order_number_list = []
+        if( $("span:contains(三个月前订单)").length !==0){
+        let three_months_div =  $("span:contains(三个月前订单)")[0].parentNode
+            $(three_months_div).after(" <button  style=' background: #3bb4f2; border-color: #3bb4f2;color:white ;padding: 0.2em;border-radius: 4px;' class='synchronization_all_order_to17'  >同步所有订单到17代发网</button> ")
+         let request_url = "https://wuliu.taobao.com/user/order_list_new.htm"
+
+         $(".synchronization_all_order_to17").click(function () {
+
+
+         $($(".synchronization_all_order_to17")[0]).attr("disabled",true) ;
+         $($(".synchronization_all_order_to17")[0]).css({'background':'grey', 'border-color': 'grey'});
+          setTimeout(function(){
+              let order_list = get_all_page_order_from_tb()
+
+               let tb_order_number_list = []
+
+                for(let i = 0;i<order_list.length;i++){
+                    let  tb_order_number = order_list[i].tb_order_number
+                    tb_order_number_list.push(tb_order_number)
+                }
+               chrome.runtime.sendMessage({order_number_list: JSON.stringify(tb_order_number_list),method:'get_orders2'},function(response) {
+                   console.log("response",response)
+               let response_order_list = JSON.parse(response)
+               let new_order_list = []
+                   console.log("order_list:",order_list)
+                   console.log("response_order_list:",response_order_list)
+                   for(let i = 0;i<order_list.length;i++){
+                       let is_exits = false
+                       for(let g = 0 ;g<response_order_list.length;g++){
+                           if (order_list[i].tb_order_number === response_order_list[g].tb_order_number){
+                               is_exits = true
+                                break
+                           }
+                       }
+                       if(!is_exits){
+                           new_order_list.push(order_list[i])
+                       }
+
+
+                   }
+                 if(!confirm("共 "+new_order_list.length+" 单，确定跳转下单？")) {
+                    return ;
+                }
+               window.open(daifa_vue_url+"/#/pc/home/porder/?plug_order_data="+JSON.stringify(new_order_list));
+
+	    });
+
+               $($(".synchronization_all_order_to17")[0]).attr("disabled",false) ;
+                $($(".synchronization_all_order_to17")[0]).css({'background':'#3bb4f2', 'border-color': '#3bb4f2'});
+          },500)
+
+         })
+     }
         $(".trade-order-main").each(function(){
             var tb_order_number=$(this).find("tr:eq(0)").find("td:eq(0)").find("span:eq(2)").text();
             var status=$(this).find("tr:eq(1)").find("td:eq(5)").find("span").text();
             var e = $(this).find("table:last");
               
-                tb_order_number_list.push(tb_order_number)
+             tb_order_number_list.push(tb_order_number)
 
         })
  
@@ -116,16 +407,103 @@ if(curLocation.indexOf("wuliu.taobao.com/user/batch_consign.htm") !== -1){
 	    });
     }
 }
+function get_order_goods_str_from_elems(elems){
+     if( $(elems).find("label:contains(尺码：)").length !==0){
+         $(elems).find("label:contains(尺码：)").next().addClass("17_size");
+     }
+     if(  $(elems).find("label:contains(尺寸：)").length !==0){
+         $(elems).find("label:contains(尺寸：)").next().addClass("17_size");
+     }
+      var order_list = []
+    $(elems).find(".info").not(".msg").each(function() {
+        var tbody_elems = $(this).parents("tbody");
+
+        var orderdetail_size = tbody_elems.find(".orderdetail").size();
+        var m = "";
+        var total = "";
+
+        var order_goods_list=[]
+        for (var i = 0; i <= orderdetail_size - 1; i++) {
+
+            var order_goods_obj = {}
+            m = "";
+
+            m+= '"img":"'+tbody_elems.find("img:eq("+i+")").attr("src")+'",';
+            order_goods_obj['img'] = tbody_elems.find("img:eq("+i+")").attr("src")
+
+            total = tbody_elems.find(".total:eq(" + i + ")").text().toString().trim();
+            total = total.substring(total.indexOf("×") + 1).trim();
+            order_goods_obj['total'] = total
+
+            if (tbody_elems.find(".desc:eq(" + i + ")").length != 0) {
+                m += '"code":"' + tbody_elems.find(".desc:eq(" + i + ")").attr("title")+'",';
+                order_goods_obj['code'] = tbody_elems.find(".desc:eq(" + i + ")").attr("title")
+            }
+
+
+            if (tbody_elems.find(".17_size:eq(" + i + ")").length != 0) {
+                m += '"size":"' + tbody_elems.find(".17_size:eq(" + i + ")").text().toString() + '",';
+                order_goods_obj['size'] = tbody_elems.find(".17_size:eq(" + i + ")").text().toString()
+            }
+            if (tbody_elems.find(".17_color:eq(" + i + ")").length != 0) {
+                m += '"color":"' + tbody_elems.find(".17_color:eq(" + i + ")").text().toString() + '",';
+                order_goods_obj['color'] = tbody_elems.find(".17_color:eq(" + i + ")").text().toString()
+            }
+            m += '"total":"' + total + '"';
+            order_goods_list.push(order_goods_obj)
+
+
+        }
+        var order_goods_list_str = JSON.stringify(order_goods_list)
+
+        var order_obj = new Object();
+        var c = new Array();
+        var f = tbody_elems
+
+        f.find(".info").children("span").not(".j_telephone,.j_mobilePhone").remove();
+        var l = f.find(".info").text().toString().trim("	");
+        //console.log(l);
+        var g = l.split("，");
+        var b = g[g.length - 2].trim();//name
+        var m = g[0].trim();
+        var h = g[g.length - 1].trim();//phone
+
+        order_obj['name'] = b;
+        order_obj['address']  = m;
+        order_obj['phone'] = h;
+
+        // d.postscript = f.find("span.postscript").text().trim(" ");
+       order_obj['tb_order_number'] = f.find("span.order-number").text().replace("订单编号：",'').trim();
+       var new_goods_str_list = []
+       for (var x = 0; x < order_goods_list.length; x++) {
+        var order_goods = new Object()
+
+
+        order_goods['code'] =  typeof order_goods_list[x].code === "undefined" ? "" :order_goods_list[x].code.replace("#","^^^")
+        order_goods['img']= typeof order_goods_list[x].img === "undefined" ? "" : order_goods_list[x].img;
+        order_goods['size']= typeof order_goods_list[x].size === "undefined" ? "" : order_goods_list[x].size
+        order_goods['color']= typeof order_goods_list[x].color === "undefined" ? "" : order_goods_list[x].color;
+        order_goods['count']= typeof order_goods_list[x].total === "undefined" ? "" : order_goods_list[x].total;
+        new_goods_str_list.push(order_goods)
+    // d.goodinfo[x] = ordergoodslist[x];
+
+    }
+
+        order_obj['order_goods_list']=new_goods_str_list
+        order_list.push(order_obj)
+
+    })
+    return order_list
+}
 function my_functon(){
 alert("my_functon666666")
 
 
 }
 function init_daifa_elems() {
+    $("input[value='批量打印运单']").after(" <input type='button' class='synchronization_all_order_to17'  value='同步所有订单到17代发网'>");
     $("input[value='批量打印运单']").after(" <input type='button' class='daifa_17'  value='17批量代发'>");
-
      if( $("label:contains(尺码：)").length !==0){
-
          $("label:contains(尺码：)").next().addClass("17_size");
      }
 
@@ -139,7 +517,7 @@ function init_daifa_elems() {
      $(".info.msg").each(function() {
         $(this).remove();
     });
-        $(".info").not(".msg").each(function() {
+     $(".info").not(".msg").each(function() {
         var tbody_elems = $(this).parents("tbody");
         var orderdetail_size = tbody_elems.find(".orderdetail").size();
         var m = "";
@@ -184,7 +562,7 @@ function init_daifa_elems() {
 
      });
 
-        $("a.btn:contains('17代发')").click(function() {
+     $("a.btn:contains('17代发')").click(function() {
                      // var xmlHttp = new XMLHttpRequest();
                      //    xmlHttp.open("GET", daifa_vue_url+"/#/pc/home/porder", true);
                      //    xmlHttp.send();
@@ -335,7 +713,60 @@ chrome.runtime.sendMessage({greeting: m},function(response) {
         // $(".subdaifapl").submit();
         //$(".subdaifapl").empty();
     });
+        $(".synchronization_all_order_to17").click(function () {
+            let request_url = "https://wuliu.taobao.com/user/order_list_new.htm"
+            let parms = "" +
+                 "source:\n" +
+                 "callUrl:\n" +
+                 "_tb_token_:ffe0157689337\n" +
+                 "orderStatusShow:send\n" +
+                 "receiverName:\n" +
+                 "receiverWangWangId:\n" +
+                 "beginDate:\n" +
+                 "endDate:\n" +
+                 "taobaoTradeId:\n" +
+                 "shipping2:-1\n" +
+                 "orderType:-1\n" +
+                 "orderSource:0\n" +
+                 "currentPage:2\n" +
+                 "currentPage:2"
+             parms = {
+                 "source":"",
+                 "callUrl":"",
+                 // "_tb_token_":"ffe0157689337",
+                 "orderStatusShow" :"send",
+                 "receiverName" :"",
+                 "receiverWangWangId":"" ,
+                 "beginDate" :"",
+                 "endDate" :"",
+                 "taobaoTradeId" :"",
+                 "shipping2":"-1",
+                 "orderType":"-1",
+                 "orderSource":"0",
+                 "currentPage" :"2",
 
+             }
+
+		   $.ajax({
+            async : false,
+            url :request_url,
+              xhrFields: {
+       withCredentials: false,
+    },
+            type : "POST",
+            // dataType : 'json',
+            data : parms,
+            timeout : 5000,
+            success : function(result) {
+                 // sendResponse(JSON.stringify(result));
+                    console.log(result)
+            },
+            error:function (err) {
+                console.log("错了:" + err);
+            }
+        });
+
+         })
 
 
 }
