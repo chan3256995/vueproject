@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <form method="post" action="./KB_Add.aspx" id="form1" enctype="multipart/form-data">
+
+
+
+
+
+        <div class="vipmain">
+
+            <div class="vipright">
+
+    <div class="importdiv">
+        批量文本导入
+        <table class="searchtable">
+            <tbody><tr>
+                <th>选择快递：</th>
+                <td>
+
+                    <select name="ctl00$ContentPlaceHolder1$ddlExpress01" id="ContentPlaceHolder1_ddlExpress01" class="serachinput">
+	<option value="18">韵达空包（贴信封无需签收）2.3元</option>
+	<option value="15">圆通（包洗衣粉）4.5元</option>
+	<option value="16">中通（包洗粉）5元</option>
+
+</select>
+                </td>
+            </tr>
+            <tr>
+                <th>打印备注：</th>
+                <td>
+                    <input name="ctl00$ContentPlaceHolder1$txtRemark01" type="text" value="121" id="ContentPlaceHolder1_txtRemark01" class="serachinput" style="width:596px;">
+                    &nbsp;</td>
+            </tr>
+            <tr>
+                <th></th>
+                <td>一行一个地址，地址格式：姓名 手机号 地址<br>
+                    如：张三，15888886666，广东省 广州市 白云区 XX路XX号</td>
+            </tr>
+            <tr>
+                <th>&nbsp;</th>
+                <td>
+                    <textarea name="ctl00$ContentPlaceHolder1$txtAddressList" rows="2" cols="20" id="ContentPlaceHolder1_txtAddressList" class="serachinput" style="height:259px;width:607px;">
+                        张三2，15888886666，广东省 广州市 白云区 XX路XX号
+                    </textarea>
+                </td>
+            </tr>
+            <tr>
+                <th>&nbsp;</th>
+                <td>
+                    <input type="submit" name="ctl00$ContentPlaceHolder1$btnPLTextAdd" value="提交订单" id="ContentPlaceHolder1_btnPLTextAdd" class="commonbtn">
+                </td>
+            </tr>
+        </tbody></table>
+    </div>
+
+
+            </div>
+
+            <div style="clear: both; height: 0px;"></div>
+        </div>
+
+
+
+
+    </form>
+
+
+</body>
+</html>
