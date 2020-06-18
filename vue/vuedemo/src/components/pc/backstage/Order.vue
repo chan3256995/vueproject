@@ -1,5 +1,6 @@
 <template>
   <div class="container">
+    <input v-show="false" id="order_item_cache" v-bind:value="select_order_item_cache"/>
     <ul class = "items_ul">
       <div style="width: 50% ;text-align: center;margin: 0px auto;" id="calendar" v-if="calendar_show">
           <inlineCalendar    mode="during"  :disabledDate="disabledDate"  :defaultDate="defaultDate" @change="on_calendar_change"/>
@@ -23,12 +24,15 @@
         <button @click='mul_condition_query()' style="margin-left: 0.5em">条件查询{{search_mul_or_order_counts}}</button>
 
       </div>
-      <div style="margin-top:0.5em" >
+      <div id = "query_div2" style="margin-top:0.5em" >
         <input v-model="query_q" placeholder="订单ID，订单号，收货人名，手机号，快递单号" style="width: 30em; height: 2em ; "  /><button @click='on_orders_query({"q":query_q.trim()})' style="margin-left: 0.5em">查询</button><button style="margin-left: 0.5em" @click='on_orders_query(null,null,"search_all_order_btn")' >查询全部{{all_order_counts}}</button>
         <label style="margin-left: 0.5em">时间选择</label><input style="width: 12em" placeholder="点击选择时间" @click="calendar_show = !calendar_show" v-model="during_str">
       </div>
+      <div > <button style="margin-top: 1.5em" @click="select_all(is_all_order_selected)">全选</button></div>
         <li class="item_order" v-for="(item,index) in order_list" :key="index">
           <div  class="order_div" >
+            <input style="width: 1.5em; height: 1.5em " @change="checkbox_change(index,item)" type="checkbox" v-model="item.is_checked" >
+            <label  v-if="item.tag_type ===1" style="margin-left: 0.5em;color:red;font-size: 1.4em" @click="alter_order_info(item.id,{'tag_type':null},'确定清除标记？')">⚫</label>
             <label style="margin-right: 0.2em; color:black; font-size: 1.2em">{{item.id}}</label>
             <a style="cursor:pointer; text-decoration:underline; " @click="show_user(item.order_owner)">下单人:{{item.order_owner.user_name}}</a>
               <label  class="order_label" >订单号：{{item.order_number}}</label>
@@ -42,6 +46,7 @@
           <div   class="order_goods_div" >
           <table class="" >
             <tr>
+                <td>{{goods.id}}</td>
                  <td>市场</td>
                  <td>楼层</td>
                  <td>档口</td>
@@ -50,7 +55,7 @@
                  <td>价格</td>
                  <td>件数</td>
             </tr>
-            <tr >
+            <tr ><td></td>
                  <td><input  v-model="goods.shop_market_name" /></td>
                  <td><input  v-model="goods.shop_floor" /></td>
                  <td><input  v-model="goods.shop_stalls_no"/></td>
@@ -141,7 +146,8 @@
             defaultDate:[],
             disabledDate:[],
             during_str:"",
-
+            selected_order_list:[],
+            select_order_item_cache :[],
             search_market_name:"",
             search_shop_floor:"",
             search_stall_no:"",
@@ -172,6 +178,7 @@
             // 总页数
             page_counts : 0,
             order_list:[],
+            is_all_order_selected:false,
             cur_page_url:"",
             cur_page_number:0,
             prePageUrl:"",
@@ -207,6 +214,16 @@
             return parseInt(counts/10) +1
           }
 
+        },
+        checkbox_change(index,item){
+               this.selected_order_list = []
+               for(let i = 0;i< this.order_list.length;i++){
+               if(this.order_list[i].is_checked  === true){
+                  this.selected_order_list.push(this.order_list[i])
+                  }
+                }
+                console.log("selected_order_list",this.selected_order_list)
+                this.select_order_item_cache = JSON.stringify(this.selected_order_list)
         },
           // 显示用户信息
         show_user(user){
@@ -301,8 +318,12 @@
             this.loadOrderPage(url,query_data)
           },
           //修改订单信息
-        alter_order_info(id,data){
-            console.log("订单id",id)
+        alter_order_info(id,data,alert_message){
+          if(alert_message!==null && alert_message !== ""){
+             if(!confirm(alert_message)) {
+                return ;
+              }
+          }
           const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/orders/"+id+"/";
           axios.defaults.withCredentials=true;
            axios.put(url,data)
@@ -341,12 +362,25 @@
           this.$router.push({path:"/pc/home/porder",query:{data:data}})
         },
 
+        select_all(){
+            console.log("777777777")
+            for(let i = 0;i<this.order_list.length;i++){
+              console.log("999999999999999999999")
+              console.log(this.order_list[i].is_checked)
+
+              this.$delete(this.order_list[i],'is_checked');
+              this.$set(this.order_list[i], 'is_checked', !this.is_all_order_selected);
+
+            }
+            this.is_all_order_selected = !this.is_all_order_selected
+          },
         replaceData() {
             for(let i = 0;i<this.order_list.length;i++){
               let item =  this.order_list[i];
                let  mdate = mtime.formatDateStrFromTimeSt(item.add_time);
               console.log(mdate)
               item.add_time =mdate;
+              item['is_checked'] = false;
               let orderGoodsTotalMoney = 0;
                 for(let g = 0; g < item.orderGoods.length;g++){
                   if(item.orderGoods[g].status !== mGlobal.GOODS_STATUS2['已退款']){
@@ -460,7 +494,7 @@
 <style lang="less" scoped>
   .item_order{
     background: #f0f0f0;
-    margin-top: 3em;
+    margin-bottom: 1.5em;
     border-top:1px solid gray;
   }
 .items_ul li{

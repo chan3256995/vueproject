@@ -240,7 +240,7 @@
     let goods_str_list = [];
 
     while(this.isfind_market(tem_goods_str,this.market_name_list,0)!==""){
-           let reg = /[-, /#.，@]{2}/;//括号中的字符出现两个 就匹配出来替换掉
+           let reg = /[-, _/#.，@]{2}/;//括号中的字符出现两个 就匹配出来替换掉
            while(tem_goods_str.match(reg)){
                   let result =  tem_goods_str.match(reg);
                   tem_goods_str = tem_goods_str.replace(result[0],"，")

@@ -77,7 +77,7 @@
         4:'已发货',
         5:'已退款',
       },
- NULL_ORDER_STATUS2:{
+     NULL_ORDER_STATUS2:{
     '未付款': 1,
     '已付款': 2,
     '快递打印': 3,
@@ -181,6 +181,32 @@
             // { text: '仅退款' ,value:2},
             // { text: '换货' ,value:3},
       ],
+       REFUND_APPLY_REASON_TYPE:{
+          "其他":0,
+          "质量问题":1,
+          "尺码发错":2,
+          "颜色发错":3,
+          "款式发错":4,
+      },
+      // 售后原因
+       REFUND_APPLY_REASON_TYPE_OPTIONS:[
+            { text: '其他',value:0},
+            { text: '质量问题' ,value:1},
+            { text: '尺码发错' ,value:2},
+            { text: '颜色发错' ,value:3},
+            { text: '款式发错' ,value:4},
+      ],
+
+      //售后进度
+      REFUND_APPLY_PROGRESS :{
+    0:'未处理',
+    1:'已退款(仅退款)',
+    2:'已退货退款',
+    3:'拒绝退款',
+    4:'仓库已收到退件',
+    5:'拦截中',
+
+}
     }
 </script>
 

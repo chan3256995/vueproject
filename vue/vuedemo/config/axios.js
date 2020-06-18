@@ -22,7 +22,7 @@ axios.interceptors.request.use(function (config) {
           }
         }else{
           if(config.url.search("access_token") === -1){
-            // config.url = config.url+"?access_token="+VueCookies.get("access_token")
+            config.url = config.url+"?access_token="+VueCookies.get("access_token")
           }
 
         }

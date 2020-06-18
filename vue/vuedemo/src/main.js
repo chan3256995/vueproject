@@ -19,6 +19,9 @@ import AlterGoodsBox from './utils/AlterOrderGoodsbox/OrderGoodsBox'
 import AlterOrderAddress from './utils/AlterOrderAddressbox/OrderAddressBox'
  Vue.use(AlterOrderAddress);
 
+import AlterOrderRemarks from './utils/AlterOrderRemarksBox/OrderRemarksBox'
+ Vue.use(AlterOrderRemarks);
+
 import VueJsonp from 'vue-jsonp'
  Vue.use(VueJsonp)
 //复制到粘贴板插件

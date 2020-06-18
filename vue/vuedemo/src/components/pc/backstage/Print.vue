@@ -489,7 +489,7 @@
                 console.log("找到index",index)
                 if(index!==-1){
 
-                   console.log("4")
+                  console.log("4")
                   console.log("index",print_order_list[index])
                   for(let o = 0;o<exception_order_list[e].orderGoods.length;o++){
                     let goods_index = this.get_order_goods_index_by_goods_number(print_order_list[index].orderGoods,exception_order_list[e].orderGoods[o])

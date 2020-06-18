@@ -15,7 +15,7 @@
 
         <select  v-model="null_order_status_selected">
           <option :value="null_order_status_option" v-for="(null_order_status_option,index) in null_order_status_options" :key="index">{{null_order_status_option.text}}</option>
-      </select>
+        </select>
 
         <button @click='mul_condition_query()' style="margin-left: 0.5em">条件查询{{search_mul_or_order_counts}}</button>
 
@@ -42,8 +42,11 @@
                   <label  v-if="item.tag_type ===1" style="margin-left: 0.5em;color:red;font-size: 1.4em" @click="alter_order_info(item.id,{'tag_type':null},'确定清除标记？')">⚫</label>
                   <label >订单状态:</label>
                   <label style="color: red">{{null_order_status[item.order_status]}}</label>
+                  <select  v-model="item.order_status">
+                    <option :value="null_order_status_option.value" v-for="(null_order_status_option,index) in null_order_status_options2" :key="index">{{null_order_status_option.text}}</option>
+                  </select>
                   <label style="margin-left: 0.5em">订单总价： {{item.logistics_fee}}
-
+                  <button @click="alter_order_info(item.id,{'order_status':item.order_status},'确定修改？')">确定修改</button>
                 </label>
               </div>
               <div>
@@ -107,6 +110,7 @@
             refund_apply_status:mGlobal.REFUND_APPLY_STATUS,
             refund_apply_status_options:mGlobal.REFUND_APPLY_TYPE_OPTIONS,
             null_order_status_options :[].concat(mGlobal.NULL_ORDER_STATUS_OPTIONS),
+            null_order_status_options2 :[].concat(mGlobal.NULL_ORDER_STATUS_OPTIONS),
             null_order_status_selected :"",
             prePageShow:true,
             nextPageShow:true,

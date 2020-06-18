@@ -34,9 +34,15 @@
            <label style="color: red">{{goods_status[goods.status]}}</label>
         </li>
         <li>
-           <label  style="font-weight: bold " >售后状态：</label>
-           <label style="color: red">{{refund_apply_status[goods.refund_apply_status]}}</label>
-           <button @click="closeApply" v-if="goods.refund_apply_status !== 0" style="">关闭申请</button>
+           <label  style="font-weight: bold " >售后类型：</label>
+           <label v-if="goods.refund_apply !== null && goods.refund_apply.length !==0" style="color: red">{{refund_apply_type[goods.refund_apply[0].refund_apply_type]}}</label>
+           <label v-else style="color: red">无售后</label>
+           <button @click="closeApply" v-if="goods.refund_apply.length !== 0" style="">关闭申请</button>
+        </li>
+         <li>
+           <label  style="font-weight: bold " >售后进度：</label>
+           <label  v-if="goods.refund_apply !== null && goods.refund_apply.length !==0" style="color: red">{{refund_apply_progress[goods.refund_apply[0].refund_apply_progress]}}</label>
+           <label v-else style="color: red">无</label>
         </li>
         <li>
            <label  style="font-weight: bold " >商品总价：</label>
@@ -58,6 +64,12 @@
         <td style="text-align: left" >
               <select  v-model="select_apply_type">
               <option :value="option.value" v-for="(option,index) in apply_type_options" :key="index">{{option.text}}</option>
+            </select>
+        </td>
+        <td >申请原因:</td>
+        <td style="text-align: left" >
+              <select  v-model="select_apply_reason_type">
+              <option :value="option.value" v-for="(option,index) in refund_apply_reason_option" :key="index">{{option.text}}</option>
             </select>
         </td>
         <td>申请商品件数:</td>
@@ -143,8 +155,11 @@
             { text: '天天快递' }
           ],
           select_apply_type:"",
+          refund_apply_progress:mGlobal.REFUND_APPLY_PROGRESS,
+          select_apply_reason_type:mGlobal.REFUND_APPLY_REASON_TYPE_OPTIONS[0].value,
           apply_type_options:mGlobal.REFUND_APPLY_TYPE_OPTIONS2,
-          refund_apply_status:mGlobal.REFUND_APPLY_STATUS,
+          refund_apply_type:mGlobal.REFUND_APPLY_STATUS,
+          refund_apply_reason_option:mGlobal.REFUND_APPLY_REASON_TYPE_OPTIONS,
           goods_status: mGlobal.GOODS_STATUS,
           pay_pwd: "",
         }
@@ -159,11 +174,23 @@
             axios.get(url,).then((res)=>{
                 console.log(res.data)
                 this.goods = res.data;
+                this.init_page_data(this.goods )
         }).catch(error => {
         })
        },
       methods:{
+        init_page_data(goods) {
+          if(goods.refund_apply !==null && goods.refund_apply.length !==0){
+            let refund_info = goods.refund_apply[0]
+            this.apply_goods_counts = refund_info.goods_counts
+            this.selected_logistics_name = refund_info.return_logistics_name
+            this.logistics_number = refund_info.return_logistics_number
+            this.message = refund_info.apply_message
+            this.select_apply_reason_type = refund_info.refund_apply_reasons_type
+            this.select_apply_type = refund_info.refund_apply_type
+          }
 
+        },
         closeApply(){
                const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/refundApply/"+this.order_goods_id+"/";
              //设为true 就会带cookies 访问
@@ -175,6 +202,8 @@
                 this.reflashPage();
 
                   // this.$router.replace({path:"/pc/refund",query:{order_goods_id:this.order_goods_id, order :this.$route.query.order}})
+               }else{
+                  alert("关闭失败，"+res.data.message)
                }
 
         }).catch(error => {
@@ -187,7 +216,7 @@
             this.$router.go(-1);
 },
         checkData(){
-               if(this.goods.refund_apply_status !== 0){
+               if(this.goods.refund_apply!==null  && this.goods.refund_apply.length !==0 ){
                  alert("关闭申请退款后才能再次申请")
                  return false;
                }
@@ -231,6 +260,7 @@
              }
             let goods_number = this.goods.goods_number;
             let refund_apply_type = this.select_apply_type;
+            let refund_apply_reason_type = this.select_apply_reason_type;
             let apply_message = this.message;
             let return_logistics_name = this.selected_logistics_name;
             let return_logistics_number = this.logistics_number;
@@ -239,6 +269,7 @@
             let data_ = {
               "goods_number":goods_number,
               "refund_apply_type":refund_apply_type,
+              "refund_apply_reasons_type":refund_apply_reason_type,
               "apply_message":apply_message,
               "return_logistics_name":return_logistics_name,
               "return_logistics_number":return_logistics_number,

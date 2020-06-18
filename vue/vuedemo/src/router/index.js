@@ -7,6 +7,7 @@ import pForgetPassword from '../components/pc/ForgotPassword'
 import pResetPassword from '../components/pc/ResetPassword'
 import pHome from '../components/pc/Home.vue'
 import pNullPackageHome from '../components/pc/NullPackageHome.vue'
+import pPlugsInfo from '../components/pc/PlugsInfos.vue'
 import pNullOrder from '../components/pc/PlaceNullOrder.vue'
 import pMyNullOrder from '../components/pc/MyNullOrder.vue'
 import ppOrder from '../components/pc/PlaceOrder.vue'
@@ -35,6 +36,7 @@ import pbkDiscountCard from '../components/pc/backstage/DiscountCard'
 // 用户支付宝账户认证信息
 import pbkUserAliPayAccountInfo from '../components/pc/backstage/UserAliPayAccount'
 import pbkInviteRegisterInfo from '../components/pc/backstage/InviteRegister'
+import pbkReturnPackageInfo from '../components/pc/backstage/ReturnPackage'
 
 Vue.use(VueRouter)
 export default new VueRouter({
@@ -42,7 +44,7 @@ export default new VueRouter({
   routes:[
 
     //根目录默认地址
-    {path: '/', redirect: '/pc/home/porder'},
+    {path: '/', redirect: '/pc/home/myorder'},
 
 
     {//注册
@@ -147,7 +149,11 @@ export default new VueRouter({
 
     },
 
-
+    {
+      path: '/pc/pPlugsInfo',
+      name: 'pPlugsInfo',
+      component: pPlugsInfo,
+    },
 
 
 
@@ -231,7 +237,12 @@ export default new VueRouter({
           name:'pbkInviteRegisterInfo',
           component:pbkInviteRegisterInfo
          },
-
+        {
+          // 退件信息
+          path:'/pc/back/home/returnPackageInfo',
+          name:'pbkReturnPackageInfo',
+          component:pbkReturnPackageInfo
+         },
       ]
     }
   ]

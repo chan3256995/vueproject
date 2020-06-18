@@ -11,24 +11,35 @@
 
     </div>
     <div style="padding-left: 5em">
-        <input v-model="query_q" style="width: 85%;height: 2em;max-width: 40em; " placeholder="订单号 ，收货人名，手机号，快递单号"/><button @click='on_orders_query(query_q)' style="margin-left: 0.5em">查询</button>
+        <input v-model="query_q" style="width: 85%;height: 2em;max-width: 40em; " placeholder="订单号 ，收货人名，手机号，快递单号,淘宝订单号"/><button @click='on_orders_query(query_q)' style="margin-left: 0.5em">查询</button>
         <!--<label>时间选择</label><input @click="calendar_show = !calendar_show" v-model="during_str">-->
     </div>
     <ul  class = "status_ul" >
-      <li ><a @click="on_order_filter({'status':goods_status2['未付款']},'未付款')" :class="{status_select:cur_order_status_filter==='未付款'}">未付款{{un_pay_counts}}</a></li>
+      <li ><a @click="on_order_filter({'status':goods_status2['未付款'],'order_remarks':remarks_type_selected},'未付款')" :class="{status_select:cur_order_status_filter==='未付款'}">未付款{{un_pay_counts}}</a></li>
       <li ><a @click="on_order_filter({'status':goods_status2['已付款']},'已付款')" :class="{status_select:cur_order_status_filter==='已付款'}">已付款{{is_payed_counts}}</a></li>
       <li ><a @click="on_order_filter({'status':goods_status2['已发货']},'已发货')" :class="{status_select:cur_order_status_filter==='已发货'}">已发货{{is_delivered_counts}}</a></li>
       <li ><a @click="on_order_filter({'status_list':goods_status2['已付款']+','+goods_status2['标签打印']+','+goods_status2['拿货中']+','+goods_status2['快递打印']+','+goods_status2['已拿货']+','+goods_status2['明日有货']+','+goods_status2['2-5天有货']+','+goods_status2['已下架']+','+goods_status2['其他']},'未发货')" :class="{status_select:cur_order_status_filter==='未发货'}">未发货 {{un_delivered_counts}}</a></li>
       <li ><a @click="on_order_filter({},'全部订单')" :class="{status_select:cur_order_status_filter==='全部订单'}">全部订单{{all_counts}}</a></li>
       <li ><a @click="on_order_filter({'refund_apply_status':'有售后订单'},'售后订单')" :class="{status_select:cur_order_status_filter==='售后订单'}">售后订单{{refund_counts}}</a></li>
 
+
+      <li>
+             <label   style="color: gray ; "    >▼</label>
+            <select style="font-size: 1.1em" v-model="remarks_type_selected">
+              <option :value="option" v-for="(option,index) in remarks_type_options" :key="index">{{option}}</option>-->
+            </select>
+      </li>
       <li style="padding-left: 1em"><input style=" width: 1.3em;height:1.5em; color:red; background: #3bb4f2" type="checkbox" v-model="is_order_by_update_time"> </li>
       <li><label style=" font-size: 1.2em;">拿/发货时间排序</label> </li>
     </ul>
 
-    <div style="padding-left: 3em" v-if="cur_order_status_filter==='未付款'">
+    <div style="padding-left: 3em" v-show="cur_order_status_filter==='未付款'">
       <button @click="select_all_unpay_orders(is_all_unpay_order_selected)">全选</button>
-      <button @click="orders_pay(go_pay_order_list)" v-if="cur_order_status_filter==='未付款'">合并付款</button><label style="color: red"> 总计: {{go_pay_money_totals}} 元</label>
+      <button @click="orders_pay(go_pay_order_list)" v-if="cur_order_status_filter==='未付款'">合并付款</button>
+
+      <label style="color: red"> 总计: {{go_pay_money_totals}} 元</label>
+      <button @click="move_order_to_null_package(go_pay_order_list)" v-if="cur_order_status_filter==='未付款'">转至空包订单</button>
+      <!--<button  v-bind:value = "aselect_order_item_cache" id = "move_order_to_chuanmei" v-show="cur_order_status_filter==='未付款'">转至传美打印</button>-->
     </div>
     <div  class = "items_ul">
         <li class="item_order " v-for="(item,index) in order_list" :key="index">
@@ -36,9 +47,27 @@
             <table style="width: 98%" >
               <tr>
                 <td style="width:80%">
-                   <input style="width: 1.2em;height: 1.2em" @change="check_box_change(item)" type="checkbox" v-model="item.is_order_selected" v-if="cur_order_status_filter==='未付款'"/>
-                    <label  class="order_label" >订单号：{{item.order_number}}</label>
-                    <label  class="order_label"  style="color: red" v-if="item.tb_order_number!=='' && item.tb_order_number!==null " >淘宝订单号：{{item.tb_order_number}}</label>
+                  <div style="float: left">
+                    <input style="width: 1.2em;height: 1.2em" @change="check_box_change(item)" type="checkbox" v-model="item.is_order_selected" v-if="cur_order_status_filter==='未付款'"/>
+                  </div>
+
+
+
+                    <div style="float: left">
+                       <label  class="order_label"  >订单号：{{item.order_number}}</label>
+                    </div>
+                    <div style="float: left">
+                       <label  class="order_label"  style="color: red" v-if="item.tb_order_number!=='' && item.tb_order_number!==null " >淘宝订单号：{{item.tb_order_number}}</label>
+                    </div>
+                     <div style="cursor:pointer; float: left;padding-left: 0.5em" @click="modify_remarks(item)">
+                      <label   style="color: gray ;cursor:pointer;"    @click="modify_remarks(item)">▼</label>
+                      <label style="cursor:pointer;color:red;padding-left: 0px"  v-if="item.order_remarks!== null && item.order_remarks!==''" @click="modify_remarks(item)">  {{item.order_remarks.remarks_type}}</label>
+                      <label style="cursor:pointer;color:red;padding-left: 0px"  v-if="item.order_remarks!== null && item.order_remarks.remarks_text!==''" @click="modify_remarks(item)">  （{{item.order_remarks.remarks_text}}）</label>
+                     </div>
+
+
+
+
                     <label> {{item.consignee_name}} {{item.consignee_phone}} {{item.consignee_address}}</label></td>
                 <td style="text-align: right ;width:20% ">
                   <button @click="delete_order(item.order_number)" v-if="item.orderGoods[0].status == goods_status2['未付款']">删除订单</button>
@@ -75,10 +104,11 @@
 
                   <div style="float: left" > <label style="width: 5em;float: left" >商品状态:</label>  <label style="width:3em;color: red" >{{goods_status[goods.status]}}  </label><label style="color: red" v-if="goods.log !== null && goods.log!==''">({{goods.log}})</label> </div>
                   <div  >
-                    <label style="padding-left: 2em">售后状态:</label>
-                    <label  style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> {{refund_apply_status[goods.refund_apply_status]}}</label>
-                    <label v-if="refund_apply_status[goods.refund_apply_status]!=='无售后' && goods.refund_apply.length === 0 " style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> （已处理）</label>
-                    <label v-else-if="refund_apply_status[goods.refund_apply_status]!=='无售后' && goods.refund_apply.length >0 " style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> （处理中）</label>
+                    <label style="padding-left: 2em">售后进度:</label>
+                    <!--<label  style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> {{refund_apply_status[goods.refund_apply_status]}}</label>-->
+                    <!--<label v-if="refund_apply_status[goods.refund_apply_status]!=='无售后' && goods.refund_apply.length === 0 " style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> （已处理）</label>-->
+                    <!--<label v-else-if="refund_apply_status[goods.refund_apply_status]!=='无售后' && goods.refund_apply.length >0 " style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> （处理中）</label>-->
+                    <label v-if="goods.refund_apply.length > 0 " style="color: red"  > {{ refund_apply_progress[goods.refund_apply[0].refund_apply_progress]}}</label>
                   </div>
                   <div v-if="goods.return_logistics_name !== null " ><label style="float: left">售后物流:</label><label  > {{goods.return_logistics_name}}:{{goods.return_logistics_number}}  </label> </div>
                  <label style="display:block;color: red"v-if="goods.customer_message!==null && goods.customer_message!==''">  我的留言：{{goods.customer_message}}</label>
@@ -87,12 +117,16 @@
 
               </div>
               <div>
+
+
+                <label style="padding-left: 0.5em;color:red">拿/发货时间:{{return_format_time(item.update_time)}}</label>
                 <label style="padding-left: 0.5em">订单总价：{{item.logistics_fee}} + {{item.agency_fee}}+ {{item.quality_testing_fee}}+{{item.orderGoodsTotalMoney}} =
                               {{item.logistics_fee + item.agency_fee + item.quality_testing_fee + item.orderGoodsTotalMoney}}
                 </label>
+
               </div>
               <div>
-                <label style="display:block;padding-left: 0.5em;color:red">拿/发货时间:{{return_format_time(item.update_time)}}</label>
+
                 <label style="padding-left: 0.5em;">下单时间:{{item.add_time}}</label>
                 <label>快递：{{item.logistics_name}}</label>
                <label>单号：{{item.logistics_number}}</label>
@@ -126,7 +160,8 @@
             defaultDate:[],
             disabledDate:[],
             during_str:"",
-
+            // 选中订单数据缓存
+            aselect_order_item_cache : [],
             is_order_by_update_time :false,
             // 加载数据后是否滚动到顶端
             is_scroll_top:true,
@@ -150,12 +185,22 @@
             { text: '退货退款', value: '1' },
             { text: '仅退款', value: '2' }
           ],
-
+        remarks_type_selected :"",
+        remarks_type_options:[
+        "",
+        "灰",
+        "红",
+        "黄",
+        "绿",
+        "蓝",
+        "紫",
+      ],
             logistics_name:{
 
             },
               refund_apply_type:mGlobal.REFUND_APPLY_TYPE,
               refund_apply_status :mGlobal.REFUND_APPLY_STATUS,
+              refund_apply_progress:mGlobal.REFUND_APPLY_PROGRESS,
               goods_status: mGlobal.GOODS_STATUS,
               goods_status2: mGlobal.GOODS_STATUS2,
 
@@ -227,7 +272,8 @@
           check_box_change(item){
 
              this.go_pay_order_list = this.get_unpay_order_list();
-            this.go_pay_money_totals = this.calc_unpay_order_moneys(this.go_pay_order_list)
+             this.go_pay_money_totals = this.calc_unpay_order_moneys(this.go_pay_order_list)
+             this.aselect_order_item_cache = JSON.stringify(this.go_pay_order_list)
           },
 
         // 计算未付款订单金额
@@ -304,12 +350,44 @@
             this.go_order_pay({"order_list":go_pay_order_number_list})
           },
 
+          move_order_to_null_package(go_move_order_list){
+
+            let go_move_order_id_list = []
+            if(go_move_order_list.length===0){
+              this.$toast("请选择未付款订单")
+              return
+            }
+
+            for(let i=0;i<go_move_order_list.length;i++){
+              go_move_order_id_list.push(go_move_order_list[i].order_number)
+            }
+            console.log(go_move_order_id_list)
+            let data = {"order_number_list":go_move_order_id_list}
+            const user_url = mGlobal.DJANGO_SERVER_BASE_URL+"/user/moveOrderToNullOrderTem/"
+            axios.post(user_url,data).then((res)=>{
+              console.log("res--->",res)
+              if(res.data.code ==="1000"){
+                if(confirm("提交成功，是否跳转到空包页面继续？")){
+                   this.$router.push({path:"/pc/nullPackageHome/pNullOrder"})
+                }else{
+                  this.refresh_cur_page()
+                }
+              }
+            }).catch(error=>{
+                console.log("请求错误")
+            })
+
+
+
+          },
+          move_order_to_chuanmei(go_move_order_list){
+            console.log(go_move_order_list)
+
+          },
           go_order_pay(data){
             const user_url = mGlobal.DJANGO_SERVER_BASE_URL+"/user/details/-1/"
             axios.get(user_url).then((res)=>{
               if(res.data.code ==="1000"){
-                console.log("**************************************")
-                console.log(res.data)
 
                 this.show_order_pay_box(data,this.go_pay_money_totals,res.data.user.balance)
               }
@@ -383,7 +461,7 @@
                   // ...
               });
           },
-// 修改订单地址
+      // 修改订单地址
          alter_address(order){
             let name = order.consignee_name
             let phone = order.consignee_phone;
@@ -425,6 +503,24 @@
               });
       },
 
+        // 修改备注信息
+         modify_remarks(item){
+
+
+            this.$orderRemarksBox.showMsgBox({
+                  title: '修改商品信息',
+                  isShowInput: false,
+
+                  item:item,
+
+              }).then(async (val) => {
+
+
+
+              }).catch(() => {
+                  // ...
+              });
+      },
 
           // 删除订单(未付款订单)
           delete_order(order_number){
@@ -507,23 +603,32 @@
 
               this.is_scroll_top = false;
               console.log("this.nextPageUrl",this.nextPageUrl)
+              console.log("this.prePageUrl",this.prePageUrl)
             if(this.nextPageUrl !== null && this.nextPageUrl !==""){
               let next_page_num_arr= this.nextPageUrl.match(/page=\d+/);
               let next_page_num = next_page_num_arr[0].split("=")[1]
-              let base_url = this.nextPageUrl.substring(0,next_page_num_arr.index);
+              let base_url = this.nextPageUrl.substring(0,this.nextPageUrl.indexOf("?"));
               let cur_page_num = parseInt(next_page_num)-1;
-              cur_page_url = base_url+"page="+cur_page_num;
-
+              cur_page_url = base_url+"?page="+cur_page_num;
+              console.log("next_page_num_arr",next_page_num_arr)
             }else if(this.prePageUrl !== null && this.prePageUrl !==""){
                let pre_page_num_arr= this.prePageUrl.match(/page=\d+/);
-               let pre_page_num = pre_page_num_arr[0].split("=")[1];
-               let base_url = this.prePageUrl.substring(0,pre_page_num_arr.index);
-               let  cur_page_num = parseInt(pre_page_num)-1;
-               cur_page_url = base_url+"page="+cur_page_num;
+                let pre_page_num = 1
+               if(pre_page_num_arr === null){
+                 //第二页的时候上一页没有页码
+                 pre_page_num  = 1
+               }else{
+                 pre_page_num = pre_page_num_arr[0].split("=")[1];
+               }
+
+
+               let base_url = this.prePageUrl.substring(0,this.prePageUrl.indexOf("?"));
+               let  cur_page_num = parseInt(pre_page_num)+1;
+               cur_page_url = base_url+"?page="+cur_page_num;
             }else{
                 cur_page_url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/orders/";
             }
-
+            console.log("cur_page_url",cur_page_url)
             let query_data =""
             if(this.cur_order_status_filter!==""){
                 if(this.cur_order_status_filter ==="未付款"){
@@ -556,7 +661,7 @@
             for(let i = 0;i<this.order_list.length;i++){
                let item =  this.order_list[i];
                let  mdate = mtime.formatDateStrFromTimeSt(item.add_time);
-              console.log(mdate)
+
               item.add_time =mdate;
               let is_address_alter = true
               let orderGoodsTotalMoney = 0;
@@ -689,6 +794,25 @@
     float: left;
   }
    .status_ul a{
+     list-style: none;
+     padding: 0.3em;
+     cursor: pointer;
+  }
+  .condition_ul{
+      display: block;
+      height: 1.5em;
+  }
+  .condition_select{
+    background: #f0f0f0 ;
+    color: #3bb4f2;
+    border:gainsboro solid 1px;
+  }
+  .condition_ul li{
+    list-style: none;
+    font-size: 0.8em;
+    float: left;
+  }
+   .condition_ul a{
      list-style: none;
      padding: 0.3em;
      cursor: pointer;

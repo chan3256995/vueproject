@@ -3,18 +3,22 @@
 
     <div class="top">
       <ul style="padding-right: 3em">
+      <li><a style="cursor:pointer;color: red" @click="go_to_plugs_page()" >淘宝订单同步教程</a></li>
       <li><a style="cursor:pointer;color: blue" @click="on_logout" >退出登录</a></li>
       <li style=""><a style="cursor:pointer;color: blue" @click="go_to_personal" v-text="user"> 个人中心</a></li>
     </ul>
     </div>
 
-    <div class="nav_div">
+    <div class="nav_div"  >
       <router-link class="nav" to = "/pc/home/porder" >下订单</router-link>
       <router-link class="nav" to = "/pc/home/myorder" >我的订单</router-link>
       <router-link class="nav" to = "/pc/personal/recharge2" >充值</router-link>
-      <a class="nav" @click="go_to_null_package_page" >空包</a>
-      <a class="nav tb_order"   style="display: none"  >同步淘宝已付款订单</a>
 
+      <a class="nav" @click="go_to_null_package_page" >空包</a>
+      <a class="nav tb_order_old"     style="display: inline-block"   @click="show_plugs_tip"  >同步淘宝已付款订单</a>
+      <a class="nav delivery_tb_order_old"  style="display:  inline-block"  @click="show_plugs_tip" >已发货订单同步到淘宝</a>
+      <a class="nav tb_order"     style="display: none"   >同步淘宝已付款订单</a>
+      <a class="nav delivery_tb_order"  style="display: none"    >已发货订单同步到淘宝</a>
     </div>
     <div style="width: 100%; " >
       <keep-alive><router-view style="width: 100%"></router-view></keep-alive>
@@ -230,6 +234,10 @@
             //****
 
         },
+          go_to_plugs_page(){
+             let  routeData = this.$router.resolve({ path: '/pc/pPlugsInfo'})
+            window.open(routeData.href, '_blank')
+          },
           go_to_personal(){
              let  routeData = this.$router.resolve({ path: '/pc/personal/userDetails'})
             window.open(routeData.href, '_blank')
@@ -237,6 +245,9 @@
            go_to_null_package_page(){
              let  routeData = this.$router.resolve({ path: "/pc/nullPackageHome/pNullOrder" })
             window.open(routeData.href, '_blank')
+          },
+          show_plugs_tip(){
+            alert("请安装插件")
           },
           load_tb_order(){
 
@@ -568,7 +579,7 @@ parms = Object.assign(parms,{callbackQuery:"callbackParam",callbackName:"jsonpCa
     padding-left: 0.5em;
   }
 .nav{
- text-decoration:none;
+  text-decoration:none;
   border-radius: 4px;
   font-weight: bold;
   padding: 5px;

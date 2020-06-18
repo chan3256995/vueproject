@@ -85,9 +85,9 @@
                  this.submit_btn_disable = false;
                  if(res.data.code === '1000') {
                    alert("注册成功")
-                   this.$router.push("/pc/home/porder");
+
                    this.$cookies.set("access_token" ,res.data.token)
-                   this.$router.push("/pc/home/porder");
+                   this.$router.push("/pc/home/myorder");
                  }else{
                    alert("注册失败")
                  }

@@ -1,9 +1,9 @@
 <template>
 
 <div class="login">
-  <button @click="test">test</button>
-  <button @click="test2">test2</button>
-  <button class="test3">test3</button>
+  <!--<button @click="test">test</button>-->
+  <!--<button @click="test2">test2</button>-->
+  <!--<button  @click="test3" >test3</button>-->
   <table style="margin: 0 auto">
     <tr>
       <td>用户名：</td>
@@ -55,10 +55,34 @@
           })
       },
       test3(){
-        console.log("cookie:",document.cookie)
-        	if (!chrome.cookies) {
-		chrome.cookies = chrome.experimental.cookies;
-	}
+           let parms = {
+                 "source":"",
+                 "callUrl":"",
+                 // "_tb_token_":"ffe0157689337",
+                 "orderStatusShow" :"send",
+                 "receiverName" :"",
+                 "receiverWangWangId":"" ,
+                 "beginDate" :"",
+                 "endDate" :"",
+                 "taobaoTradeId" :"",
+                 "shipping2":"-1",
+                 "orderType":"-1",
+                 "orderSource":"0",
+                 "currentPage" :1,
+
+             }
+fetch("https://wuliu.taobao.com/user/order_list_new.htm?order_status_show=send", {
+     method: 'GET',
+     mode: 'no-cors',
+     credentials: 'include',
+     //body: parms,
+
+
+
+}).then(function(response) {
+  console.log(response);
+});
+
       },
       test2(){
         let cookies_str = "thw=cn; x=e%3D1%26p%3D*%26s%3D0%26c%3D0%26f%3D0%26g%3D0%26t%3D0%26__ll%3D-1%26_ato%3D0; UM_distinctid=16e05f0e1cbb-00cfe32c7d77f6-414f0120-100200-16e05f0e1e198; ali_ab=14.145.20.89.1573560710123.3; everywhere_tool_welcome=true; hng=CN%7Czh-CN%7CCNY%7C156; v=0; munb=467630318; cna=wM0AFqmil2ACAQ6RFdC6+aZ7; enc=mk1JRXwAeAywZDxZqhoIhQBnPJEuIsR8xDleWfrGD0rRXRv9qbuWuIkxPWQ94XbzIFOmR3tlb8kQ3iQceCfXTA%3D%3D; _tb_token_=3b188ee531e13; unb=467630318; uc3=id2=VypX6SrwnB2D&vt3=F8dByuqh7KAnSm3dtlg%3D&lg2=U%2BGCWk%2F75gdr5Q%3D%3D&nk2=Dl9OSr7zuFtrsHxW; csg=735219a7; lgc=moonlight539; t=9aadd5cb9e648a6ef819fab9412b4f2c; cookie17=VypX6SrwnB2D; dnk=moonlight539; skt=a612d98a82986f4f; cookie2=7aa0e53d696146d2ca0bc63a970984e6; existShop=MTU3NzE5OTA4Nw%3D%3D; uc4=id4=0%40VX09oVN3jNtOEoQ3xY74byFiG3Y%3D&nk4=0%40DDrLLMRjgg0NBiw%2B4kn75YQOkYKwoAM%3D; tracknick=moonlight539; mt=ci=0_1; _cc_=VT5L2FSpdA%3D%3D; tg=0; _l_g_=Ug%3D%3D; sg=982; _nk_=moonlight539; cookie1=UojUVLRQa87pXVPPGSFD6QOf%2F%2Fm0wWOHAeNIbLq7vI4%3D; uc1=cookie16=WqG3DMC9UpAPBHGz5QBErFxlCA%3D%3D&cookie21=URm48syIYRhCUUEvKg%3D%3D&cookie15=V32FPkk%2Fw0dUvg%3D%3D&existShop=true&pas=0&cookie14=UoTbmhFnaHN%2FiQ%3D%3D&tag=8&lng=zh_CN; _m_h5_tk=57fc1727c2970fe9e5ed3f26b9d05017_1577209549769; _m_h5_tk_enc=efcd08f15335979e056c8cb12186b117; l=cBQb0belqGel3GZoBOCZnurza77TIIRfguPzaNbMi_5Qvs81dybOojoonUJ6cjWhGkLB4fuWYvyT6FtgJsuYuJ3VvzVD5; isg=BFxc-iHDbm0X9xmAVwnx0p8uLXoO1QD_9UbZPjZdYscqgf0LXufnj99z5ancCThX"

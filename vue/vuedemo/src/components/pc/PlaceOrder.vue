@@ -229,7 +229,7 @@
              if(this.getLocalValue("user")!==''){
                this.my_account = JSON.parse(this.getLocalValue("user"))
              }else{
-                router.replace("/pc/back/Login")
+                router.replace("/pc/Login")
              }
 
 
@@ -239,9 +239,9 @@
 
              Promise.all([p1, p2, p3]).then((res) => {
                if(typeof(this.$route.query.plug_order_data) !== 'undefined'){
-              this.analysis_tb_plug_order_data(this.$route.query.plug_order_data)
+                  this.analysis_tb_plug_order_data(this.$route.query.plug_order_data)
                   console.log('mount:',document.getElementById('div-id').offsetTop);
-              window.scrollTo(0,document.getElementById('div-id').offsetTop);
+                  window.scrollTo(0,document.getElementById('div-id').offsetTop);
            }
 })
 
@@ -312,13 +312,13 @@
         },
 
 
-　      　      'order_obj.order_list': {
+　      　'order_obj.order_list': {
           deep: true,
 　　　　  handler(new_order_list, old_order_list) {
                 this.calcAgainAllAmount(new_order_list)
 　　　　},
      }},
-       methods:{
+      methods:{
 
        time_format(time_stmp){
          return mtime.formatDateStrFromTimeSt(time_stmp)
@@ -333,11 +333,12 @@
                      // tb_plug_order_data = "[{\"tb_order_number\":\"795556705506266015\",\"phone\":\"13123940906\",\"name\":\"水影\",\"address\":\"安徽省阜阳市临泉县 陈集镇   安徽省阜阳市临泉县陈集镇农村淘宝服务站\",\"order_goods_list\":[{\"code\":\"金富丽 3F 3F030-52#9323\",\"img\":\"//img.alicdn.com/bao/uploaded/i3/467630318/O1CN01VlxsyO1EDgWOFxIt8_!!467630318.jpg_sum.jpg\",\"size\":\"4XL(140-160斤)\",\"color\":\"黑色\",\"count\":\"1\"}]}]"
                console.log(tb_plug_order_data)
                 let plug_order_data = JSON.parse(tb_plug_order_data )
+                console.log("plug_order_data==================--->",plug_order_data)
                for(let i = 0;i<plug_order_data.length;i++){
 
                   let address_str = plug_order_data[i]['name']+","+ plug_order_data[i]['phone']+ ","+plug_order_data[i].address
                   let tb_order_number = plug_order_data[i]['tb_order_number']
-console.log("tb_order_number==================--->",tb_order_number)
+
                   let addressObj = mStringUtils.getAddressInfo(address_str);
                   let order_goods_list = []
 
@@ -351,7 +352,8 @@ console.log("tb_order_number==================--->",tb_order_number)
                    }
 
                    let goods_str =  plug_order_data[i].order_goods_list[g].code +" "+color+size+" "+plug_order_data[i].order_goods_list[g].count
-                    order_goods_list = marketData.get_goods_list(goods_str,this.goods_str_format_options[1].value)
+                    console.log("goods_str------",goods_str)
+                    order_goods_list = marketData.get_goods_list(goods_str,this.goods_str_format_options[0].value)
 
                  }
                   let orderItem = {"quality_test":this.selected_quality_test,"logistics":this.selected_logistics,"address":addressObj,"orderGoods":order_goods_list};
@@ -496,7 +498,7 @@ console.log("tb_order_number==================--->",tb_order_number)
                   this.user = JSON.parse(user_info)
                  }
                  for(let i = 0;i< this.quality_test_options.length;i++){
-                   if(this.user.id === 12){
+                   if(this.user !== null && this.user.id === 12){
                      if( this.quality_test_options[i].quality_testing_name === '精检2'){
                        this.quality_test_options.splice(i,1)
                      }

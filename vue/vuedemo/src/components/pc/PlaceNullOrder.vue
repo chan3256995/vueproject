@@ -112,10 +112,9 @@
 
              let p2 = this.load_logistics()
 
-
              Promise.all([ p2]).then((res) => {
 
-})
+              })
 
 
 
@@ -123,37 +122,20 @@
       mounted(){
 
       },
+      activated(){
+          this.order_obj['order_list'] = []
+         this.load_my_null_package_tem()
+      },
 
       data(){
         return{
-
-
-            my_account:"",
-
-
+          my_account:"",
           is_tip: false,
-          processed_goods_list:[
-            {
-              "shop_market_name":"",
-              "shop_floor":"",
-              "shop_stalls_no":"",
-              "art_no":"",
-              "goods_color":"",
-              "goods_price":"",
-              "goods_count":"",
-
-
-            }
-
-          ],
           submit_btn :"提交",
           submit_btn_disable: false,
           order_text:"",
           selected_logistics:"",
-
           logistics_options:[],
-
-
           order_obj: {
             order_list: [],
           }
@@ -161,16 +143,113 @@
     },
 
       watch:{
+          selected_logistics:function(newValue, oldValue){
+           this.calcAgainAllAmount(this.order_obj.order_list)
+        },
+         　'order_obj.order_list': {
+            deep: true,
+            handler(new_order_list, old_order_list) {
+              this.calcAgainAllAmount(new_order_list)
+            },
+          }
      },
        methods:{
+      show_null_package_tem_tip_box(order_obj,new_order_list_data){
 
+             this.$msgBox.showMsgBox({
+                  title: '未完成订单提示',
+                  content: '共有'+new_order_list_data.length+'个空包订单未完成下单,请选择继续完成订单 或 放弃订单并清除所有未完成订单',
+                  isShowInput: false,
+                  cancelBtnText: '放弃订单',
+                  confirmBtnText: '继续完成订单',
+
+              }).then(async (val) => {
+                // 选择了确定
+                   console.log(val)
+
+                  order_obj['order_list'] = new_order_list_data
+                  console.log("order_list--66->", order_obj['order_list'])
+              }).catch((val2) => {
+                // 选择了取消
+                   console.log(val2)
+              });
+          },
+      //重新统计金额
+       calcAgainAllAmount(new_order_list){
+            for(let i = 0;i<new_order_list.length;i++){
+           // 统计每单的金额
+              this.calcOneOrderAmount(new_order_list[i]);
+            }
+              this.calcAllOrderAmount(new_order_list);
+          },
        time_format(time_stmp){
          return mtime.formatDateStrFromTimeSt(time_stmp)
         },
 
+        //计算一个订单的商品价格
+        calcOneOrderAmount(orderItem){
+                  orderItem.logistics = this.selected_logistics
+                  orderItem['postage_totals'] =orderItem.logistics.logistics_price * 1.0
+                  return orderItem
+         },
+        calcAllOrderAmount(orderList){
+             let allPrice = 0;
+             for(let i = 0;i<orderList.length;i++){
+                let sum = orderList[i].postage_totals*1.0
+                allPrice = allPrice + sum;
+             }
+             this.order_obj['allPrice'] = allPrice;
+         },
+     // 从临时表加载未完成的空包订单
+       load_my_null_package_tem(){
+            const url  = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/getNullOrderTem/"
+           //设为true 就会带cookies 访问
+            axios.defaults.withCredentials=true
+           axios.get(url).then(res=>{
+             let result = res.data
+             if("1000" === result.code){
+               let null_order_tem_list = JSON.parse(result.data);
+                let new_order_list_data = []
+               if(null_order_tem_list!==null){
+                 console.log("null_order_tem_list--------------->",null_order_tem_list)
+
+                 for(let i = 0;i<null_order_tem_list.length;i++){
+                    let province_city_area_array = null_order_tem_list[i].consignee_address.split(",")
+                    let province_city_area_str = province_city_area_array[0] + ","+province_city_area_array[1] + ","+province_city_area_array[2] + ","
+                    let adddress_detail = null_order_tem_list[i].consignee_address.replace(province_city_area_str,'')
+                    let null_order_tem_id = null_order_tem_list[i].id
+                    let addressObj = {
+                      "name":null_order_tem_list[i].consignee_name,
+                      "phone":null_order_tem_list[i].consignee_phone,
+
+                      "province":province_city_area_array[0],
+                      "city":province_city_area_array[1],
+                      "area":province_city_area_array[2],
+                      "address_detail":adddress_detail,
+
+                    }
+                    new_order_list_data.push({"address":addressObj, "tb_order_number":null_order_tem_list[i].tb_order_number,"logistics":  this.selected_logistics,"null_order_tem_id":null_order_tem_id})
+
+                 }
+               }
+               if(new_order_list_data.length > 0){
+                 this.show_null_package_tem_tip_box(this.order_obj,new_order_list_data)
+               }
 
 
 
+             }else{
+
+             }
+
+          }).catch(err=>{
+            console.log(err) ;
+              reject(err)
+          })
+
+
+
+          },
 
            // 加载物流选项信息
        load_logistics(){
@@ -263,10 +342,7 @@
            let news_list = [];
            let order_list = this.order_obj["order_list"]
             for(let i = 0;i<order_list.length;i++){
-                let consignee_address = order_list[i].address.province+","+
-                          order_list[i].address.city+","+
-                          order_list[i].address.area+","+
-                          order_list[i].address.address_detail+",";
+                let consignee_address = order_list[i].address.province+","+order_list[i].address.city+","+order_list[i].address.area+","+order_list[i].address.address_detail+",";
                 let consignee_name =order_list[i].address.name;
                 let consignee_phone =order_list[i].address.phone;
                 let tb_order_number =order_list[i].tb_order_number;
@@ -279,6 +355,7 @@
                     "consignee_phone":consignee_phone,
                     'logistics_name':order_list[i].logistics.logistics_name,
                     'logistics_id':order_list[i].logistics.logistics_id,
+                    'null_order_tem_id':order_list[i].null_order_tem_id,
 
                 })
             }
@@ -301,7 +378,7 @@
          if("1000" === res.data.code){
 
            if(res.data.exception_order_list !== undefined){
-
+              console.log(JSON.parse(res.data.exception_order_list))
            }else{
              alert("提交成功！")
              this.order_obj.order_list = []

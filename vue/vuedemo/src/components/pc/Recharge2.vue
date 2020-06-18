@@ -26,7 +26,7 @@
           <td><input class="global_input_default_style" v-model="trade_money" /></td>
         </tr>
         <tr>
-          <td>交易单号：</td>
+          <td>支付宝订单号：</td>
           <td><input class="global_input_default_style" v-model="recharge_number"/></td>
         </tr>
         <tr>
