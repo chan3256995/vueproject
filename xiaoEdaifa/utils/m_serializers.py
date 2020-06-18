@@ -193,7 +193,7 @@ class TradeOrderGoodsSerializer(serializers.ModelSerializer):
     # refund_apply 做为属性  是在RefundApply模型中关联的 related_name 一致
     refund_apply = UserOrderGoodsRefundApplySerializer(many=True,read_only= True)
 
-
+    refund_apply = UserOrderGoodsRefundApplySerializer(many=True, read_only=True)
     def validate_goods_number(self,order_number):
         # 当前时间+userid+随机数
         from time import strftime
@@ -236,12 +236,17 @@ class TradeOrderCreateSerializer(serializers.ModelSerializer):
         # 查表深度  关联表（父表）的数据也会查处出来  深度值官方推荐 0-10
         depth = 0
 
+class OrderRemarksQuerySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.OrderRemarks
+        fields = "__all__"
+
 
 class tTradeOrderQuerySerializer(serializers.ModelSerializer):
     order_owner = serializers.HiddenField(
         default=serializers.CurrentUserDefault()
     )
-
+    order_remarks = OrderRemarksQuerySerializer()
     # orderGoods = serializers.PrimaryKeyRelatedField(many=True,queryset=models.OrderGoods.objects.all())
     def get_order_owner(self, obj):
         if obj.order_owner:
@@ -257,7 +262,7 @@ class tTradeOrderQuerySerializer(serializers.ModelSerializer):
         model = models.Order
         fields = ["id","order_number","order_owner"
                           ,"pay_no","consignee_address","consignee_name","consignee_phone","sender_address","sender_name","sender_phone","is_delete","quality_testing_name",
-                           "quality_testing_fee","logistics_fee","agency_fee","logistics_name","logistics_number","weight","total_price","add_time","orderGoods","order_status","update_time", "tb_order_number"]
+                           "quality_testing_fee","logistics_fee","agency_fee","logistics_name","logistics_number","weight","total_price","add_time","orderGoods","order_status","update_time", "tb_order_number","order_remarks","tag_type"]
         # fields = '__all__'
         # 查表深度  关联表（父表）的数据也会查处出来  深度值官方推荐 0-10
         depth = 2
@@ -334,13 +339,76 @@ class TradeAddOrdersSerializer(serializers.ModelSerializer):
         depth = 1
 
 
+class TradeAddNullPackageOrdersSerializer(serializers.ModelSerializer):
+    order_owner = serializers.HiddenField(
+        default=serializers.CurrentUserDefault()
+    )
+    # 订单号
+    order_number = serializers.CharField(read_only=True,max_length=30,)
+    # 收件人信息
+    consignee_address = serializers.CharField(required=True, max_length=140)
+    consignee_name = serializers.CharField(required=True, max_length=30)
+    consignee_phone = serializers.CharField(max_length=30,required=True)
+
+    # 寄件人信息
+    sender_address = serializers.CharField(max_length=140,default="广东省，广州市，天河区风刀霜剑法律的精神")
+    sender_name = serializers.CharField(max_length=30,default="小刘")
+    sender_phone = serializers.CharField(max_length=30,default=17820158888)
+    # 是否删除（逻辑删除）
+    is_delete = serializers.BooleanField(default=False)
+    # 运费
+    logistics_fee = serializers.FloatField(default=0.0)
+    # 物流单号
+    logistics_number = serializers.CharField(required=False,max_length=30)
+    logistics_name = serializers.CharField(default="")
+    # 重量
+    weight = serializers.FloatField(default="0.0")
+    # 总价格
+    total_price = serializers.FloatField(default="0.0")
+    add_time = serializers.IntegerField(default=time.time())
+
+    def get_order_owner(self, obj):
+        if obj.order_owner:
+            return obj.order_owner.user_name
+        return None
+    # 反向序列化
+
+
+    def validate_order_number(self,order_number):
+        return self.generate_order_sn(self)
+
+
+
+
+    # 生成订单号函数
+    def generate_order_sn(self,order_sn):
+        # 当前时间+userid+随机数
+        from time import strftime
+        from random import Random
+        random_ins = Random()
+
+        if order_sn is None or order_sn == "":
+           order_sn = "NS{time_str}{userid}{ranstr}".format(time_str=strftime("%Y%m%d%H%M%S"),
+                                                       userid=self.context["request"].user.id,
+                                                       ranstr=random_ins.randint(10, 99999))
+        print(order_sn)
+        return order_sn
+
+    class Meta:
+        model = models.NullPackageOrder
+        # fields = ['consignee_address',]
+        fields = '__all__'
+        # 查表深度  关联表（父表）的数据也会查处出来  深度值官方推荐 0-10
+        depth = 1
+
+
 class UserQuerySerializer(serializers.ModelSerializer):
     """
     用户个人信息
     """
     class Meta:
         model = models.User
-        fields = ("id","email", "type","qq", "phone", "balance","user_name")
+        fields = ("id","email", "type","qq", "phone", "balance","user_name","sender_name","sender_phone","sender_province","sender_city","sender_area","sender_address_details")
 
 
 class UserPasswordSerializer(serializers.ModelSerializer):
@@ -362,7 +430,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.User
-        fields = ("email", "phone" , "qq" )
+        fields = ("email", "phone" , "qq" ,"sender_name","sender_phone","sender_province","sender_city","sender_area","sender_address_details")
 
 
 # 用户注册序列化组件

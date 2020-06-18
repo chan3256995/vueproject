@@ -20,7 +20,6 @@ from backstage import back_utils
 from _decimal import Decimal
 
 
-
 # 物流表
 class LogisticsView(APIView):
     authentication_classes = []
@@ -43,6 +42,30 @@ class LogisticsView(APIView):
             ret['code'] = "1001"
             ret['message'] = '查询失败'
         return Response(ret)# 物流表
+
+
+# 空包物流
+class NullPackageLogisticsView(APIView):
+    authentication_classes = []
+
+    class NullPackageLogisticsViewSerializer(serializers.ModelSerializer):
+        class Meta:
+            model = trade_models.NullPackageLogistics
+            fields = "__all__"
+
+    def get(self, request, *args, **kwargs):
+        print(request.data)
+        try:
+            ret = {'code': "1000", 'message': ""}
+            logistics = trade_views.NullPackageLogistics.objects.all()
+            ser = self.NullPackageLogisticsViewSerializer(instance=logistics, many=True)
+            ret['data'] = ser.data
+        except:
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            ret['code'] = "1001"
+            ret['message'] = '查询失败'
+        return Response(ret)
 
 
 # 付款信息入库

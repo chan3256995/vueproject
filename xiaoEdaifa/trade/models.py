@@ -5,6 +5,7 @@ from django.contrib.contenttypes import models as con_models
 from django.db import models
 from user.models import User
 from utils import mcommon
+
 import time
 
 
@@ -58,9 +59,6 @@ class TradeInfo(models.Model):
     is_delete = models.BooleanField(default=False, null=False)
 
 
-
-
-
 # 质检服务
 class QualityTest(models.Model):
     quality_testing_name = models.CharField(null=False,max_length=40,unique=True)
@@ -77,23 +75,26 @@ class Logistics(models.Model):
 class Order(models.Model):
     order_owner = models.ForeignKey(User, on_delete=models.CASCADE)
     # 订单跟进人
-    order_follower = models.ForeignKey(User,null = True,default=None,on_delete=models.SET_NULL,related_name="orderFollower")
+    order_follower = models.ForeignKey(User,null=True,default=None,on_delete=models.SET_NULL, related_name="orderFollower")
+    order_remarks = models.ForeignKey("OrderRemarks",null=True,default=None,on_delete=models.SET_NULL ,related_name="orderRemarks")
+
     # 订单号
     order_number = models.CharField(max_length=30, null=False ,unique=True)
     # 淘宝订单号
     tb_order_number = models.CharField(max_length=30, null=True ,unique=True)
     # 付款单号
     pay_no = models.CharField(max_length=128, null=True)
-
+    #  做标记用的（导出数据的时候用）
+    tag_type = models.SmallIntegerField(null=True)
     # 收件人信息
     consignee_address = models.CharField(null=False,max_length=140)
     consignee_name = models.CharField(max_length=30,null=False)
-    consignee_phone = models.BigIntegerField(null=False)
+    consignee_phone = models.CharField(max_length=30,null=False)
 
     # 寄件人信息
     sender_address = models.CharField(null=False, max_length=140)
     sender_name = models.CharField(max_length=30, null=False)
-    sender_phone = models.BigIntegerField(null=False)
+    sender_phone = models.CharField(max_length=30,null=False)
     # 是否已发货
     is_delivered = models.BooleanField(default=False)
     # 订单状态选择
@@ -114,13 +115,79 @@ class Order(models.Model):
     # 物流名
     logistics_name = models.CharField(null=True,max_length=30)
     # 物流单号
-    logistics_number = models.CharField(null=True, max_length=30)
+    logistics_number = models.CharField(null=True, max_length=30,blank=True)
     # 重量
     weight = models.FloatField(default="0.0")
     # 总价格
     total_price = models.FloatField(default="0.0")
     update_time = models.BigIntegerField(null=False,default=0)
     add_time = models.BigIntegerField(null=False)
+
+
+# 备注
+class OrderRemarks(models.Model):
+    order = models.ForeignKey(Order,on_delete=models.CASCADE)
+    remarks_type = models.CharField(choices=mcommon.remarks_type_choices, null=False, max_length=10 )
+    remarks_text = models.CharField(null=True ,max_length=40)
+
+
+# 空包订单
+class NullPackageOrder(models.Model):
+    order_owner = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    # 订单号
+    order_number = models.CharField(max_length=30, null=False ,unique=True)
+    # 淘宝订单号
+    tb_order_number = models.CharField(max_length=30, null=True ,unique=True)
+
+    # 收件人信息
+    consignee_address = models.CharField(null=False,max_length=140)
+    consignee_name = models.CharField(max_length=30,null=False)
+    consignee_phone = models.CharField(max_length=30,null=False)
+
+    # 寄件人信息
+    sender_address = models.CharField(null=False, max_length=140)
+    sender_name = models.CharField(max_length=30, null=False)
+    sender_phone = models.CharField(max_length=30,null=False)
+
+    # 订单状态选择
+    order_status = models.SmallIntegerField(choices=mcommon.null_package_order_status_choices,null=False,default=mcommon.null_package_order_status_choices2.get('未付款'))
+
+    # 是否删除（逻辑删除）
+    is_delete = models.BooleanField(default=False, null=False)
+
+    # 运费
+    logistics_fee = models.FloatField()
+
+    tag_type = models.SmallIntegerField(null=True)
+
+    # 物流名
+    logistics_name = models.CharField(null=True,max_length=30)
+    # 物流单号
+    logistics_number = models.CharField(null=True, max_length=30)
+    # 重量
+    weight = models.FloatField(default="0.0")
+    # 总价格
+    total_price = models.FloatField(default="0.0")
+    add_time = models.BigIntegerField(null=False)
+
+
+# 空包订单临时表
+class NullPackageTemp(models.Model):
+    order_owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    # 淘宝订单号
+    tb_order_number = models.CharField(max_length=30, null=True ,unique=True)
+    # 收件人信息
+    consignee_address = models.CharField(null=False,max_length=140)
+    consignee_name = models.CharField(max_length=30,null=False)
+    consignee_phone = models.CharField(max_length=30,null=False)
+    add_time = models.BigIntegerField(null=False)
+
+
+# 空包快递
+class NullPackageLogistics(models.Model):
+    logistics_name = models.CharField(null=False,max_length=40,unique=True)
+    logistics_price = models.FloatField(null=False,max_length=40,default=4.0)
 
 
 # 订单商品
@@ -178,12 +245,15 @@ class RefundApply(models.Model):
     add_time = models.BigIntegerField(default=time.time())
     refund_apply_choices = mcommon.refund_apply_choices
     refund_apply_type = models.SmallIntegerField(choices=refund_apply_choices, null=False)
+    refund_apply_reasons_type = models.SmallIntegerField(choices=mcommon.refund_apply_reasons_choices, null=True,default=0)
+    # 售后进度
+    refund_apply_progress = models.SmallIntegerField(choices=mcommon.refund_apply_progress_choices, null=True,default=0)
     apply_message = models.CharField(max_length=256)
     # 申请退货商品数量
     goods_counts = models.SmallIntegerField(default=1)
     return_logistics_name = models.CharField(null=False, max_length=30)
     # 退货物流单号
-    return_logistics_number = models.CharField(null=False, max_length=40)
+    return_logistics_number = models.CharField(null=False, max_length=40,unique=True)
 
 
 class RefundInfo(models.Model):
@@ -197,6 +267,22 @@ class RefundInfo(models.Model):
     # 退款金额
     refund_money_amount = models.FloatField(null=False)
     add_time = models.BigIntegerField(null=False)
+
+
+# 退回的包裹信息
+class ReturnPackageInfo(models.Model):
+    return_logistics_name = models.CharField(null=True, max_length=30)
+    # 退货物流单号
+    return_logistics_number = models.CharField(null=False, max_length=40,unique=True)
+    add_time = models.BigIntegerField(null=False)
+
+
+# 退回包裹的操作日志
+class ReturnPackageLogInfo(models.Model):
+    return_package = models.ForeignKey(ReturnPackageInfo, on_delete=models.CASCADE)
+    operateUser = models.ForeignKey(User,default=None,null=True,on_delete=models.SET_NULL, related_name="operateUser")
+    add_time = models.BigIntegerField(null=False)
+    message = models.CharField(max_length=256, null=True)
 
 
 # 折扣卡

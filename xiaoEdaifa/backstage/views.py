@@ -1,4 +1,5 @@
-
+from django.core import serializers as dj_serializers
+from django.forms.models import model_to_dict
 from utils import permission
 from rest_framework.views import APIView
 from utils import mcommon
@@ -45,6 +46,8 @@ class OutPutOrdersView(APIView):
             data = request.data
             if data.get("for") == "315":
                 return self.out_to_315(request, args, kwargs)
+            elif data.get("for") == "other_website":
+                return self.out_to_other_website(request, args, kwargs)
             elif data.get("for") == "print_tag":
                 return self.out_to_print(request, args, kwargs, data.get("for"))
             elif data.get("for") == "re_print_tag":
@@ -158,101 +161,346 @@ class OutPutOrdersView(APIView):
 
     def out_to_315(self, request, *args, **kwargs):
         ret = {"code": "1000", "message": ""}
+        order_number_list = request.data.get("order_number_list")
         try:
-            ip = mIP_utils.get_windows_local_ip()
-            # 实例化一个Workbook()对象(即excel文件)
-            wbk = xlwt.Workbook()
-            # 新建一个名为Sheet1的excel sheet。此处的cell_overwrite_ok =True是为了能对同一个单元格重复操作。
-            sheet = wbk.add_sheet('Sheet1', cell_overwrite_ok=True)
-            # 获取当前日期，得到一个datetime对象如：(2016, 8, 9, 23, 12, 23, 424000)
-            today = datetime.today()
-            # 将获取到的datetime对象仅取日期如：2016-8-9
-            today_date = datetime.date(today)
-            print("ddddd")
-            query_set = trade_models.Order.objects.filter(orderGoods__status = mcommon.status_choices2.get("标签打印")).distinct().order_by('-add_time')
-            # 合并第1行到第2行的第0列到第3列。
-            sheet.write_merge(0, 0, 0, 10,"666")
-            sheet.write(1, 0, "城市")
-            sheet.write(1, 1, "市场")
-            sheet.write(1, 2, "楼层")
-            sheet.write(1, 3, "档口号")
-            sheet.write(1, 4, "商品货号")
-            sheet.write(1, 5, "规格（颜色/尺码）")
-            sheet.write(1, 6, "件数")
-            sheet.write(1, 7, "单件价格")
-            sheet.write(1, 8, "图片路径")
-            # sheet.write(0, 8, "尺码")
-            sheet.write(1, 9, "备注")
-            sheet.write(1, 10, "自定义编码")
-            sheet.write(1, 11, "详细地址")
-            cur_row = 1
-            for i in range(len(query_set)):
+            with transaction.atomic():
+                ip = mIP_utils.get_windows_local_ip()
+                # 实例化一个Workbook()对象(即excel文件)
+                wbk = xlwt.Workbook()
+                # 新建一个名为Sheet1的excel sheet。此处的cell_overwrite_ok =True是为了能对同一个单元格重复操作。
+                sheet = wbk.add_sheet('Sheet1', cell_overwrite_ok=True)
+                # 获取当前日期，得到一个datetime对象如：(2016, 8, 9, 23, 12, 23, 424000)
+                today = datetime.today()
+                # 将获取到的datetime对象仅取日期如：2016-8-9
+                # today_date = datetime.date(today)
+                today_date = mtime.stamp_to_time(time.time(), "%Y-%m-%d---%H-%M-%S")
 
-                # 当前订单行
-                cur_order_row = cur_row+1
-                # 将每一行的每个元素按行号i,列号j,写入到excel中
-                order = query_set[i]
-                order_number = order.order_number
-                goods_query = trade_models.OrderGoods.objects.filter(order = order)
-                for j in range(len(goods_query)):
-                    cur_row = cur_row + 1
-                    order_goods = goods_query[j]
-                    print(order_goods)
-                    print(j)
-
-                    # order_goods = order.orderGoods
-                    sheet.write(cur_row, 0, "广州")
-                    sheet.write(cur_row, 1, order_goods.shop_market_name)
-
-                    floor = order_goods.shop_floor
-                    stall_no = order_goods.shop_stalls_no
-                    while floor.find("楼") !=-1:
-                        floor = floor.replace("楼","F")
-
-                    while floor.find("区") !=-1:
-                        floor = floor.replace("区","")
-                    floor = floor[0:floor.find('F')+1]
-                    import re
-                    reg_ = '^[0-9]F'
-                    result = re.match(reg_, stall_no)
-                    if result is not  None:
-                        stall_no = stall_no.replace(result[0],"")
-                    sheet.write(cur_row, 2, floor)
-                    sheet.write(cur_row, 3, stall_no)
-                    sheet.write(cur_row, 4, order_goods.art_no)
-                    sheet.write(cur_row, 5, order_goods.goods_color)
-                    sheet.write(cur_row, 6, order_goods.goods_count)
-                    sheet.write(cur_row, 7, order_goods.goods_price)
-                    sheet.write(cur_row, 8, "")
-
-                    sheet.write(cur_row, 9, order_goods.customer_message)
-                    if ip.find('172.17.1.38') != -1:
-                        sheet.write(cur_row, 10, "r"+str(order.id)+"-"+str(order_goods.id))
-                    else:
-                        sheet.write(cur_row, 10, str(order.id) + "-" + str(order_goods.id))
-                    sheet.write(cur_row, 11, order.consignee_address)
-
-                consignee_address = order.consignee_address.replace("，"," ").replace("  "," ").replace(' ','').replace(","," ",3)
-
+                args = Q(Q(orderGoods__status=mcommon.status_choices2.get("标签打印")) | Q(orderGoods__status=mcommon.status_choices2.get("已付款")))  & Q(orderGoods__refund_apply_status=mcommon.refund_apply_choices2.get("无售后"))
+                if order_number_list is not None:
+                    order_number_list = json.loads(order_number_list)
+                    args = args & Q(order_number__in=order_number_list)
+                query_set = trade_models.Order.objects.filter(args).distinct().order_by('-add_time')
                 # 合并第1行到第2行的第0列到第3列。
-                sheet.write_merge(cur_order_row, cur_row, 11, 11,order.consignee_name+"，"+str(order.consignee_phone)+"，"+ consignee_address)
-            excel_name = str(today_date) + '315.xls'
-            excel_path = settings.TEMP_FILE_DIRS + "/bk/" + excel_name
-            excel_url = mglobal.STATIC_URL_BK + settings.STATIC_URL + "temp/bk/" + excel_name
+                sheet.write_merge(0, 0, 0, 10,"666")
+                sheet.write(1, 0, "城市")
+                sheet.write(1, 1, "市场")
+                sheet.write(1, 2, "楼层")
+                sheet.write(1, 3, "档口号")
+                sheet.write(1, 4, "商品货号")
+                sheet.write(1, 5, "规格（颜色/尺码）")
+                sheet.write(1, 6, "件数")
+                sheet.write(1, 7, "单件价格")
+                sheet.write(1, 8, "图片路径")
+                # sheet.write(0, 8, "尺码")
+                sheet.write(1, 9, "备注")
+                sheet.write(1, 10, "自定义编码")
+                sheet.write(1, 11, "详细地址")
+                cur_row = 1
+                excel_name = str(today_date) + 'tag315.xls'
+                # 保存json格式数据的文件名
+                json_file_name = str(today_date) + 'tag315.json'
+                # 需要导出保存的订单
+                new_order_list = []
+                # 文件保存地址
+                excel_path = settings.TEMP_FILE_DIRS + "/bk/"
+                # 文件远程访问地址
+                excel_url = mglobal.STATIC_URL_BK + settings.STATIC_URL + "temp/bk/" + excel_name
+                if len(query_set) == 0:
+                    ret['code'] = "1001"
+                    ret['message'] = "没有符合条件的商品"
 
-            # 保存之前把之前生成的文件都删除了 以免时间长了存留太多文件
-            file_list = mfile_utils.get_file_list(settings.TEMP_FILE_DIRS + "/bk/")
-            for file in file_list:
-                mfile_utils.delete_file(settings.TEMP_FILE_DIRS + "/bk/"+file)
-            # 以传递的name+当前日期作为excel名称保存。
-            wbk.save(excel_path)
-            ret['excel_url'] = excel_url
+                    file_list = mfile_utils.get_file_list(excel_path)
+                    last_time_excel_url = ""
+                    last_time_json_str = ""
+                    for excel_name in file_list:
+                        if excel_name.find('tag') != -1 and excel_name.find('xls') != -1:
+                            last_time_excel_url = mglobal.STATIC_URL_BK + settings.STATIC_URL + "temp/bk/" + excel_name
+
+                            break
+                    for json_file_name in file_list:
+                        if json_file_name.find('tag') != -1 and json_file_name.find('json') != -1 :
+                            json_file_path = settings.TEMP_FILE_DIRS + "/bk/" + json_file_name
+                            last_time_json_str = mfile_utils.read_file_content(json_file_path)
+                            print(last_time_json_str)
+                            break
+                    ret['last_time_excel_url'] = last_time_excel_url
+                    ret['last_time_json_str'] = last_time_json_str
+
+                    return Response(ret)
+                new_order_list = []
+                for i in range(len(query_set)):
+                    order = query_set[i]
+                    order_number = order.order_number
+                    goods_query = trade_models.OrderGoods.objects.filter(order = order)
+                    if self.is_continue(goods_query) is False:
+                        continue
+
+                    cur_order_row = cur_row + 1
+                    new_order  = {}
+                    # 将每一行的每个元素按行号i,列号j,写入到excel中
+                    new_order_goods_list = []
+                    consignee_address = order.consignee_address.replace("，", " ").replace("  ", " ").replace(' ','').replace( ",", " ", 3)
+
+                    new_order['consignee_name'] = order.consignee_name
+                    new_order['consignee_phone'] = order.consignee_phone
+                    new_order['consignee_address'] = consignee_address
+                    new_order['logistics_name'] = order.logistics_name
+                    new_order['order_number'] = order_number
+                    new_order['quality_testing_name'] = order.quality_testing_name
+                    for j in range(len(goods_query)):
+                        cur_row = cur_row + 1
+                        order_goods = goods_query[j]
+                        order_goods.status = mcommon.status_choices2.get("拿货中")
+                        order_goods.save()
+
+                        # order_goods = order.orderGoods
+                        sheet.write(cur_row, 0, "广州")
+                        sheet.write(cur_row, 1, order_goods.shop_market_name)
+
+                        floor = order_goods.shop_floor
+                        stall_no = order_goods.shop_stalls_no
+                        while floor.find("楼") !=-1:
+                            floor = floor.replace("楼","F")
+
+                        while floor.find("区") !=-1:
+                            floor = floor.replace("区","")
+                        floor = floor[0:floor.find('F')+1]
+                        import re
+                        reg_ = '^[0-9]F'
+                        result = re.match(reg_, stall_no)
+                        if result is not  None:
+                            stall_no = stall_no.replace(result[0],"")
+                        sheet.write(cur_row, 2, floor)
+                        sheet.write(cur_row, 3, stall_no)
+                        sheet.write(cur_row, 4, order_goods.art_no)
+                        sheet.write(cur_row, 5, order_goods.goods_color)
+                        sheet.write(cur_row, 6, order_goods.goods_count)
+                        sheet.write(cur_row, 7, order_goods.goods_price)
+                        sheet.write(cur_row, 8, "")
+
+                        sheet.write(cur_row, 9, order_goods.customer_message)
+                        id_ = order_goods.id
+                        if ip.find('172.17.1.38') != -1:
+                            id_ = "r"+str(order.id)+"-"+str(order_goods.id)
+
+                        else:
+                            id_ = str(order.id) + "-" + str(order_goods.id)
+
+                        sheet.write(cur_row, 10, id_)
+                        sheet.write(cur_row, 11, consignee_address)
+                        # 合并第1行到第2行的第0列到第3列。
+                        sheet.write_merge(cur_order_row, cur_row, 11, 11, order.consignee_name + "，" + str(order.consignee_phone) + "，" + consignee_address)
+
+                        # ---------------------
+                        new_order_goods = {}
+                        new_order_goods['shop_market_name'] = order_goods.shop_market_name
+                        new_order_goods['shop_floor'] = floor
+                        new_order_goods['shop_stalls_no'] = stall_no
+                        new_order_goods['art_no'] = order_goods.art_no
+                        new_order_goods['goods_color'] = order_goods.goods_color
+                        new_order_goods['goods_count'] = order_goods.goods_count
+                        new_order_goods['goods_price'] = order_goods.goods_price
+                        new_order_goods['customer_message'] = order_goods.customer_message
+                        new_order_goods['id'] = id_
+                        new_order_goods_list.append(new_order_goods)
+                        new_order["order_goods"] = new_order_goods_list
+                        # ---------------------
+                    new_order_list.append(new_order)
+                print(new_order_list)
+
+                # 保存之前把之前生成的文件都删除了 以免时间长了存留太多文件
+                file_list = mfile_utils.get_file_list(settings.TEMP_FILE_DIRS + "/bk/")
+                for file in file_list:
+                    mfile_utils.delete_file(settings.TEMP_FILE_DIRS + "/bk/"+file)
+                # 以传递的name+当前日期作为excel名称保存。
+                wbk.save(excel_path+ excel_name)
+                mfile_utils.create_file(settings.TEMP_FILE_DIRS + "/bk/"+json_file_name)
+                mfile_utils.write_file(settings.TEMP_FILE_DIRS + "/bk/"+json_file_name,json.dumps(new_order_list))
+                ret['excel_url'] = excel_url
+                ret['json_str'] = json.dumps(new_order_list)
         except:
             traceback.print_exc()
             ret['code'] = "1001"
             ret['message'] = "生成失败"
             logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
         return Response(ret)
+
+    def out_to_other_website(self, request, *args, **kwargs):
+
+        ret = {"code": "1000", "message": ""}
+        order_number_list = request.data.get("order_number_list")
+        try:
+            with transaction.atomic():
+                ip = mIP_utils.get_windows_local_ip()
+                # 实例化一个Workbook()对象(即excel文件)
+                wbk = xlwt.Workbook()
+                # 新建一个名为Sheet1的excel sheet。此处的cell_overwrite_ok =True是为了能对同一个单元格重复操作。
+                sheet = wbk.add_sheet('Sheet1', cell_overwrite_ok=True)
+                # 获取当前日期，得到一个datetime对象如：(2016, 8, 9, 23, 12, 23, 424000)
+                today = datetime.today()
+                # 将获取到的datetime对象仅取日期如：2016-8-9
+                # today_date = datetime.date(today)
+                today_date = mtime.stamp_to_time(time.time(), "%Y-%m-%d---%H-%M-%S")
+
+                args = Q(Q(orderGoods__status=mcommon.status_choices2.get("标签打印")) | Q(orderGoods__status=mcommon.status_choices2.get("已付款")))  & Q(orderGoods__refund_apply_status=mcommon.refund_apply_choices2.get("无售后"))
+                if order_number_list is not None:
+                    order_number_list = json.loads(order_number_list)
+                    args = args & Q(order_number__in=order_number_list)
+                order_query_set = trade_models.Order.objects.select_for_update().filter(args).distinct().order_by('-add_time')
+                # 合并第1行到第2行的第0列到第3列。
+                sheet.write_merge(0, 0, 0, 10,"666")
+                sheet.write(1, 0, "城市")
+                sheet.write(1, 1, "市场")
+                sheet.write(1, 2, "楼层")
+                sheet.write(1, 3, "档口号")
+                sheet.write(1, 4, "商品货号")
+                sheet.write(1, 5, "规格（颜色/尺码）")
+                sheet.write(1, 6, "件数")
+                sheet.write(1, 7, "单件价格")
+                sheet.write(1, 8, "图片路径")
+                # sheet.write(0, 8, "尺码")
+                sheet.write(1, 9, "备注")
+                sheet.write(1, 10, "自定义编码")
+                sheet.write(1, 11, "详细地址")
+                cur_row = 1
+                excel_name = str(today_date) + 'tag315.xls'
+                # 保存json格式数据的文件名
+                json_file_name = str(today_date) + 'tag315.json'
+                # 需要导出保存的订单
+                new_order_list = []
+                # 文件保存地址
+                excel_path = settings.TEMP_FILE_DIRS + "/bk/"
+                # 文件远程访问地址
+                excel_url = mglobal.STATIC_URL_BK + settings.STATIC_URL + "temp/bk/" + excel_name
+                if len(order_query_set) == 0:
+                    ret['code'] = "1001"
+                    ret['message'] = "没有符合条件的商品"
+
+                    file_list = mfile_utils.get_file_list(excel_path)
+                    last_time_excel_url = ""
+                    last_time_json_str = ""
+                    for excel_name in file_list:
+                        if excel_name.find('tag') != -1 and excel_name.find('xls') != -1:
+                            last_time_excel_url = mglobal.STATIC_URL_BK + settings.STATIC_URL + "temp/bk/" + excel_name
+
+                            break
+                    for json_file_name in file_list:
+                        if json_file_name.find('tag') != -1 and json_file_name.find('json') != -1 :
+                            json_file_path = settings.TEMP_FILE_DIRS + "/bk/" + json_file_name
+                            last_time_json_str = mfile_utils.read_file_content(json_file_path)
+                            print(last_time_json_str)
+                            break
+                    ret['last_time_excel_url'] = last_time_excel_url
+                    ret['last_time_json_str'] = last_time_json_str
+
+                    return Response(ret)
+                new_order_list = []
+                for i in range(len(order_query_set)):
+                    order = order_query_set[i]
+                    order_number = order.order_number
+                    goods_query = trade_models.OrderGoods.objects.filter(order = order)
+                    if self.is_continue(goods_query) is False:
+                        continue
+
+                    cur_order_row = cur_row + 1
+                    new_order  = {}
+                    # 将每一行的每个元素按行号i,列号j,写入到excel中
+                    new_order_goods_list = []
+                    consignee_address = order.consignee_address.replace("，", " ").replace("  ", " ").replace(' ','').replace( ",", " ", 3)
+
+                    new_order['consignee_name'] = order.consignee_name
+                    new_order['consignee_phone'] = order.consignee_phone
+                    new_order['consignee_address'] = consignee_address
+                    new_order['logistics_name'] = order.logistics_name
+                    new_order['order_number'] = order_number
+                    new_order['quality_testing_name'] = order.quality_testing_name
+                    for j in range(len(goods_query)):
+                        cur_row = cur_row + 1
+                        order_goods = goods_query[j]
+                        order_goods.status = mcommon.status_choices2.get("拿货中")
+                        order_goods.save()
+
+                        # order_goods = order.orderGoods
+                        sheet.write(cur_row, 0, "广州")
+                        sheet.write(cur_row, 1, order_goods.shop_market_name)
+
+                        floor = order_goods.shop_floor
+                        stall_no = order_goods.shop_stalls_no
+                        while floor.find("楼") !=-1:
+                            floor = floor.replace("楼","F")
+
+                        while floor.find("区") !=-1:
+                            floor = floor.replace("区","")
+                        floor = floor[0:floor.find('F')+1]
+                        import re
+                        reg_ = '^[0-9]F'
+                        result = re.match(reg_, stall_no)
+                        if result is not  None:
+                            stall_no = stall_no.replace(result[0],"")
+                        sheet.write(cur_row, 2, floor)
+                        sheet.write(cur_row, 3, stall_no)
+                        sheet.write(cur_row, 4, order_goods.art_no)
+                        sheet.write(cur_row, 5, order_goods.goods_color)
+                        sheet.write(cur_row, 6, order_goods.goods_count)
+                        sheet.write(cur_row, 7, order_goods.goods_price)
+                        sheet.write(cur_row, 8, "")
+
+                        sheet.write(cur_row, 9, order_goods.customer_message)
+                        id_ = order_goods.id
+                        if ip.find('172.17.1.38') != -1:
+                            id_ = "r"+str(order.id)+"-"+str(order_goods.id)
+
+                        else:
+                            id_ = str(order.id) + "-" + str(order_goods.id)
+
+                        sheet.write(cur_row, 10, id_)
+                        sheet.write(cur_row, 11, consignee_address)
+                        # 合并第1行到第2行的第0列到第3列。
+                        sheet.write_merge(cur_order_row, cur_row, 11, 11, order.consignee_name + "，" + str(order.consignee_phone) + "，" + consignee_address)
+
+                        # ---------------------
+                        new_order_goods = {}
+                        new_order_goods['shop_market_name'] = order_goods.shop_market_name
+                        new_order_goods['shop_floor'] = floor
+                        new_order_goods['shop_stalls_no'] = stall_no
+                        new_order_goods['art_no'] = order_goods.art_no
+                        new_order_goods['goods_color'] = order_goods.goods_color
+                        new_order_goods['goods_count'] = order_goods.goods_count
+                        new_order_goods['goods_price'] = order_goods.goods_price
+                        new_order_goods['customer_message'] = order_goods.customer_message
+                        new_order_goods['id'] = id_
+                        new_order_goods_list.append(new_order_goods)
+                        new_order["order_goods"] = new_order_goods_list
+                        # ---------------------
+                    order.tag_type = 1
+                    order.save()
+                    new_order_list.append(new_order)
+
+
+                # 保存之前把之前生成的文件都删除了 以免时间长了存留太多文件
+                file_list = mfile_utils.get_file_list(settings.TEMP_FILE_DIRS + "/bk/")
+                for file in file_list:
+                    mfile_utils.delete_file(settings.TEMP_FILE_DIRS + "/bk/"+file)
+                # 以传递的name+当前日期作为excel名称保存。
+                wbk.save(excel_path+ excel_name)
+                mfile_utils.create_file(settings.TEMP_FILE_DIRS + "/bk/"+json_file_name)
+                mfile_utils.write_file(settings.TEMP_FILE_DIRS + "/bk/"+json_file_name,json.dumps(new_order_list))
+                ret['excel_url'] = excel_url
+                ret['json_str'] = json.dumps(new_order_list)
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "生成失败"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+        return Response(ret)
+
+
+    def is_continue(self,goods_query):
+        for j in range(len(goods_query)):
+            order_goods = goods_query[j]
+            if order_goods.status != mcommon.status_choices2.get("标签打印") and order_goods.status != mcommon.status_choices2.get("已付款"):
+                return False
+        return True
 
     # 统计一个订单有效标签打印的商品数量
     def get_curr_order_avail_tag_goods_count(self,order_goods_query):
@@ -261,6 +509,162 @@ class OutPutOrdersView(APIView):
             if order_goods.status == mcommon.status_choices2.get("标签打印") and order_goods.refund_apply_status == mcommon.refund_apply_choices2.get("无售后"):
                 avail_counts = avail_counts + 1
         return avail_counts
+
+
+# 输出付款状态的空包订单 同时修改为快递打印状态
+class OutPutNullOrderView(APIView):
+    authentication_classes = [BackStageAuthentication,]
+    permission_classes = [Superpermission]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            ret = {"code": "1000", "message": ""}
+            data = request.data
+
+            if data.get("for") == "logistics_print":
+                return self.out_to_print(request, args, kwargs, data.get("for"))
+        except:
+            print(traceback.print_exc())
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "导出失败"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+        return Response(ret)
+
+    def out_to_print(self,request, args, kwargs, condition):
+        ret = {"code": "1000", "message": ""}
+
+        args = Q(order_status=mcommon.null_package_order_status_choices2.get("已付款"))
+        try:
+            with transaction.atomic():
+                order_list = []
+                query_set = trade_models.NullPackageOrder.objects.select_for_update().filter(args).distinct().order_by('-add_time')[0:5]
+                for i in range(len(query_set)):
+                    order = query_set[i]
+                    order.order_status = mcommon.null_package_order_status_choices2['快递打印']
+                    order.tag_type = 1
+                    order.save()
+                    order_dict = model_to_dict(order)
+                    order_list.append(order_dict)
+                ret['results'] = order_list
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "生成失败"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+        return Response(ret)
+
+
+class OutputNullOrderOtherSiteSuccessView(APIView):
+    authentication_classes = [BackStageAuthentication,]
+    permission_classes = [Superpermission]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            ret = {"code": "1000", "message": ""}
+            data = request.data
+            order_id_list = json.loads(data.get("order_id_list"))
+            with transaction.atomic():
+                qs = trade_models.NullPackageOrder.objects.select_for_update().filter(id__in=order_id_list)
+                for order in qs:
+                    order.tag_type = None
+                    order.save()
+            ret['message'] = "提交成功"
+
+
+        except:
+            print(traceback.print_exc())
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "提交失败"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+        return Response(ret)
+
+
+
+class OutputNullOrderOtherSiteExceptionView(APIView):
+    authentication_classes = [BackStageAuthentication,]
+    permission_classes = [Superpermission]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            ret = {"code": "1000", "message": ""}
+            data = request.data
+            exception_order_id_list = json.loads(data.get("exception_order_id_list"))
+            with transaction.atomic():
+                qs = trade_models.NullPackageOrder.objects.select_for_update().filter(id__in=exception_order_id_list)
+                for order in qs:
+                    if order.order_status == mcommon.null_package_order_status_choices2['快递打印'] and order.tag_type == 1:
+                        order.tag_type = None
+                        order.order_status = mcommon.null_package_order_status_choices2['已付款']
+                        order.save()
+            ret['message'] = "提交成功"
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "提交失败"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+        return Response(ret)
+
+
+# 导入到其他网站异常订单时候调用此接口
+class OutputOrderOtherSiteExceptionView(APIView):
+    authentication_classes = [BackStageAuthentication,]
+    permission_classes = [Superpermission]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            ret = {"code": "1000", "message": ""}
+            data = request.data
+            exception_order_number_list = json.loads(data.get("exception_order_number_list"))
+            ret_exception_order_list =  []
+            with transaction.atomic():
+                qs = trade_models.Order.objects.select_for_update().filter(order_number__in=exception_order_number_list)
+                for order in qs:
+                    order_goods_qs = trade_models.OrderGoods.select_for_update().finter(order = order)
+                    for order_goods in order_goods_qs:
+
+                        if order_goods.status == mcommon.status_choices2['拿货中'] :
+                            if order_goods.refund_apply_status == mcommon.refund_apply_choices2["无售后"]:
+                                order_goods.status = mcommon.status_choices2['已付款']
+                                order_goods.save()
+                            else:
+                                return
+            ret['message'] = "提交成功"
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "提交失败"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+        return Response(ret)
+
+
+class OutputOrderOtherSiteSuccessView(APIView):
+    authentication_classes = [BackStageAuthentication,]
+    permission_classes = [Superpermission]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            ret = {"code": "1000", "message": ""}
+            data = request.data
+            order_number_list = json.loads(data.get("order_number_list"))
+            with transaction.atomic():
+                qs = trade_models.Order.objects.select_for_update().filter(order_number__in=order_number_list)
+                for order in qs:
+                    order.tag_type = None
+                    order.save()
+            ret['message'] = "提交成功"
+
+        except:
+            print(traceback.print_exc())
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "提交失败"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+        return Response(ret)
+
+
+
 
 
 
@@ -454,7 +858,7 @@ class OrderViewSet(mixins.ListModelMixin,mixins.UpdateModelMixin, GenericViewSet
                     args = args & Q(add_time__gte=start_stamp) & Q(add_time__lt=end_stamp)
             if default_query_keys is not None:
 
-                query_keys_args = Q(order_number=default_query_keys) | Q(consignee_name__contains=default_query_keys) | Q(logistics_number=default_query_keys)
+                query_keys_args = Q(order_number=default_query_keys) | Q(consignee_name__contains=default_query_keys) | Q(logistics_number=default_query_keys) | Q(tb_order_number=default_query_keys)
                 # 手机字段为数字 用字符查询会报错
                 if default_query_keys.isdigit():
                     query_keys_args = query_keys_args | Q(consignee_phone=default_query_keys)
@@ -495,8 +899,9 @@ class OrderViewSet(mixins.ListModelMixin,mixins.UpdateModelMixin, GenericViewSet
                 serializer.is_valid(raise_exception=True)
                 self.perform_update(serializer)
             except:
-                print(serializer.error)
                 print(traceback.print_exc())
+                print(serializer.error)
+
                 ret = {"code": "1001", "message": "更改失败"}
                 logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
                 return Response(ret)
@@ -521,6 +926,109 @@ class OrderViewSet(mixins.ListModelMixin,mixins.UpdateModelMixin, GenericViewSet
         def get_object(self):
             return self.request.user
 
+
+class NullOrderViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, GenericViewSet):
+    authentication_classes = [BackStageAuthentication, ]
+    permission_classes = [permission.Superpermission, ]
+    serializer_class = bserializers.BackTradeNullOrderQuerySerializer
+    # 设置分页的class
+    pagination_class = CommonPagination
+
+    def list(self, request, *args, **kwargs):
+        ret = {"code": 1000, "message": ""}
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        except:
+            traceback.print_exc()
+            ret = {"code": "1001", "message": "获取订单失败"}
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return Response(ret)
+
+    def get_queryset(self):
+        print(self.request.query_params)
+        default_query_keys = self.request.query_params.get("q")
+        status_filter = self.request.query_params.get("status")
+        user_name_query = self.request.query_params.get("user_name")
+        during_time = self.request.query_params.get("during_time")
+        status_filter_list_str = self.request.query_params.get("status_list")
+
+        print("query_keys")
+        print(default_query_keys)
+        args = Q()
+        if during_time is not None:
+            if during_time.find('/') != -1:
+                time_arr = during_time.split('/')
+                start_time_str = time_arr[0].strip()
+                end_time_str = time_arr[1].strip()
+                print(start_time_str)
+                print(end_time_str)
+
+                start_stamp = mtime.get_time_stamp13(start_time_str + " 00:00:00.000")
+                end_stamp = mtime.get_time_stamp13(end_time_str + " 00:00:00.000") + 24 * 60 * 60 * 1000  # 下一天 毫秒级时间戳
+                args = args & Q(add_time__gte=start_stamp) & Q(add_time__lt=end_stamp)
+            else:
+                start_stamp = mtime.get_time_stamp13(during_time.strip() + " 00:00:00.000")
+                end_stamp = mtime.get_time_stamp13(
+                    during_time.strip() + " 00:00:00.000") + 24 * 60 * 60 * 1000  # 下一天 毫秒级时间戳
+                args = args & Q(add_time__gte=start_stamp) & Q(add_time__lt=end_stamp)
+        if default_query_keys is not None:
+
+            query_keys_args = Q(order_number=default_query_keys) | Q(consignee_name__contains=default_query_keys) | Q(
+                logistics_number=default_query_keys)
+            # 手机字段为数字 用字符查询会报错
+            if default_query_keys.isdigit():
+                query_keys_args = query_keys_args | Q(consignee_phone=default_query_keys)
+                if len(query_keys_args) < 10:
+                    query_keys_args = query_keys_args | Q(id=default_query_keys)
+            args = args & query_keys_args
+            # return trade_models.Order.objects.filter(args).order_by('-add_time')
+        if status_filter is not None:
+            args = args & Q(order_status=status_filter)
+            # return trade_models.Order.objects.filter(args).distinct().order_by( "-add_time")
+        elif status_filter_list_str is not None:
+            status_filter_list = status_filter_list_str.split(',')
+            args = Q()
+            for status2 in status_filter_list:
+                args = args | Q(order_status=status2)
+
+        if user_name_query is not None:
+            args = args & Q(order_owner__user_name=user_name_query)
+            # return trade_models.Order.objects.filter(args).distinct().order_by( "-add_time")
+
+        return trade_models.NullPackageOrder.objects.filter(args).distinct().order_by("-add_time")
+
+    def update(self, request, *args, **kwargs):
+        ret = {"code": "1000", "message": ""}
+        try:
+            order_id = kwargs.get("pk")
+            partial = True
+            instance = trade_models.NullPackageOrder.objects.filter(id=order_id).first()
+            print(instance)
+            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+        except:
+            print(serializer.error)
+            print(traceback.print_exc())
+            ret = {"code": "1001", "message": "更改失败"}
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return Response(ret)
+
+        ret['code'] = "1000"
+        ret['message'] = "更新成功"
+        ret['data'] = serializer.data
+        return Response(ret)
+
+
+
+    def get_object(self):
+        return self.request.user
 
 class DiscountCardViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin,mixins.DestroyModelMixin, GenericViewSet):
     authentication_classes = [BackStageAuthentication, ]
@@ -713,6 +1221,54 @@ class InviteRegisterInfoViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin,m
             ret = {"code": "1000", "message": ""}
             invite_reg_info_id = kwargs.get("pk")
             user_models.InviteRegisterInfo.objects.filter(id=invite_reg_info_id).delete()
+        except:
+            print(traceback.print_exc())
+            ret['code'] = "1001"
+            ret['message'] = "删除失败"
+        return Response(ret)
+
+
+class ReturnPackageInfoViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin,mixins.DestroyModelMixin, GenericViewSet):
+    authentication_classes = [BackStageAuthentication, ]
+    permission_classes = [permission.Superpermission, ]
+    serializer_class = bserializers.ReturnPackageInfoQuerySerializer
+    # 设置分页的class
+    pagination_class = CommonPagination
+
+    def list(self, request, *args, **kwargs):
+        ret = {"code": 1000, "message": ""}
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        except:
+            traceback.print_exc()
+            ret = {"code": "1001", "message": "获取数据失败"}
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return Response(ret)
+
+    def get_queryset(self):
+        print(self.request.query_params)
+
+        logistics_number = self.request.query_params.get("logistics_number")
+        print("query_keys")
+        print(logistics_number)
+        if logistics_number is not None:
+            return trade_models.ReturnPackageInfo.objects.filter(return_logistics_number=logistics_number).order_by('-add_time')
+        else:
+            return trade_models.ReturnPackageInfo.objects.all().order_by('-add_time')
+
+    def destroy(self, request, *args, **kwargs):
+        ret = {"code": "1000", "message": ""}
+        print(kwargs.get("pk"))
+        try:
+            ret = {"code": "1000", "message": ""}
+            id_ = kwargs.get("pk")
+            user_models.InviteRegisterInfo.objects.filter(id=id_).delete()
         except:
             print(traceback.print_exc())
             ret['code'] = "1001"

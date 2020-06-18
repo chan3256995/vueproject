@@ -31,6 +31,7 @@ trade_source_choices = (
     (3, '充值'),
     (4, '提现'),
     (5, '其他费用'),
+    (6, '空包'),
 )
 trade_source_choices2 = {
     '订单': 1,
@@ -38,6 +39,7 @@ trade_source_choices2 = {
     '充值': 3,
     '提现': 4,
     '其他费用': 5,
+    '空包': 6,
 }
 # 商品状态
 status_choices = (
@@ -76,6 +78,29 @@ status_choices2 = {
 
 }
 
+# 备注选择
+remarks_type_choices = (
+    ("灰", '灰'),
+    ("红", '红'),
+    ("黄", '黄'),
+    ("绿", '绿'),
+    ("蓝", '蓝'),
+    ("紫", '紫'),
+
+)
+
+# 备注选择
+remarks_type_choices2= {
+
+"":None,
+"灰":"灰",
+"红":"红",
+"黄":"黄",
+"绿":"绿",
+"蓝":"蓝",
+"紫":"紫",
+
+}
 # 订单状态
 order_status_choices = (
     (0, '未处理'),
@@ -90,6 +115,23 @@ order_status_choices2 = {
     '已发货': 2,
 }
 
+# 空包订单状态
+null_package_order_status_choices = (
+    (1, '未付款'),
+    (2, '已付款'),
+    (3, '快递打印'),
+    (4, '已发货'),
+    (5, '已退款'),
+)
+# 空包订单状态
+null_package_order_status_choices2 = {
+    '未付款': 1,
+    '已付款': 2,
+    '快递打印': 3,
+    '已发货': 4,
+    '已退款': 5,
+
+}
 # 公用的审核状态
 common_check_status_choices = (
     (0, '未审核'),
@@ -103,7 +145,45 @@ common_check_status_choices2 = {
     '审核通过': 1,
     '审核不通过': 2,
 }
+# 售后申请原因
+refund_apply_reasons_choices = (
+    (0, '其他'),
+    (1, '质量问题'),
+    (2, '尺码发错'),
+    (3, '颜色发错'),
+    (4, '款式发错'),
+)
 
+refund_apply_reasons_choices2 = {
+    '其他': 0,
+    '质量问题': 1,
+    '尺码发错': 2,
+    '颜色发错': 3,
+    '款式发错': 4,
+
+
+}
+
+# 售后进度
+refund_apply_progress_choices = (
+    (0, '未处理'),
+    (1, '已退款(仅退款)'),
+    (2, '已退货退款'),
+    (3, '拒绝退款'),
+    (4, '仓库已收到退件'),
+    (5, '拦截中'),
+)
+
+refund_apply_progress_choices2 = {
+    '未处理': 0,
+    '已退款(仅退款)': 1,
+    '已退货退款': 2,
+    '拒绝退款': 3,
+    '仓库已收到退件': 4,
+    '拦截中': 5,
+
+
+}
 refund_apply_choices = (
     (0, '无售后'),
     (1, '退货退款'),
@@ -123,8 +203,8 @@ refund_apply_choices2 = {
     '拦截发货': 5,
 }
 
-# 服务费
-service_fee = 1.0
+# 退货服务费
+service_fee = 2.0
 
 market_short_name = {
     '国投': "投",

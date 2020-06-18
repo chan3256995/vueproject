@@ -1,33 +1,30 @@
-import traceback
-import re
-import logging
-import logging
+
 from user import user_utils
-logger = logging.getLogger('stu')
+
 from utils import mcommon
 from rest_framework.views import APIView
 from user import models
 import traceback
 from utils.String import REGEX_MOBILE
+from django.forms.models import model_to_dict
 from trade import models as trade_models
-from trade import models as trade_models
+
 from rest_framework.pagination import PageNumberPagination
 from utils import m_serializers
-from utils import permission
+
 import  utils.m_serializers
 from utils.m_serializers import TradeAddOrdersSerializer,UserRegisterSerializer,UserQuerySerializer,UserUpdateSerializer
 from django.http.response import JsonResponse,HttpResponse
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import serializers
+from django.core import serializers as dj_serializers
 from utils.permission import UserPermission
 from django.db import transaction
 from user import user_utils
 from rest_framework.mixins import CreateModelMixin,RetrieveModelMixin,UpdateModelMixin,ListModelMixin,DestroyModelMixin
 from rest_framework.viewsets import GenericViewSet
 from utils import encryptions
-import time
-import json
 from utils.auth import UserAuthtication
 from trade import models as trmodels
 from django.db.models import Q
@@ -37,6 +34,13 @@ from utils import commom_utils
 from xiaoEdaifa import settings
 from utils import mglobal
 from _decimal import Decimal
+import time
+import json
+import traceback
+import re
+import logging
+import requests
+logger = logging.getLogger('stu')
 def md5(user):
     import  hashlib
     import time
@@ -123,13 +127,12 @@ class UserMulOrderSaveViewSet(CreateModelMixin,GenericViewSet):
         order_sn = "os{time_str}{userid}{ranstr}".format(time_str=strftime("%Y%m%d%H%M%S"),
                                                        userid=self.request.user.id,
                                                        ranstr=random_ins.randint(10, 99999))
-        print(order_sn)
+
         return order_sn
 
     def create(self, request, *args, **kwargs):
         order_list = request.data.get("order_list")
         order_list = json.loads(order_list)
-        print(request.data)
         ret = {"code":"1000", "message":""}
         try:
             # 先对数据进行一次全面检测 把不符合条件的剔除-------------------------------------------------
@@ -143,7 +146,16 @@ class UserMulOrderSaveViewSet(CreateModelMixin,GenericViewSet):
                 # serializer = TradeOrderSerializer(data=item)
                 # 进行数据校验
                 try:
-                     serializer.is_valid(raise_exception=True)
+
+                    serializer.is_valid(raise_exception=True)
+                    tb_order_number = order.get("tb_order_number")
+                    if tb_order_number is not None and  tb_order_number != '':
+
+                        null_order_query_set = trade_models.NullPackageOrder.objects.filter(tb_order_number=tb_order_number)
+                        if len(null_order_query_set) != 0:
+                            order['return_message'] = "淘宝订单号已存在(空包)"
+                            ret['message'] = '淘宝订单号已存在(空包)'
+                            continue
                 except:
 
                     exception_order_list.append(order)
@@ -180,7 +192,6 @@ class UserMulOrderSaveViewSet(CreateModelMixin,GenericViewSet):
                     serializer.is_valid(raise_exception=True)
                     serializer.validated_data['order_number'] = self.generate_order_sn()
                     serializer.validated_data['add_time'] = time.time()*1000
-                    print("添加时间-----")
                     order = self.perform_create(serializer)
                     orderGoodsList = item_order['orderGoods']
                     order_agency_fee = 0  # 代拿费用
@@ -249,65 +260,92 @@ class UserMulOrderSaveViewSet(CreateModelMixin,GenericViewSet):
         return serializer.save()
 
 
-# class NahuoUserOrderGoodsAlterView(APIView):
-#     # 拿货人修改订单状态
-#     permission_classes = [permission.NahuoUserpermission, ]
-#
-#     status_choices = mcommon.status_choices
-#
-#     def post(self, request, *args, **kwargs):
-#         ret = {"code":"1000","message": ""}
-#         # 3拿货中 4 已经拿货  5已发货 7,明日有货 , 9其他状态
-#         # 接受拿货人usertype = 2 修改的值
-#         acp_status = [mcommon.status_choices2.get("拿货中"),
-#                       mcommon.status_choices2.get("已拿货"),
-#                       mcommon.status_choices2.get("已发货"),
-#                       mcommon.status_choices2.get("明日有货"),
-#                       mcommon.status_choices2.get("其他状态"),
-#                       ]
-#         data = self.request.data
-#         # data['status'] 拿货人 usertype=2 的用户 请求要修改状态值
-#         if data['status'] not in acp_status:
-#             ret['code'] = 1001;
-#             ret['message'] = "status错误"
-#             return Response(ret)
-#
-#         query = trade_models.OrderGoods.objects.filter(id=data['order_goods_id'])
-#         if query.count() == 1:
-#             # 接受修改的状态
-#             acp_status = []
-#             order_goods = query.first()
-#             if order_goods.status == mcommon.status_choices2.get("拿货中"):
-#                 # 拿货中状态只能修改为 4已拿货 和 5已发货 和 7明日有货 9其他状态
-#                 acp_status = [mcommon.status_choices2.get("已拿货"),
-#                               mcommon.status_choices2.get("已发货"),
-#                               mcommon.status_choices2.get("明日有货"),
-#                               mcommon.status_choices2.get("其他状态"),
-#                               ]
-#             elif order_goods.status == mcommon.status_choices2.get("已拿货"):
-#                 # 已拿货状态只能修 和 已发货
-#                 acp_status = [mcommon.status_choices2.get("已发货")]
-#             if data['status'] not in acp_status:
-#                 ret['code'] = "1001";
-#                 ret['message'] = "status错误"
-#                 return Response(ret)
-#             try:
-#                 query.update(status=data['status'])
-#                 ret['code'] = "1000"
-#                 ret['message'] = "更新成功"
-#                 return Response(ret)
-#             except:
-#                 ret['code'] = "1001";
-#                 ret['message'] = "更新数据库失败"
-#                 return Response(ret)
-#         else:
-#             ret['code'] = "1001"
-#             ret['message'] = "数据错误"
-#             return Response(ret)
+class AddNullPackageOrderViewSet(CreateModelMixin,GenericViewSet):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def create(self, request, *args, **kwargs):
+        try:
+            order_list = request.data.get("order_list")
+            order_list = json.loads(order_list)
+            ret = {"code": "1000", "message": ""}
+            new_order_list = []
+            # 异常订单
+            exception_order_list = []
+            for order in order_list:
+                self.serializer_class = m_serializers.TradeAddNullPackageOrdersSerializer
+                # 得请求数据然后得到序列化对象  得到的是上面serializer_class对象模型
+                serializer = self.get_serializer(data=order)
+
+                # 进行数据校验
+                try:
+                    serializer.is_valid(raise_exception=True)
+                    tb_order_number = order.get("tb_order_number")
+                    if tb_order_number is not None and tb_order_number != "":
+                        # 正常订单表查询是否存在
+                        tb_order = trade_models.Order.objects.filter(tb_order_number=tb_order_number).first()
+                        if tb_order is not None:
+                            order['return_message'] = "淘宝订单号已存在(真实订单)"
+                            exception_order_list.append(order)
+                            continue
+                except:
+                    if json.dumps(serializer.errors).find("order with this tb order number already exists") !=-1:
+                        order['return_message'] = "淘宝订单号已存在"
+
+                    else:
+                        order['return_message'] = "保存失败"
+                    exception_order_list.append(order)
+                    traceback.print_exc()
+                    logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+                    continue
+
+                new_order_list.append(order)
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = serializer.errors
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return Response(ret)
+        try:
+            with transaction.atomic():
+                for item_order in new_order_list:
+                    self.serializer_class = m_serializers.TradeAddNullPackageOrdersSerializer
+                    # 得请求数据然后得到序列化对象  得到的是上面serializer_class对象模型
+                    serializer = self.get_serializer(data=item_order)
+
+                    # 进行数据校验
+                    serializer.is_valid(raise_exception=True)
+                    serializer.validated_data['order_number'] = user_utils.generate_null_order_sn(self)
+                    serializer.validated_data['add_time'] = time.time() * 1000
+                    order = self.perform_create(serializer)
+
+                    logistics_name = item_order.get('logistics_name')
+                    logistics = trade_models.NullPackageLogistics.objects.filter(logistics_name=logistics_name).first()
+                    logistics_fee = logistics.logistics_price
+                    order.logistics_fee = logistics_fee
+                    # 该字段不为空的话 订单数据来源临时表
+                    null_order_tem_id = int(item_order.get('null_order_tem_id') )
+                    if item_order.get('null_order_tem_id') is not None:
+                        trade_models.NullPackageTemp.objects.filter(id=null_order_tem_id).delete()
+
+                    order.save()
+
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "保存数据失败"
+            return Response(ret)
+        if len(exception_order_list) != 0:
+            ret['exception_order_list'] = json.dumps(exception_order_list)
+        return Response(ret)
+
+
+    def perform_create(self, serializer):
+        return serializer.save()
 
 
 class OrderGoodsViewSet(RetrieveModelMixin,GenericViewSet):
-    serializer_class = m_serializers.OrderGoodsSerializer
+    serializer_class = m_serializers.TradeOrderGoodsSerializer
     queryset =  trade_models.OrderGoods.objects.all()
     authentication_classes = [UserAuthtication]
     permission_classes = [UserPermission]
@@ -387,7 +425,7 @@ class UserOrderGoodsChangeViewSet(APIView):
 
 class UsersPagination(PageNumberPagination):
     # 指定每一页的个数
-    page_size = 10
+    page_size = 15
     # 可以让前端来设置page_szie参数来指定每页个数
     page_size_query_param = 'page_size'
     # 设置页码的参数
@@ -470,27 +508,35 @@ class UserOrderViewSet(ListModelMixin,DestroyModelMixin, GenericViewSet):
                 print(self.request.query_params)
                 query_keys = self.request.query_params.get("q")
                 status_filter = self.request.query_params.get("status")
+                order_remarks_filter = self.request.query_params.get("order_remarks")
                 status_filter_list_str = self.request.query_params.get("status_list")
                 refund_apply_status = self.request.query_params.get("refund_apply_status")
                 req_order_by = self.request.query_params.get("order_by")
                 order_by = ["-add_time"]
+                args = Q()
                 if req_order_by is not None:
                     if req_order_by == "update_time":
                         order_by = ["-update_time",'-add_time']
+                if order_remarks_filter is not None:
+                    remarks = mcommon.remarks_type_choices2[order_remarks_filter]
+                    if remarks is not None:
+                        args = Q(order_remarks__remarks_type=remarks)
                 if query_keys is not None:
-                    args = Q(order_number=query_keys) | Q(consignee_name__contains=query_keys) | Q(logistics_number=query_keys)
+                    args = Q(order_number=query_keys) | Q(consignee_name__contains=query_keys) | Q(logistics_number=query_keys)| Q(tb_order_number=query_keys)
                     # 手机字段为数字 用字符查询会报错
                     if query_keys.isdigit():
                         args = args | Q(consignee_phone=query_keys)
                     return trade_models.Order.objects.filter(Q(order_owner=self.request.user) & args).order_by(*order_by)
                 elif status_filter is not None:
-                    qy = trade_models.Order.objects.filter(order_owner=self.request.user,orderGoods__status = status_filter).distinct().order_by(*order_by)
+                    args = args & Q(orderGoods__status=status_filter) & Q(order_owner=self.request.user)
+                    qy = trade_models.Order.objects.filter(args).distinct().order_by(*order_by)
                     return qy
                 elif status_filter_list_str is not None:
                     status_filter_list = status_filter_list_str.split(',')
-                    args = Q()
+                    args_t = Q()
                     for status2 in status_filter_list:
-                        args = args | Q(orderGoods__status=status2)
+                        args_t = args_t | Q(orderGoods__status=status2)
+                        args = args & args
                     qy = trade_models.Order.objects.filter(Q(order_owner=self.request.user) & args).distinct().order_by(*order_by)
 
                     return qy
@@ -520,6 +566,152 @@ class UserOrderViewSet(ListModelMixin,DestroyModelMixin, GenericViewSet):
 
         def get_object(self):
             return self.request.user
+
+
+class UsernNullOrdersViewSet(ListModelMixin,DestroyModelMixin, GenericViewSet):
+    class NullPackageOrderQuerySerializer(serializers.ModelSerializer):
+        order_owner = serializers.HiddenField(
+            default=serializers.CurrentUserDefault()
+        )
+
+        # orderGoods = serializers.PrimaryKeyRelatedField(many=True,queryset=models.OrderGoods.objects.all())
+        def get_order_owner(self, obj):
+            if obj.order_owner:
+                return obj.order_owner.user_name
+            return None
+
+
+        class Meta:
+            model = trade_models.NullPackageOrder
+            # fields = ["id", "order_number", "order_owner"
+            #     , "pay_no", "consignee_address", "consignee_name", "consignee_phone", "sender_address", "sender_name",
+            #           "sender_phone", "is_delete", "quality_testing_name",
+            #           "quality_testing_fee", "logistics_fee", "agency_fee", "logistics_name", "logistics_number",
+            #           "weight", "total_price", "add_time", "orderGoods", "order_status", "update_time",
+            #           "tb_order_number"]
+            fields = '__all__'
+            # 查表深度  关联表（父表）的数据也会查处出来  深度值官方推荐 0-10
+            depth = 2
+
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+    serializer_class = NullPackageOrderQuerySerializer
+    # 设置分页的class
+    pagination_class = UsersPagination
+    # def create(self, request, *args, **kwargs):
+    #     # 得请求数据然后得到序列化对象  得到的是上面serializer_class对象模型
+    #     serializer = self.get_serializer(data=request.data)
+    #     # 进行数据校验
+    #     serializer.is_valid(raise_exception=True)
+    #     order = self.perform_create(serializer)
+    #     ret_dict = serializer.data
+    #     headers = self.get_success_headers(serializer.data)
+    #     return Response(ret_dict, status=status.HTTP_201_CREATED, headers=headers)
+
+    def list(self, request, *args, **kwargs):
+        print(request.data)
+
+        # trade_models.OrderGoods.filter()
+        ret = {"code": "1000", "message": ""}
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        except:
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            ret['code'] = "1001"
+            ret['message'] = " 查询异常"
+            return Response(ret)
+
+    def destroy(self, request, *args, **kwargs):
+
+        ret = {"code": "1000", "message": ""}
+        try:
+            order_number = kwargs.get("pk")
+            order = trade_models.NullPackageOrder.objects.filter(order_number=order_number).first()
+            if order.order_owner != request.user:
+                #
+                ret['code'] = "1001"
+                ret['message'] = "删除失败！非法订单"
+                return Response(ret)
+            else:
+
+                if order.order_status != mcommon.null_package_order_status_choices2.get("未付款"):
+                    ret['code'] = "1001"
+                    ret['message'] = "只能删除未付款订单"
+                    return Response(ret)
+
+                order.delete()
+        except:
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            ret['code'] = "1001"
+            ret['message'] = "删除异常"
+            return Response(ret)
+
+        ret['code'] = "1000"
+        ret['message'] = "删除成功！"
+        return Response(ret)
+
+    def get_queryset(self):
+        try:
+            print(self.request.query_params)
+            query_keys = self.request.query_params.get("q")
+            status_filter = self.request.query_params.get("status")
+            status_filter_list_str = self.request.query_params.get("status_list")
+            refund_apply_status = self.request.query_params.get("refund_apply_status")
+            req_order_by = self.request.query_params.get("order_by")
+            order_by = ["-add_time"]
+            if req_order_by is not None:
+                if req_order_by == "update_time":
+                    order_by = ["-update_time",'-add_time']
+            if query_keys is not None:
+                args = Q(order_number=query_keys) | Q(consignee_name__contains=query_keys) | Q(logistics_number=query_keys)
+                # 手机字段为数字 用字符查询会报错
+                if query_keys.isdigit():
+                    args = args | Q(consignee_phone=query_keys)
+                return trade_models.NullPackageOrder.objects.filter(Q(order_owner=self.request.user) & args).order_by(*order_by)
+            elif status_filter is not None:
+                qy = trade_models.NullPackageOrder.objects.filter(order_owner=self.request.user,order_status = status_filter).distinct().order_by(*order_by)
+                return qy
+            elif status_filter_list_str is not None:
+                status_filter_list = status_filter_list_str.split(',')
+                args = Q()
+                for status2 in status_filter_list:
+                    args = args | Q(order_status=status2)
+                qy = trade_models.NullPackageOrder.objects.filter(Q(order_owner=self.request.user) & args).distinct().order_by(*order_by)
+
+                return qy
+            elif refund_apply_status is not None :
+                if refund_apply_status == "退款订单":
+                    qy = trade_models.NullPackageOrder.objects.filter(Q(order_owner=self.request.user) & (Q(order_status = mcommon.null_package_order_status_choices2.get("已退款")))).distinct().order_by(*order_by)
+                    return qy
+            else:
+                return trade_models.NullPackageOrder.objects.filter(order_owner=self.request.user).order_by(*order_by)
+        except:
+            traceback.print_exc()
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return self.NullPackageOrderQuerySerializer
+        elif self.action == "create":
+            return self.NullPackageOrderQuerySerializer
+        elif self.action == "update":
+            return self.NullPackageOrderQuerySerializer
+        elif self.action == "delete":
+            return self.NullPackageOrderQuerySerializer
+
+        return self.NullPackageOrderQuerySerializer
+
+    def get_object(self):
+        return self.request.user
 
 
 # 用户拦截发货
@@ -923,12 +1115,372 @@ class GetUserDiscountCardsView(APIView):
         return Response(ret)
 
 
+# 空包订单退款
+class UserNullOrderRefundView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def post(self,request, *args, **kwargs):
+        ret = {'code': "1000", 'message': ""}
+        data = request.data
+        order_id = data.get("order_id")
+        try:
+
+            with transaction.atomic():
+                order = trade_models.NullPackageOrder.objects.select_for_update.get(id=order_id).first()
+                if order is not None:
+                    if order.order_status != mcommon.null_package_order_status_choices2.get("已付款"):
+                        ret['code'] = "1001"
+                        ret['message'] = '当前状态不支持退款'
+                        return Response(ret)
+                    else:
+                        order.order_status = mcommon.null_package_order_status_choices2.get("已退款")
+                        update_user = models.User.objects.select_for_update().get(id=request.user.id)
+                        trade_money = Decimal(str(order.logistics_fee))
+                        data = {"trade_money":trade_money , "add_time": time.time() * 1000}
+                        data['user'] = update_user
+                        data['order_number'] = order.order_number
+                        data['trade_number'] = trade_views.BaseTrade(self.request.user).get_trade_number()
+                        data['trade_source'] = mcommon.trade_source_choices2.get("空包")
+                        data['cash_in_out_type'] = mcommon.cash_in_out_type_choices2.get("收入")
+                        data['is_pass'] = True
+                        data['user_balance'] =  Decimal(str(update_user.balance)) - trade_money
+                        data['message'] = "空包退款，订单编号：" + order.order_number + "物流费：" + str(order.logistics_fee)
+                        trade_info = trade_models.TradeInfo.objects.create(**data)
+                        update_user.balance = Decimal(str(update_user.balance)) - trade_money
+                        update_user.save()
+                        order.save()
+                else:
+                    ret['code'] = "1001"
+                    ret['message'] = '查询异常'
+                    return Response(ret)
+
+
+        except:
+            logger.info('%s userid->%s ,  url:%s method:%s' % (
+            "申请异常" + traceback.format_exc(), self.request.user.id, self.request.path, self.request.method))
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = '查询异常'
+            return Response(ret)
+
+        return Response(ret) 
+    
+    # 给订单添加备注
+class AddOrderRemarksView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def post(self,request, *args, **kwargs):
+        try:
+            ret = {'code': "1000", 'message': ""}
+            data = request.data
+            print(data)
+            order_id = data.get("order_id")
+            remarks_type = data.get("remarks_type")
+            remarks_text = data.get("remarks_text")
+            remarks_type = mcommon.remarks_type_choices2[remarks_type]
+            order_id =  int(order_id)
+            with transaction.atomic():
+                order = trade_models.Order.objects.filter(id = order_id).first()
+                if order is not None:
+                    data = {
+                        "order": order,
+                        "remarks_text": remarks_text,
+                        "remarks_type": remarks_type,
+                    }
+                    if remarks_type is None:
+                        order.order_remarks =None
+                    else:
+                        remarks = trade_models.OrderRemarks.objects.update_or_create(order=order, defaults=data)
+                        order.order_remarks = remarks[0]
+                    order.save()
+                else:
+                    ret['code'] = "1001"
+                    ret['message'] = '查询异常'
+
+                 
+                 
+
+
+        except:
+            logger.info('%s userid->%s ,  url:%s method:%s' % ("提交异常" + traceback.format_exc(), self.request.user.id, self.request.path, self.request.method))
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = '查询异常'
+            return Response(ret)
+
+        return Response(ret)
+
+
+class MoveOrderToNullOrderTemView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def post(self,request, *args, **kwargs):
+        try:
+            ret = {'code': "1000", 'message': ""}
+            data = request.data
+            print(data)
+            order_number_list = data.get("order_number_list")
+            success_order_list = []
+            exception_order_list = []
+            with transaction.atomic():
+                query_set = trade_models.Order.objects.filter(order_number__in= order_number_list)
+                for order in query_set:
+                    order_goods_query = trade_models.OrderGoods.objects.filter(order=order)
+                    # 订单是否为未付款订单
+                    is_un_pay_order = True
+                    for order_goods in order_goods_query:
+                        if order_goods.status != mcommon.status_choices2['待付款']:
+                            is_un_pay_order = False
+                            
+                    if is_un_pay_order :
+                        data = {
+                            "order_owner":order.order_owner,
+                             "tb_order_number":order.tb_order_number,
+                             "consignee_address":order.consignee_address,
+                             "consignee_name":order.consignee_name,
+                             "consignee_phone":order.consignee_phone,
+                              "add_time": time.time() * 1000,
+                        }
+                        null_order = trade_models.NullPackageTemp.objects.create(**data)
+                        order.delete()
+                        success_order_list.append(order)
+                    else:
+                        exception_order_list.append(order)
+                        
+                ret['success_order_list'] = json.dumps(dj_serializers.serialize("json",success_order_list))
+                ret['exception_order_list'] = json.dumps(dj_serializers.serialize("json",exception_order_list))
+        except:
+            logger.info('%s userid->%s ,  url:%s method:%s' % ("提交异常" + traceback.format_exc(), self.request.user.id, self.request.path, self.request.method))
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = '查询异常'
+            return Response(ret)
+
+        return Response(ret)
+
+
+class DeleteNullOrderTemView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def post(self,request, *args, **kwargs):
+        try:
+            ret = {'code': "1000", 'message': ""}
+            data = request.data
+            print(data)
+            order_number_list = data.get("order_number_list")
+            success_order_list = []
+            exception_order_list = []
+            with transaction.atomic():
+                trade_models.Order.objects.filter(order_owner = request.user,order_number__in= order_number_list).delete()
+
+
+
+        except:
+            logger.info('%s userid->%s ,  url:%s method:%s' % ("提交异常" + traceback.format_exc(), self.request.user.id, self.request.path, self.request.method))
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = '查询异常'
+            return Response(ret)
+
+        return Response(ret)
+
+
+class GetNullOrderTemView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def get(self,request, *args, **kwargs):
+        try:
+            ret = {'code': "1000", 'message': ""}
+            with transaction.atomic():
+                qs = trade_models.NullPackageTemp.objects.filter(order_owner = request.user)
+                order_list = []
+                for nullOrder in qs:
+                    order_list.append(model_to_dict(nullOrder))
+
+                ret['data'] = json.dumps(order_list)
+
+
+
+        except:
+            logger.info('%s userid->%s ,  url:%s method:%s' % ("提交异常" + traceback.format_exc(), self.request.user.id, self.request.path, self.request.method))
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = '查询异常'
+            return Response(ret)
+
+        return Response(ret)
+
+
+class AddOrderToChuanMeiView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            print(request.data)
+            req_order_list = json.loads(request.data.get("order_list"))
+            cookies = json.loads(request.data.get('cookies'))
+            ret = {'code': "1000", 'message': ""}
+            # requests.post('http://httpbin.org/post', data={'hee': 'llo'})
+            header = {
+                # cookie 这里就不贴出来了 ![(☆_☆)/~~]
+                "Cookie": "JSESSIONID="+cookies.get("JSESSIONID"),
+                # 'content-type': 'charset=gbk',
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
+            }
+            exception_order_list = []
+            req_order_number_list = []
+            for item in req_order_list:
+                req_order_number_list.append(item.get("order_number"))
+
+            for item in req_order_list:
+                args = Q(order_number=item.get("order_number")) & Q(orderGoods__status=mcommon.status_choices2['待付款'])
+                order_query_set = trade_models.Order.objects.filter(args)
+                # 不存在数据库待付款状态订单
+                if len(order_query_set) == 0:
+                    exception_order_list.append(item)
+                    continue
+                data = {}
+                data['receiverName'] = item.get("consignee_name")
+                data['buyerNick'] = ""
+                add_arr = item.get("consignee_address").split(",")
+                data['receiver_state'] = add_arr[0]
+                data['receiver_city'] =  add_arr[1]
+                data['receiver_district'] = add_arr[2]
+                data['receiver_address'] = add_arr[3]
+
+                data['receiver_phone'] = ""
+                data['receiver_mobile'] = item.get("consignee_phone")
+                data['expTempId'] = 0
+                data['seller_memo'] = ''
+                data['expOrderId'] = ''
+
+                data['sendInfoContactName'] = request.user.sender_name
+                data['sendInfoMobilePhone'] = request.user.sender_phone
+                data['sendInfoProvince'] = request.user.sender_province
+                data['sendInfoCity'] = request.user.sender_city
+                data['sendInfoCountry'] = request.user.sender_area
+                data['sendCompany'] = ""
+                data['sendInfoAddr'] = request.user.sender_address_details
+                order_goods_list = item.get("orderGoods")
+                post_order_list = []
+                for order_goods in order_goods_list:
+                    post_order_obj = {}
+                    post_order_obj['title'] = ""
+                    post_order_obj['outid'] = ""
+                    post_order_obj['skuname'] = order_goods.get("goods_color")
+                    post_order_obj['num'] = order_goods.get("goods_count")
+                    post_order_obj['price'] = order_goods.get("goods_price")
+                    post_order_obj['discountfee'] = 0
+                    post_order_obj['payment'] =  order_goods.get("goods_price")
+                    post_order_obj['outerskuid'] = ""
+                    floor = order_goods.get("shop_floor").replace("楼","F").replace("区", "")
+                    stall_no = order_goods.get("shop_stalls_no")
+                    art_no = order_goods.get("art_no")
+                    reg_ = '^[0-9]F'
+                    result = re.match(reg_, stall_no)
+                    if result is not None:
+                        stall_no = stall_no.replace(result[0], "")
+                    post_order_obj['outeriid'] = mcommon.market_short_name[order_goods.get("shop_market_name")]+floor+stall_no+"#"+art_no
+                    post_order_obj['weight'] = "0.0"
+                    post_order_list.append(post_order_obj)
+                orders_obj = {"orders":post_order_list}
+                data['orders'] = json.dumps(orders_obj)
+                # for key, value in data.items():
+                #     data[key] = str(value).encode("gbk")
+                # url = "https://tb1.chuanmeidayin.com/cmdy/operation/offline?method=save"
+                url = "https://dayin.chuanmeidayin.com/operation/freeTrade?method=save"
+                response = requests.post(url, data=data, headers=header)
+                print(response)
+                if response.status_code != 200:
+                    print("保存失败")
+                    ret['code'] = "1001"
+
+                    item['ret_message'] = "保存失败"
+                    exception_order_list.append(item)
+                    continue
+
+                if response.text.find("login.jsp")!= -1:
+                    print("传美cookies无效")
+                    ret['code'] = "1001"
+                    ret['message'] = "传美cookies无效"
+                    break
+                if response.text =="":
+                    ret['code'] = "1001"
+                    item['ret_message'] = "保存失败"
+                    exception_order_list.append(item)
+                    continue
+                order_query_set.delete()
+            ret['exception_order_list'] = exception_order_list
+#*********************************************************************
+            datat = {
+                'receiverName': '侯立铁' ,
+                'buyerNick': '王者荣耀乖' ,
+                'receiver_state': '陕西省' ,
+                'receiver_city': '西安市' ,
+                'receiver_district': '雁塔区' ,
+                'receiver_address': '电子城街道太白南路191号1栋2707室' ,
+                'receiver_phone': '',
+                'receiver_mobile': 15514388713,
+                'receiver_zip': 450000,
+                'expTempId': 1580533562274,
+                'seller_memo': '',
+                'expOrderId': '',
+                'orders': '{"orders":[{"title":"简易仰卧起坐女辅助器宿舍床上家用固定脚压脚器做健身器材学生男","outid":"","skuname":"颜色分类:[黑色]加长款","num":1,"price":49.2,"discountfee":0,"payment":25.51,"outerskuid":"","outeriid":"Y1001","weight":0.01}]}',
+                'sendInfoContactName': '陈清龙',
+                'sendInfoMobilePhone': 17087987015,
+                'sendInfoProvince': '广东省' ,
+                'sendInfoCity': '梅州市' ,
+                'sendInfoCountry': '兴宁市' ,
+                'sendCompany': '青火龙健身' ,
+                'sendInfoAddr': '鸿达花园 兴鸿一街（金河湾车库入口对面）。'
+            }
+            # *********************************************************************
+
+
+
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "查询异常"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return Response(ret)
+        return Response(ret)
+
+
+class GetPlugsVersionView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request, *args, **kwargs):
+        ret = {'code': "1000", 'message': ""}
+        print(request.data)
+        version_name = request.GET.get("version_name")
+        # version_name = request.data.get("version_name")
+        version = models.PlugsVersions.objects.filter(version_name=version_name).first()
+        if version is not None:
+            ret['data'] = model_to_dict(version)
+        return Response(ret)
+
+
 class GetOrderByTBOrderNumberListViewSet(ListModelMixin, GenericViewSet):
+        class MPagination(PageNumberPagination):
+            # 指定每一页的个数
+            page_size = 50
+            # 可以让前端来设置page_szie参数来指定每页个数
+            page_size_query_param = 'page_size'
+            # 设置页码的参数
+            page_query_param = 'page'
         authentication_classes = []
         permission_classes = []
         serializer_class = m_serializers.tTradeOrderQuerySerializer
         # 设置分页的class
-        pagination_class = UsersPagination
+        pagination_class = MPagination
 
         def list(self, request, *args, **kwargs):
             print(request.data)
@@ -976,6 +1528,71 @@ class GetOrderByTBOrderNumberListViewSet(ListModelMixin, GenericViewSet):
             return m_serializers.tTradeOrderQuerySerializer
 
 
+class GetNullOrderByTBOrderNumberListViewSet(ListModelMixin, GenericViewSet):
+        class NullPackageOrderQuerySerializer(serializers.ModelSerializer):
+            order_owner = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+            def get_order_owner(self, obj):
+                if obj.order_owner:
+                    return obj.order_owner.user_name
+                return None
+
+            class Meta:
+                model = trade_models.NullPackageOrder
+                # fields = ["id", "order_number", "order_owner"
+                #     , "pay_no", "consignee_address", "consignee_name", "consignee_phone", "sender_address", "sender_name",
+                #           "sender_phone", "is_delete", "quality_testing_name",
+                #           "quality_testing_fee", "logistics_fee", "agency_fee", "logistics_name", "logistics_number",
+                #           "weight", "total_price", "add_time", "orderGoods", "order_status", "update_time",
+                #           "tb_order_number"]
+                fields = '__all__'
+                # 查表深度  关联表（父表）的数据也会查处出来  深度值官方推荐 0-10
+                depth = 2
+
+        class MPagination(PageNumberPagination):
+            # 指定每一页的个数
+            page_size = 50
+            # 可以让前端来设置page_szie参数来指定每页个数
+            page_size_query_param = 'page_size'
+            # 设置页码的参数
+            page_query_param = 'page'
+        authentication_classes = []
+        permission_classes = []
+        serializer_class = NullPackageOrderQuerySerializer
+        # 设置分页的class
+        pagination_class = MPagination
+
+        def list(self, request, *args, **kwargs):
+            print(request.data)
+
+            # trade_models.OrderGoods.filter()
+            ret = {"code": "1000", "message": ""}
+            try:
+                queryset = self.filter_queryset(self.get_queryset())
+
+                page = self.paginate_queryset(queryset)
+                if page is not None:
+                    serializer = self.get_serializer(page, many=True)
+                    return self.get_paginated_response(serializer.data)
+
+                serializer = self.get_serializer(queryset, many=True)
+                return Response(serializer.data)
+            except:
+                traceback.print_exc()
+                logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+                ret['code'] = "1001"
+                ret['message'] = " 查询异常"
+                return Response(ret)
+
+        def get_queryset(self):
+            try:
+                print(self.request.query_params)
+
+                tb_order_number_list = json.loads(self.request.query_params.get("tb_order_number_list"))
+
+                return trade_models.NullPackageOrder.objects.filter(Q(tb_order_number__in = tb_order_number_list)).order_by('-add_time')
+            except:
+                traceback.print_exc()
 
 
  # 返回被邀请用户信息
@@ -1182,10 +1799,15 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
                 with transaction.atomic():
                     refund_apply_query = trade_models.RefundApply.objects.filter(orderGoods=order_goods_id)
                     refund_apply_object = refund_apply_query.first()
+                    if refund_apply_object.refund_apply_type != mcommon.refund_apply_choices2['退货退款'] or refund_apply_object.refund_apply_progress != mcommon.refund_apply_progress_choices2['未处理']:
+                        ret['code'] = "1001"
+                        ret['message'] = "撤销失败,状态不允许撤销"
+                        return Response(ret)
                     apply_goods_counts = refund_apply_object.goods_counts
                     # 退回服务费
                     return_server_fee = Decimal(str(mcommon.service_fee)) * Decimal(str(apply_goods_counts))
-                    is_suc = self.return_server_fee( self.request.user, orderGoods, orderGoods.order, return_server_fee)
+                    user = models.User.objects.select_for_update().filter(id=request.user.id).first()
+                    is_suc = self.return_server_fee(user, orderGoods, orderGoods.order, return_server_fee)
                     if is_suc is False:
                         raise Exception
                     trade_models.OrderGoods.objects.filter(id =order_goods_id).update(refund_apply_status = 0)
@@ -1441,7 +2063,13 @@ class UserRefundApplyViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet
         else:
             raise Exception
         refundApply = self.perform_create(user_goods_refund_apply_serializer)
+        if refundApply is not None:
+            return_package_info = trade_models.ReturnPackageInfo.objects.select_for_update().filter(return_logistics_number=refundApply.return_logistics_number).first()
+            if return_package_info is not None :
+                refundApply.refund_apply_progress = mcommon.refund_apply_progress_choices2['仓库已收到退件']
+                refundApply.save()
         order_goods.refund_apply_status = refund_apply_type
+
         order_goods.save()
 
 

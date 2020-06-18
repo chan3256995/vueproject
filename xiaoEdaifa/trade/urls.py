@@ -19,5 +19,6 @@ urlpatterns = [
         url(r'^order/$', views.OrderView.as_view()),  # newnew
         url('qualityTest/', views.QualityTestView.as_view()),  # new
         url('logistics/', views.LogisticsView.as_view()),  # new
+        url('nullPackageLogistics/', views.NullPackageLogisticsView.as_view()),  # new
         url('payInfo/', views.PayInfoView.as_view()),  # new
 ]

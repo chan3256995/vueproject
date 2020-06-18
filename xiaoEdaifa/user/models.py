@@ -13,7 +13,17 @@ class User(models.Model):
     )
     user_name = models.CharField(max_length=30, null=False, unique=True)
     qq = models.BigIntegerField(null=True, unique=True)
+
     email = models.CharField(max_length=30, null=True, unique=True)
+
+    # 寄件人信息
+    sender_province = models.CharField(null=True, max_length=40)
+    sender_city = models.CharField(null=True, max_length=40)
+    sender_area = models.CharField(null=True, max_length=40)
+    sender_address_details = models.CharField(null=True, max_length=140)
+    sender_name = models.CharField(max_length=30, null=True)
+    sender_phone = models.CharField(max_length=30,null=True)
+
     password = models.CharField(max_length=128, null=False)
     # 用户类型
     type = models.SmallIntegerField(choices=user_type_choices,default=1)
@@ -53,3 +63,9 @@ class UserToken(models.Model):
     user = models.OneToOneField(to='User', on_delete=models.CASCADE)
     token = models.CharField(max_length=128)
     add_time = models.BigIntegerField()
+
+
+class PlugsVersions(models.Model):
+    version_name = models.CharField(max_length=10, null=False)
+    version_code = models.CharField(max_length=15, null=False)
+    down_load_url = models.CharField(max_length=200, null=True)

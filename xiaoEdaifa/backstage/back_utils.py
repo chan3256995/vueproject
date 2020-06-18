@@ -13,8 +13,12 @@ from user import  models as user_models
 logger = logging.getLogger('stu')
 from utils import encryptions
 
+back_null_package_logistic_choices = {
+    '圆通洗衣粉': "圆通实包",
+    '韵达信封': "圆通空包",
+    '圆通信封': "圆通空包",
 
-
+}
 
 # 充值订单审核
 def recharge_pass(trade_number):

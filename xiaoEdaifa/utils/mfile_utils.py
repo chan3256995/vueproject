@@ -11,6 +11,24 @@ def get_file_list(dir_path):
     return file_list
 
 
+# 写入内容到文件
+def write_file(file_path,text):
+    # 把字符串写入文件
+    f = open(file_path, 'w', encoding='utf-8')
+    f.write(text)
+    f.close()
+
+
+# 读取文本里面的内容
+def read_file_content(file_path):
+    # 读文件；如果文件名不存在会报错
+    f = open(file_path, 'r', encoding='utf-8')
+    res = f.read()
+    print('从文件里面读出来的数据：', res)
+    f.close()
+    return res
+
+
 # 删除一个文件
 def delete_file(file_path):
     if os.path.exists(file_path):

@@ -17,6 +17,8 @@ import time
 from utils import encryptions
 from _decimal import Decimal
 from rest_framework import serializers
+
+
 class UsersPagination(PageNumberPagination):
     # 指定每一页的个数
     page_size = 10
@@ -207,9 +209,6 @@ class UserAlipayRealInfoViewSet( mixins.UpdateModelMixin, mixins.RetrieveModelMi
         return JsonResponse(ret)
 
 
-
-
-
 # 订单支付
 class OrderPayView(APIView):
     authentication_classes = [UserAuthtication]
@@ -277,6 +276,75 @@ class OrderPayView(APIView):
                 else:
                     ret['code'] = "1001"
                     ret['message'] = "余额不足"
+
+
+
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "支付失败"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+        return JsonResponse(ret)
+
+
+class NullOrdersPayView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def post(self,request, *args, **kwargs):
+        print("order_list--------------")
+        print(request.data.get("order_list"))
+        order_list = request.data.get("order_list")
+        ret = {'code': "1000", 'message': ""}
+        try:
+            pay_pwd = request.data.get("pay_pwd")
+            print("pay_pwd",pay_pwd)
+            pay_pwd_ = encryptions.get_sha_encryptions(pay_pwd)
+            if request.user.pay_password != pay_pwd_:
+                ret['code'] = "1001"
+                ret['message'] = "密码错误"
+                logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+                return JsonResponse(ret)
+            query_set = trade_models.NullPackageOrder.objects.filter(order_number__in=order_list)
+            pay_money = 0.0;
+            for order in query_set:
+                if order.order_owner != request.user:
+                    # 订单不是该请求用户的跳过
+                    continue
+
+                trade_item = trade_models.TradeInfo.objects.filter(order_number = order.order_number).first()
+                if trade_item is not None:
+                    #  该订单已经有支付记录
+                    break
+
+                if order.order_status != mcommon.null_package_order_status_choices2.get("未付款"):
+                        break
+                data = {
+                    "trade_money":  order.logistics_fee,
+                    "order_number": order.order_number,
+                }
+                with transaction.atomic():
+                    cur_user = user_models.User.objects.select_for_update().get(id=request.user.id)
+                    ser = m_serializers.OrderPayBalanceSerializer(data=data, context={'request': request})
+                    ser.is_valid(raise_exception=True)
+                    ser.validated_data['trade_number'] = BaseTrade(cur_user).get_trade_number()
+                    ser.validated_data['trade_source'] = mcommon.trade_source_choices2.get("空包")
+                    ser.validated_data['cash_in_out_type'] = mcommon.cash_in_out_type_choices2.get("支出")
+                    ser.validated_data['user_balance'] = cur_user.balance
+                    ser.validated_data['add_time'] = time.time()*1000
+                    ser.validated_data['message'] = "订单："+order.order_number
+
+                    if cur_user.balance >= order.logistics_fee:
+                        cur_user.balance = Decimal(str(cur_user.balance)) - Decimal(str(order.logistics_fee))
+                        ser.validated_data['user_balance'] = Decimal(str(cur_user.balance))
+                        ser.validated_data['is_pass'] = True
+                        order.order_status =  mcommon.null_package_order_status_choices2.get("已付款")
+                        order.save()
+                        ser.save()
+                        cur_user.save()
+                    else:
+                        ret['code'] = "1001"
+                        ret['message'] = "余额不足"
 
 
 
