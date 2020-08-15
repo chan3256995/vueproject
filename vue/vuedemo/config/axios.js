@@ -17,12 +17,16 @@ axios.interceptors.request.use(function (config) {
           Vue.prototype.$nprogress.start()
        // config.headers.token = 'adhfkadflajflakdlajsdhkj';
         if(config.url.startsWith(mGlobal.DJANGO_SERVER_BASE_URL+"/back")){
-          if(config.url.search("access_token_bk") === -1){
+          if(config.url.indexOf("access_token_bk") === -1 && config.url.indexOf("?") === -1){
             config.url = config.url+"?access_token_bk="+VueCookies.get("access_token_bk")
+          }else if(config.url.indexOf("access_token_bk") === -1 && config.url.indexOf("?") !== -1){
+            config.url = config.url+"&access_token_bk="+VueCookies.get("access_token_bk")
           }
         }else{
-          if(config.url.search("access_token") === -1){
+          if(config.url.indexOf("access_token") === -1 && config.url.indexOf("?") === -1){
             config.url = config.url+"?access_token="+VueCookies.get("access_token")
+          }else if(config.url.indexOf("access_token") === -1 && config.url.indexOf("?") !== -1){
+            config.url = config.url+"&access_token="+VueCookies.get("access_token")
           }
 
         }

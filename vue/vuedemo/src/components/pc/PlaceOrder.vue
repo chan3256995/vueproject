@@ -13,6 +13,7 @@
                  <td>价格</td>
                  <td>颜色尺码</td>
                  <td>件数</td>
+                 <td></td>
             </tr>
 
 
@@ -156,7 +157,7 @@
 
             </table>
 
-             <table class = "market_table" style="width: 100%" v-for="(goodsitem,index) in item.orderGoods " >
+         <table class = "market_table" style="width: 100%" v-for="(goodsitem,index) in item.orderGoods " >
             <tr  >
                  <td><input  class="global_input_default_style defalut_input "   :class="{'input_tip':goodsitem.shop_market_name===''}" v-model="goodsitem.shop_market_name"/></td>
                  <td><input   class="global_input_default_style defalut_input " :class="{'input_tip':goodsitem.shop_floor===''}" v-model="goodsitem.shop_floor"/></td>
@@ -166,8 +167,9 @@
                  <td><input  class="global_input_default_style defalut_input " :class="{'input_tip':goodsitem.goods_color===''}"    v-model="goodsitem.goods_color"/></td>
                  <td><input  class="global_input_default_style defalut_input " :class="{'input_tip':goodsitem.goods_count===''}" type="number"   v-model="goodsitem.goods_count"/> </td>
             </tr>
-                <tr  v-if="my_account!=='' && my_account.id === 12 " style="display: block; color:red">
-                      <label>留言：</label><input style="color:red"  class="global_input_default_style defalut_input "      v-model="goodsitem.customer_message" />
+                <tr  v-if="my_account!==''" style="display: block; color:red">
+                <!--<tr  v-if="my_account!=='' && user_id_is_in_list(my_account.id,allow_message_user_id_list)===true "style="display: block; color:red">-->
+                      <label> </label><input style="color:red"  placeholder="留言" class="global_input_default_style defalut_input "      v-model="goodsitem.customer_message" />
               </tr>
         </table>
        <div style="padding-top:5px">
@@ -264,7 +266,7 @@
              {'text':'市场名_楼层_档口号_价格_货号_颜色尺码_件数(用空格 逗号 下划线 隔开)','value':'vvic',"abbreviate":'搜款网格式'},
 
            ],
-
+            allow_message_user_id_list : [1,12,20],
             my_account:"",
           // 显示批量添加
           is_multi_add:false,
@@ -319,7 +321,14 @@
 　　　　},
      }},
       methods:{
-
+       user_id_is_in_list(id,list){
+         for(let i = 0;i<list.length;i++){
+           if(id===list[i]){
+             return true
+           }
+         }
+         return false
+       },
        time_format(time_stmp){
          return mtime.formatDateStrFromTimeSt(time_stmp)
         },
@@ -343,17 +352,18 @@
                   let order_goods_list = []
 
 
-                 for(let g = 0 ;g<plug_order_data[i].order_goods_list.length;g++){
-                   plug_order_data[i].order_goods_list[g]['code'] = plug_order_data[i].order_goods_list[g].code.replace("^^^","#")
+                  for(let g = 0 ;g<plug_order_data[i].order_goods_list.length;g++){
+                    plug_order_data[i].order_goods_list[g]['code'] = plug_order_data[i].order_goods_list[g].code.replace("^^^","#")
                     let color = plug_order_data[i].order_goods_list[g].color.trim()
-                   let size = ""
-                   if(plug_order_data[i].order_goods_list[g].size !==undefined){
-                      size = plug_order_data[i].order_goods_list[g].size.replace("-",'^').replace("/","^").trim()
-                   }
+                    let size = ""
 
-                   let goods_str =  plug_order_data[i].order_goods_list[g].code +" "+color+size+" "+plug_order_data[i].order_goods_list[g].count
+                    if(plug_order_data[i].order_goods_list[g].size !==undefined){
+                      size = plug_order_data[i].order_goods_list[g].size.replace("-",'^').replace("/","^").trim()
+                    }
+
+                    let goods_str =  plug_order_data[i].order_goods_list[g].code +" "+color+size+" "+plug_order_data[i].order_goods_list[g].count
                     console.log("goods_str------",goods_str)
-                    order_goods_list = marketData.get_goods_list(goods_str,this.goods_str_format_options[0].value)
+                    order_goods_list =order_goods_list.concat( marketData.get_goods_list(goods_str,this.goods_str_format_options[0].value))
 
                  }
                   let orderItem = {"quality_test":this.selected_quality_test,"logistics":this.selected_logistics,"address":addressObj,"orderGoods":order_goods_list};

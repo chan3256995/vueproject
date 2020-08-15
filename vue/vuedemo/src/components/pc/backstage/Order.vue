@@ -28,7 +28,7 @@
         <input v-model="query_q" placeholder="订单ID，订单号，收货人名，手机号，快递单号" style="width: 30em; height: 2em ; "  /><button @click='on_orders_query({"q":query_q.trim()})' style="margin-left: 0.5em">查询</button><button style="margin-left: 0.5em" @click='on_orders_query(null,null,"search_all_order_btn")' >查询全部{{all_order_counts}}</button>
         <label style="margin-left: 0.5em">时间选择</label><input style="width: 12em" placeholder="点击选择时间" @click="calendar_show = !calendar_show" v-model="during_str">
       </div>
-      <div > <button style="margin-top: 1.5em" @click="select_all(is_all_order_selected)">全选</button></div>
+      <div > <button style="margin-top: 1.5em" @click="select_all(is_all_order_selected)">全选</button><button style="margin-top: 1.5em; margin-left: 2em" @click="copy_order_str(selected_order_list)">复制选中订单</button></div>
         <li class="item_order" v-for="(item,index) in order_list" :key="index">
           <div  class="order_div" >
             <input style="width: 1.5em; height: 1.5em " @change="checkbox_change(index,item)" type="checkbox" v-model="item.is_checked" >
@@ -36,6 +36,7 @@
             <label style="margin-right: 0.2em; color:black; font-size: 1.2em">{{item.id}}</label>
             <a style="cursor:pointer; text-decoration:underline; " @click="show_user(item.order_owner)">下单人:{{item.order_owner.user_name}}</a>
               <label  class="order_label" >订单号：{{item.order_number}}</label>
+              <label  class="order_label" v-if="item.tb_order_number!==null && item.tb_order_number!==''" >淘宝订单号：{{item.tb_order_number}}</label>
              <label   style="color:black">跟单人：</label>
              <label v-if="item.order_follower !==null" style="color:black">{{item.order_follower.user_name}}</label>
             <label>包裹状态：{{order_status[item.order_status]}}</label>
@@ -91,7 +92,10 @@
                        </select>
                         <button @click="alter_order_goods_info(goods.id,{'refund_apply_status':goods.refund_apply_status})">确定修改</button>
                 </div>
-           <label :class="{'color_red':goods.status !==goods_status2['已退款']}" >   下单备注：{{goods.customer_message}}</label>
+                <label :class="{'color_red':goods.status !==goods_status2['已退款']}">   下单备注： </label>
+                <input :class="{'color_red':goods.status !==goods_status2['已退款']}" v-model="goods.customer_message"   />
+
+                <button  @click="alter_order_goods_info(goods.id,{'customer_message':goods.customer_message})" >确定修改</button>
                  <label :class="{'color_red':goods.status !==goods_status2['已退款']}">   客服留言：{{goods.customer_service_message}}</label>
                  <input   v-model="goods.customer_service_message"/>
                  <button  @click="alter_order_goods_info(goods.id,{'customer_service_message':goods.customer_service_message})" >确定修改</button>
@@ -147,6 +151,7 @@
             disabledDate:[],
             during_str:"",
             selected_order_list:[],
+            // 插件利用到该缓存
             select_order_item_cache :[],
             search_market_name:"",
             search_shop_floor:"",
@@ -215,6 +220,7 @@
           }
 
         },
+        //选择按钮发生变化时候调用该函数
         checkbox_change(index,item){
                this.selected_order_list = []
                for(let i = 0;i< this.order_list.length;i++){
@@ -362,17 +368,75 @@
           this.$router.push({path:"/pc/home/porder",query:{data:data}})
         },
 
-        select_all(){
-            console.log("777777777")
-            for(let i = 0;i<this.order_list.length;i++){
-              console.log("999999999999999999999")
-              console.log(this.order_list[i].is_checked)
+        //复制商品到剪切板
+        copy_order_str(selected_order_list){
+          let goods_list_tem = []
+          for(let i = 0 ; i<selected_order_list.length;i++){
+            for(let g=0;g<selected_order_list[i].orderGoods.length;g++){
+              goods_list_tem.push(selected_order_list[i].orderGoods[g])
+            }
+          }
+          goods_list_tem.sort(function (a,b) {
 
+            if(a.shop_market_name ===  b.shop_market_name){
+
+
+               if(a.shop_floor === b.shop_floor){
+                  if(a.shop_stalls_no === b.shop_stalls_no){
+                      if(a.art_no === b.art_no){
+                         if(a.goods_color === b.goods_color){
+                           return 0
+                        }
+                        if(a.goods_color > b.goods_color){
+                          return 1
+                        }else{
+                          return -1
+                        }
+                      }
+                      if(a.art_no > b.art_no){
+                        return 1
+                      }else{
+                        return -1
+                      }
+                  }
+                  if(a.shop_stalls_no > b.shop_stalls_no){
+                    return 1
+                  }else{
+                    return -1
+                  }
+               }
+
+
+               if(a.shop_floor > b.shop_floor){
+                  return 1
+               }else{
+                  return -1
+               }
+            }
+            if(a.shop_market_name > b.shop_market_name){
+               return 1
+            }else{
+               return -1
+            }
+
+          })
+          let copy_text = ""
+          for(let i = 0 ;i<goods_list_tem.length;i++){
+            let text_line = goods_list_tem[i].shop_market_name+" "+ goods_list_tem[i].shop_floor+" "+goods_list_tem[i].shop_stalls_no+ " "+goods_list_tem[i].art_no+" "+goods_list_tem[i].goods_color+" "+goods_list_tem[i].goods_price+" "+goods_list_tem[i].goods_count+"件"
+            console.log(text_line)
+            copy_text = copy_text +text_line+'\n'
+          }
+           this.$copyText(copy_text)
+          this.$toast("复制成功")
+        },
+        select_all(){
+
+            for(let i = 0;i<this.order_list.length;i++){
               this.$delete(this.order_list[i],'is_checked');
               this.$set(this.order_list[i], 'is_checked', !this.is_all_order_selected);
-
             }
-            this.is_all_order_selected = !this.is_all_order_selected
+              this.is_all_order_selected = !this.is_all_order_selected
+              this.checkbox_change()
           },
         replaceData() {
             for(let i = 0;i<this.order_list.length;i++){

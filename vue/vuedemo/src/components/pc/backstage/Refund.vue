@@ -1,5 +1,9 @@
 <template>
   <div class="container">
+    <div  style="margin-top:0.5em" >
+        <input v-model="query_q" placeholder="订单ID，订单号，收货人名，手机号，快递单号" style="width: 30em; height: 2em ; "  /><button @click='on_orders_query({"q":query_q.trim()})' style="margin-left: 0.5em">查询</button><button style="margin-left: 0.5em" @click='on_orders_query(null,null,"search_all_order_btn")' >查询全部{{all_order_counts}}</button>
+        <!--<label style="margin-left: 0.5em">时间选择</label><input style="width: 12em" placeholder="点击选择时间" @click="calendar_show = !calendar_show" v-model="during_str">-->
+      </div>
     <ul class = "items_ul">
         <li class="item_order" v-for="(item,index) in order_list" :key="index">
           <div  class="order_div" >
@@ -21,7 +25,10 @@
                          <!--</select>-->
                 </div>
                   <div><label >   商品状态：{{goods_status[goods.status]}}  </label> </div>
-                  <div style="display: block"><label style="float: left">售后状态：</label><label :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}">   {{refund_apply_status[goods.refund_apply_status]}}  </label>
+                  <div style="display: block"><label style="float: left">售后类型：</label><label :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}">   {{refund_apply_status[goods.refund_apply_status]}}  </label> </div>
+                  <div style="display: block">
+                    <label style="float: left" >售后进度:</label>
+                    <label v-if="goods.refund_apply.length > 0 " style="color: red"  > {{ refund_apply_progress[goods.refund_apply[0].refund_apply_progress]}}</label>
                   </div>
                    <div v-if="goods.refund_apply.length>0 && goods.refund_apply[0].refund_apply_type === refund_apply_type['退货退款'] || goods.refund_apply.length>0 && goods.refund_apply[0].refund_apply_type === refund_apply_type['换货']">
                         <label style="float: left">售后物流： {{goods.refund_apply[0].return_logistics_name}}</label>
@@ -71,6 +78,8 @@
       data(){
           return{
             customer_service_message:"",
+            all_order_counts:"",
+            query_q:"",
             next_page_url :"",
             selected_op :"",
             options: [
@@ -78,7 +87,7 @@
             { text: '退货退款', value: '1' },
             { text: '仅退款', value: '2' }
           ],
-
+            refund_apply_progress:mGlobal.REFUND_APPLY_PROGRESS,
             logistics_name:{
 
             },
@@ -95,6 +104,11 @@
       },
 
       methods:{
+          on_orders_query(query_data,search_btn){
+             const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/goodsRefund/";
+             this.loadOrderPage(url,query_data,search_btn);
+          },
+
            //修改商品信息
         alter_order_goods_info(id ,data){
           const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/orderGoods/"+id+"/";
@@ -181,9 +195,10 @@
             this.loadOrderPage(this.nextPageUrl)
           },
 
-        loadOrderPage(url){
+        loadOrderPage(url,query_data,search_btn){
            axios.defaults.withCredentials=true;
            axios.get(url,{
+               params:query_data,
           }
         ).then((res)=>{
           console.log(res.data)

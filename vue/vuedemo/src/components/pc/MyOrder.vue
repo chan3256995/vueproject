@@ -94,8 +94,8 @@
                          <label>{{goods.refund_apply.value}}</label>
                          <label>{{goods.goods_price}} x {{goods.goods_count}} =  {{goods.goods_price * goods.goods_count}}元 </label>
                           <a  @click="apply_click(goods,item)" class = "refund_apply_btn" v-if="goods_status[goods.status] ==='已发货' ">申请售后</a>
-                          <!--<a  @click="apply_refund(goods.goods_number,refund_apply_type['拦截发货'],'确定拦截发货吗？申请后不能恢复发货，系统自动转为售后订单')" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='拿货中' ||  goods_status[goods.status] ==='已拿货') &&  refund_apply_status[goods.refund_apply_status] ==='无售后' ">拦截发货</a>-->
-                          <a  @click="apply_refund(goods.goods_number,refund_apply_type['仅退款'], '确定申请退款吗？')" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='2-5天有货' || goods_status[goods.status] ==='已下架' || goods_status[goods.status] ==='已下架' || goods_status[goods.status] ==='明日有货' ||  goods_status[goods.status] ==='其他' || goods_status[goods.status] ==='已付款') &&  refund_apply_status[goods.refund_apply_status] ==='无售后'">申请退款</a>
+                          <a  @click="apply_refund(goods.goods_count,goods.goods_number,refund_apply_type['拦截发货'],'确定拦截发货吗？申请后不能恢复发货，系统自动转为售后订单')" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='拿货中') &&  (refund_apply_status[goods.refund_apply_status] ==='无售后') &&  item.orderGoods.length===1">拦截发货</a>
+                          <a  @click="apply_refund(goods.goods_count,goods.goods_number,refund_apply_type['仅退款'], '确定申请退款吗？')" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='2-5天有货' || goods_status[goods.status] ==='已下架' || goods_status[goods.status] ==='已下架' || goods_status[goods.status] ==='明日有货' ||  goods_status[goods.status] ==='其他' || goods_status[goods.status] ==='已付款') &&  refund_apply_status[goods.refund_apply_status] ==='无售后'">申请退款</a>
                           <a  @click="goto_place_order_page(JSON.stringify(goods))" class = "refund_apply_btn">再次下单</a>
                          <!--<select @change="selectVal($event,goods)" >-->
                            <!--<option :value="option.value" v-for="(option,index) in options" :key="index">{{option.text}}</option>-->
@@ -104,11 +104,14 @@
 
                   <div style="float: left" > <label style="width: 5em;float: left" >商品状态:</label>  <label style="width:3em;color: red" >{{goods_status[goods.status]}}  </label><label style="color: red" v-if="goods.log !== null && goods.log!==''">({{goods.log}})</label> </div>
                   <div  >
+                    <label style="padding-left: 2em">申请类型:</label>
+                    <label  style="color: red"  > {{ refund_apply_status[goods.refund_apply_status]}}</label>
                     <label style="padding-left: 2em">售后进度:</label>
                     <!--<label  style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> {{refund_apply_status[goods.refund_apply_status]}}</label>-->
                     <!--<label v-if="refund_apply_status[goods.refund_apply_status]!=='无售后' && goods.refund_apply.length === 0 " style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> （已处理）</label>-->
                     <!--<label v-else-if="refund_apply_status[goods.refund_apply_status]!=='无售后' && goods.refund_apply.length >0 " style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> （处理中）</label>-->
                     <label v-if="goods.refund_apply.length > 0 " style="color: red"  > {{ refund_apply_progress[goods.refund_apply[0].refund_apply_progress]}}</label>
+
                   </div>
                   <div v-if="goods.return_logistics_name !== null " ><label style="float: left">售后物流:</label><label  > {{goods.return_logistics_name}}:{{goods.return_logistics_number}}  </label> </div>
                  <label style="display:block;color: red"v-if="goods.customer_message!==null && goods.customer_message!==''">  我的留言：{{goods.customer_message}}</label>
@@ -301,7 +304,7 @@
                     // 不是未付款的 跳过
                     is_continue = false
                   }else{
-                    console.log(is_selected)
+
                     this.$delete(this.order_list[i], 'is_order_selected');
                     this.$set(this.order_list[i], 'is_order_selected', is_selected);
 
@@ -402,7 +405,7 @@
 
             this.$msgBox.showMsgBox({
                   title: '支付',
-                  content: '支付金额 2元 + 1元手续费 = 3元"',
+                  content: '拦截发货先预付 2元/每件 退货费用，如果实际未拿货，费用(2元/件)系统会自动退回到账户"',
                   isShowInput: true
               }).then(async (val) => {
                    const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/refundApply/";
@@ -566,13 +569,14 @@
             let query_data = {"q":query_keys.trim()};
             this.loadOrderPage(url,query_data)
           },
-            apply_refund(goods_number, refund_apply_type,alter_message){
+            apply_refund(goods_count,goods_number, refund_apply_type,alter_message){
 
 
               if(!confirm(alter_message)) {
                 return ;
               }
               let data_ = {
+              "goods_counts":goods_count,
               "goods_number":goods_number,
               "refund_apply_type":refund_apply_type,
             }

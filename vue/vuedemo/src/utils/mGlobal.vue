@@ -5,11 +5,11 @@
 <script>
   //后台服务器地址
 
-  // const DJANGO_SERVER_BASE_URL = "http://39.96.69.115:8089"
-    const DJANGO_SERVER_BASE_URL = "http://192.168.2.110:8009"
+  const DJANGO_SERVER_BASE_URL = "http://39.96.69.115:8089"
+    // const DJANGO_SERVER_BASE_URL = "http://192.168.2.110:8009"
   // 前段访问地址
-  //   const VUE_REQUEST_BASE_URL = "http://17daina.com/#"
-    const VUE_REQUEST_BASE_URL = "http://192.168.2.110:8082/#"
+    const VUE_REQUEST_BASE_URL = "http://17daina.com/#"
+    // const VUE_REQUEST_BASE_URL = "http://192.168.2.110:8082/#"
     export default {
      DJANGO_SERVER_BASE_URL,
      VUE_REQUEST_BASE_URL,

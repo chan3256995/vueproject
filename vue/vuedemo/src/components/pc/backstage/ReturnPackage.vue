@@ -1,11 +1,21 @@
 <template>
     <div class="root">
 
+<table  >
 
+          <tr>
+            <td><input placeholder="物流名" v-model="add_logistics_name" ></td>
+            <td><input placeholder="物流单号"  v-model="add_logistics_number"></td>
+
+
+            <td><button @click="add_return_package({'return_logistics_name':add_logistics_name,'return_logistics_number':add_logistics_number})">添加退件</button></td>
+          </tr>
+      </table>
       <div style="text-align: left">
 
         <input placeholder="快递单号" v-model="logistics_name">
         <button @click="load_return_package_info(logistics_name)">查询</button>
+        <button @click="all_data">全部</button>
       </div>
 
       <table class = "list_table">
@@ -20,9 +30,10 @@
             <td>{{item.return_logistics_name}}</td>
             <td>{{item.return_logistics_number}}</td>
             <td>{{time_format(item.add_time)}}</td>
+            <td>{{item.id}}</td>
 
 
-            <td><button @click = delete_user_alipay_account_info(item.id)>删除</button></td>
+            <td><button @click = delete_return_package(item.id)>删除</button></td>
 
 
           </tr>
@@ -53,13 +64,38 @@
             nextPageShow:true,
             add_user_name:"",
             logistics_name:"",
-
+            add_logistics_name:'',
+            add_logistics_number:'',
             prePageUrl:"",
             nextPageUrl:"",
             return_package_info_list:[],
         }
       },
       methods:{
+        all_data(){
+           const url = mGlobal.DJANGO_SERVER_BASE_URL+"/back/returnPackageInfo/"
+           this.load_return_package_info_page(url)
+        },
+        add_return_package(package_obj){
+//
+
+         let package_list = []
+          package_list.push(package_obj)
+         const url = mGlobal.DJANGO_SERVER_BASE_URL+"/back/addReturnPackages/"
+          axios.post(url,{
+            "return_package_list":package_list
+          }
+        ).then((res)=>{
+            if(res.data.code === '1000'){
+               this.$toast("添加成功")
+
+            }else {
+              this.$toast("添加失败："+res.data.message)
+            }
+           }).catch(err=>{
+            this.$toast("访问错误")
+           })
+        },
         time_format(time_stmp){
          return mtime.formatDateStrFromTimeSt(time_stmp)
         },
@@ -99,7 +135,23 @@
              console.log(this.nextPageUrl)
               this.load_return_package_info_page(this.nextPageUrl)
           },
-
+       delete_return_package(package_id){
+          if(!confirm("确定删除订单吗？删除后不可恢复。")) {
+                return ;
+              }
+          const url = mGlobal.DJANGO_SERVER_BASE_URL+"/back/returnPackageInfo/"+package_id+"/"
+           axios.delete(url,{
+          }
+        ).then((res)=>{
+            if(res.data.code === '1000'){
+               this.$toast("删除成功")
+            }else {
+              this.$toast("删除失败："+res.data.message)
+            }
+           }).catch(err=>{
+            this.$toast("访问错误")
+           })
+       },
        load_return_package_info_page(url, query_data){
 
            axios.defaults.withCredentials=true;

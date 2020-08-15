@@ -33,6 +33,8 @@ import pbkTradeInfo from '../components/pc/backstage/TradeInfo'
 import pbkPrintFormat from '../components/pc/backstage/printFormatPage'
 // 会员卡管理
 import pbkDiscountCard from '../components/pc/backstage/DiscountCard'
+// 后台用户显示
+import pbkUsers from '../components/pc/backstage/Users'
 // 用户支付宝账户认证信息
 import pbkUserAliPayAccountInfo from '../components/pc/backstage/UserAliPayAccount'
 import pbkInviteRegisterInfo from '../components/pc/backstage/InviteRegister'
@@ -224,6 +226,12 @@ export default new VueRouter({
           path:'/pc/back/home/discountCard',
           name:'pbkDiscountCard',
           component:pbkDiscountCard
+         },
+        {
+          // 用户列表
+          path:'/pc/back/home/users',
+          name:'pbkUsers',
+          component:pbkUsers
          },
          {
           // 用户支付宝认证信息

@@ -17,6 +17,7 @@
       <li > <router-link class="nav"  to = "/pc/back/home/userAliPayAccountInfo/" >用户认证</router-link></li>
       <li > <router-link class="nav"  to = "/pc/back/home/inviteRegisterInfo/" >邀请注册</router-link></li>
       <li > <router-link class="nav"  to = "/pc/back/home/returnPackageInfo/" >退件包裹</router-link></li>
+      <li > <router-link class="nav"  to = "/pc/back/home/users/" >用户列表</router-link></li>
       <li > <router-link class="nav"  to = "/pc/back/home/excelToString/" >转换数据</router-link></li>
     </ul>
       </div>

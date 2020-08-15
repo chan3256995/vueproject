@@ -1,8 +1,8 @@
 <template>
-  <div style="width: 100%;margin: 0 auto; ">
+  <div style="width: 100%;margin: 0 auto; padding-top: 1em ">
 
     <div class="top">
-      <ul style="padding-right: 3em">
+      <ul style="padding-right: 3em; margin: 0 auto ">
       <li><a style="cursor:pointer;color: red" @click="go_to_plugs_page()" >淘宝订单同步教程</a></li>
       <li><a style="cursor:pointer;color: blue" @click="on_logout" >退出登录</a></li>
       <li style=""><a style="cursor:pointer;color: blue" @click="go_to_personal" v-text="user"> 个人中心</a></li>
@@ -15,8 +15,8 @@
       <router-link class="nav" to = "/pc/personal/recharge2" >充值</router-link>
 
       <a class="nav" @click="go_to_null_package_page" >空包</a>
-      <a class="nav tb_order_old"     style="display: inline-block"   @click="show_plugs_tip"  >同步淘宝已付款订单</a>
-      <a class="nav delivery_tb_order_old"  style="display:  inline-block"  @click="show_plugs_tip" >已发货订单同步到淘宝</a>
+      <a class="nav tb_order_old"       @click="show_plugs_tip"  >同步淘宝已付款订单</a>
+      <a class="nav delivery_tb_order_old"   @click="show_plugs_tip" >已发货订单同步到淘宝</a>
       <a class="nav tb_order"     style="display: none"   >同步淘宝已付款订单</a>
       <a class="nav delivery_tb_order"  style="display: none"    >已发货订单同步到淘宝</a>
     </div>
@@ -561,6 +561,7 @@ parms = Object.assign(parms,{callbackQuery:"callbackParam",callbackName:"jsonpCa
   .nav_div{
     width: 100%;
     text-align: center;
+
     height: 2em;
 
   }
@@ -568,6 +569,8 @@ parms = Object.assign(parms,{callbackQuery:"callbackParam",callbackName:"jsonpCa
     width: 100%;
     height: 2em;
     padding-right: 2em;
+
+
   }
   .top ul{
     float: right;
