@@ -92,6 +92,10 @@ urlpatterns = [
 
 
 
+
+
+
+
     # url('stopDeliver/', user_views.UserStopDeliverView.as_view()),  # new
     # url('orderGoods/', user_views.OrderGoodsViewSet.as_view()),  # new
     # url('addOrders/', user_views.UserMulOrderSaveView.as_view()),  # new

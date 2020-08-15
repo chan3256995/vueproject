@@ -18,6 +18,7 @@ from django.contrib.staticfiles import views as my_view
 from django.views.static import serve
 from backstage import views
 from backstage import trade_views
+from backstage import  bl_site_views
 from rest_framework import routers
 from xiaoEdaifa import settings
 router = routers.DefaultRouter()
@@ -26,11 +27,13 @@ router.register(r'orders', views.OrderViewSet, base_name='orders')
 router.register(r'nullOrders', views.NullOrderViewSet, base_name='nullOrders')
 # 优惠卡
 router.register(r'discountCard', views.DiscountCardViewSet, base_name='discountCard')
+router.register(r'users', views.UserViewSet, base_name='users')
 #  用户认证
 router.register(r'alipayAccountInfo', views.AlipayAccountInfoViewSet, base_name='alipayAccountInfo')
 # 邀请注册信息
 router.register(r'inviteRegInfo', views.InviteRegisterInfoViewSet, base_name='inviteRegInfo')
 router.register(r'returnPackageInfo', views.ReturnPackageInfoViewSet, base_name='returnPackageInfo')
+router.register(r'taskThread', views.TaskThreadViewSet, base_name='taskThread')
 router.register(r'goodsRefund', views.OrderGoodsRefundViewSet, base_name='goodsRefund')
 router.register(r'tradeInfo', trade_views.TradeInfoViewSet, base_name='tradeInfo')
 # router.register(r'tagPrint', trade_views.TagPrintViewSet, base_name='tradeInfo')
@@ -79,8 +82,11 @@ urlpatterns = [
     url('deliverFromBL/', trade_views.DeliverFromBLView.as_view()),
     #  明天有货
     url('tomorrowGoods/', trade_views.TomorrowGoodsView.as_view()),
+    url('autoScanYiNaHuoOrder/', trade_views.AutoScanYiNaHuoOrder.as_view()),
     # 修改拿货中状态商品 统一用这个接口（如 拿货中状态 改为 明日有货  2-5天有货 已拿货  其他）
     url('changePurchasingStatus/', trade_views.ChangePurchasingStatus.as_view()),
+    # 上传一个订单号 表示该订单下的全部商品已经拿货
+    url('changePurchasingStatusByOrderNumber/', trade_views.ChangeAllOrderGoodsPurchasingStatusViews.as_view()),
     url('notGoods/', trade_views.NotHasGoods.as_view()),
     # 明日有货 重新修改为 付款状态
     url('tomorrowStatusReset/', trade_views.TomorrowStatusResetView.as_view()),
@@ -90,8 +96,14 @@ urlpatterns = [
     url('temp/', trade_views.Temp.as_view()),
     url('appclient/', trade_views.AppClient.as_view()),
     url('addOrderToChuanMei/', trade_views.AddOrderToChuanMeiView.as_view()),
+    # 退包入库
     url('addReturnPackages/', trade_views.AddReturnPackages.as_view()),
+    # 添加用户余额
+    url('addUserBalance/', trade_views.AddUserBalance.as_view()),
 
-
+    # *****************************bl********************
+    url('bl_tuihuotuikuan_apply/', bl_site_views.BLTuihuotuikApply.as_view()),
+    url('bl_get_order_info/', bl_site_views.BLGetOrderInfo.as_view()),
+    # *****************************bl********************
     url(r'', include(router.urls))
 ]

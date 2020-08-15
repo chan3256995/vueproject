@@ -15,8 +15,13 @@ from utils import encryptions
 
 back_null_package_logistic_choices = {
     '圆通洗衣粉': "圆通实包",
-    '韵达信封': "圆通空包",
+    '圆通实包': "圆通实包",
     '圆通信封': "圆通空包",
+    '韵达信封': "韵达空包",
+    '韵达空包': "韵达空包",
+    '韵达实包': "韵达实包",
+
+
 
 }
 
@@ -26,7 +31,7 @@ def recharge_pass(trade_number):
         trade_info = trade_models.TradeInfo.objects.filter(trade_number=trade_number).first()
         if trade_info.cash_in_out_type == mcommon.cash_in_out_type_choices2.get("收入"):
             with transaction.atomic():
-                user = user_models.User.objects.filter(id=trade_info.user.id).first()
+                user = user_models.User.objects.select_for_update().filter(id=trade_info.user.id).first()
 
                 user.balance = float(Decimal(str(user.balance)) + Decimal(str(trade_info.trade_money)))
                 trade_info.user_balance = user.balance

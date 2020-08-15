@@ -9,7 +9,6 @@ from django.db import transaction
 from utils.auth import UserAuthtication
 from utils.permission import UserPermission
 logger = logging.getLogger('stu')
-import traceback
 from rest_framework import mixins
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.pagination import PageNumberPagination
@@ -17,7 +16,7 @@ import time
 from utils import encryptions
 from _decimal import Decimal
 from rest_framework import serializers
-
+import traceback
 
 class UsersPagination(PageNumberPagination):
     # 指定每一页的个数
@@ -49,7 +48,7 @@ class BalanceRecharge(APIView):
     def post(self, request, *args, **kwargs):
         ret = {'code': "1000", 'message': None}
         try:
-            print("------------data----------------")
+
             print(request.query_params)
             print(request.data)
             trade_info = trade_models.TradeInfo.objects.filter(recharge_number = request.data.get("recharge_number")).first()

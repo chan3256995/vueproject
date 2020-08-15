@@ -4,6 +4,7 @@ from django.http.response import JsonResponse
 from django.http import HttpResponse
 from trade import models as trade_models
 from trade import trade_utils
+from backstage import models as back_models
 from user import models as user_models
 from django.db.models import Q
 from utils.auth import BackStageAuthentication,BackStageNahuoAuthentication
@@ -21,6 +22,9 @@ from django.db import transaction
 from rest_framework.viewsets import GenericViewSet
 from utils import m_serializers
 from utils import mIP_utils
+from utils import mglobal
+from utils import bl_site_utils
+from _decimal import Decimal
 import time
 import datetime
 import threading
@@ -175,6 +179,7 @@ class TimeSwitchView(APIView):
             timer = threading.Timer(duration_time,  self.start_run_thread)
             timer.start()
 
+
 from rest_framework.renderers import JSONRenderer
 
 
@@ -326,23 +331,27 @@ class AddReturnPackages(APIView):
         try:
             with transaction.atomic():
                 ret = {'code': "1000", 'message': ""}
-                logistics_number_list = request.data.get("logistics_number_list")
-                new_logistics_number_list = []
-                exits_logistics_number_list = []
-                query_set = trade_models.ReturnPackageInfo.objects.filter(return_logistics_number__in=logistics_number_list)
-                for returnPackage in query_set:
-                    exits_logistics_number_list.append(returnPackage.return_logistics_number)
-                for logistics_number in logistics_number_list:
-                    if logistics_number not in exits_logistics_number_list:
-                        new_logistics_number_list.append(logistics_number)
-                for new_logistics_number in new_logistics_number_list:
-                    obj = trade_models.ReturnPackageInfo.objects.create(return_logistics_number=new_logistics_number,add_time=time.time()*1000)
+                return_package_list = json.loads(request.data.get("return_package_list"))
+                new_return_package_list = []
+                exits_return_package_list = []
+
+                for returnPackage in return_package_list:
+                    pacakge_obj = trade_models.ReturnPackageInfo.objects.filter(return_logistics_number=returnPackage.get('return_logistics_number')).first()
+                    if pacakge_obj is  None:
+                        new_return_package_list.append(returnPackage)
+                    else:
+                        exits_return_package_list.append(returnPackage)
+
+                for new_return_package in new_return_package_list:
+                    return_logistics_name = new_return_package.get('return_logistics_name')
+                    return_logistics_number = new_return_package.get('return_logistics_number')
+                    obj = trade_models.ReturnPackageInfo.objects.create(return_logistics_number=return_logistics_number,return_logistics_name=return_logistics_name,add_time=time.time()*1000)
                     if obj is not None:
-                        refund_apply = trade_models.RefundApply.objects.select_for_update().filter(return_logistics_number=new_logistics_number).first()
+                        refund_apply = trade_models.RefundApply.objects.select_for_update().filter(return_logistics_number=return_logistics_number).first()
                         if refund_apply is not None and refund_apply.refund_apply_progress == mcommon.refund_apply_progress_choices2['未处理']:
                             refund_apply.refund_apply_progress = mcommon.refund_apply_progress_choices2['仓库已收到退件']
                             refund_apply.save()
-                ret['exits_list'] = exits_logistics_number_list
+                ret['exits_list'] = exits_return_package_list
         except:
             traceback.print_exc()
             ret['code'] = "1001"
@@ -350,6 +359,97 @@ class AddReturnPackages(APIView):
             logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
             return Response(ret)
         return Response(ret)
+
+
+# 给你用户添加余额
+class AddUserBalance(APIView):
+
+    authentication_classes = [BackStageAuthentication, BackStageNahuoAuthentication]
+    permission_classes = [NahuoUserpermission]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                ret = {'code': "1000", 'message': ""}
+                req_user_name = request.data.get("user_name")
+                money = request.data.get("add_money")
+                message = request.data.get("message")
+                print(request.data)
+
+                user_obj = user_models.User.objects.select_for_update().filter(user_name=req_user_name).first()
+
+                if user_obj is None:
+                    ret['code'] = "1001"
+                    ret['message'] = "用户名不存在"
+                    return Response(ret)
+                if message is None:
+                    message = ""
+                data = {
+                    "trade_money": money,
+                }
+                ser = m_serializers.UserBalanceAlertSerializer(data=data, context={'request': request})
+                ser.is_valid(raise_exception=True)
+                ser.validated_data['user'] = user_obj
+                ser.validated_data['trade_number'] = mglobal.BaseTrade(user_obj).get_trade_number()
+                ser.validated_data['trade_source'] = mcommon.trade_source_choices2.get("其他费用")
+                ser.validated_data['cash_in_out_type'] = mcommon.cash_in_out_type_choices2.get("收入")
+                ser.validated_data['add_time'] = time.time() * 1000
+                ser.validated_data['message'] = "手工充值： "+money+"元，"+message
+                user_obj.balance = Decimal(str(user_obj.balance)) + Decimal(str(money))
+                ser.validated_data['user_balance'] = Decimal(str(user_obj.balance))
+                ser.validated_data['is_pass'] = True
+                user_obj.save()
+                ser.save()
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "查询异常"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return Response(ret)
+        return Response(ret)
+
+
+class BLTuihuotuikApply(APIView):
+
+    authentication_classes = [BackStageAuthentication, BackStageNahuoAuthentication]
+    permission_classes = [NahuoUserpermission]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                ret = {'code': "1000", 'message': ""}
+                req_order_goods_list =  json.loads(request.data.get("tuihuo_order_goods_list"))
+                exception_order_list = []
+                success_order_list = []
+                for req_order_goods in req_order_goods_list:
+                    goods_number = req_order_goods['goods_number']
+                    goods_id = req_order_goods['goods_id']
+                    return_logistics_name = req_order_goods['return_logistics_name']
+                    return_logistics_number = req_order_goods['return_logistics_number']
+                    print(request.data)
+                    orderGoods = trade_models.OrderGoods.objects.select_for_update().filter(goods_number=goods_number).first()
+                    od_number = orderGoods.order.order_number.replace("os", "")
+                    if return_logistics_number is not None and return_logistics_number!='':
+                        refund_result = bl_site_utils.refund_tuihuotuik_bl({"order_number": od_number, "order_id": orderGoods.order.id, "order_goods_id": orderGoods.id,"return_logistics_name": return_logistics_name, "return_logistics_number": return_logistics_number})
+                        if refund_result['code'] == "ok":
+                            success_order_list.append({"order_goods": req_order_goods, "message":""})
+                        elif refund_result['code'] == "error":
+                            exception_order_list.append({"order_goods": req_order_goods, "message": refund_result['message']})
+                    else :
+                        ret["code"] = "1001"
+                        ret["message"] = "物流单号不能为空"
+                        exception_order_list.append({"order_goods": req_order_goods,"message":"物流单号不能为空"})
+
+
+
+        except:
+            print(traceback.print_exc())
+            ret['code'] = "1001"
+            ret['message'] = "查询异常"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return Response(ret)
+        return Response(ret)
+
 
 
 # 缺货
@@ -442,6 +542,152 @@ class TomorrowStatusResetView(APIView):
         return JsonResponse(ret)
 
 
+# 自动扫描lb网站已拿货的订单
+class AutoScanYiNaHuoOrder(APIView):
+    authentication_classes = [BackStageAuthentication, ]
+    permission_classes = [Superpermission]
+    def post(self, request, *args, **kwargs):
+
+        print(request.data)
+        try:
+            with transaction.atomic():
+                ret = {'code': "1000", 'message': ""}
+                self.start_run_thread()
+                # *******************
+                # result = bl_site_utils.login("海文","137637653")
+                # if result.get("code") == 'ok':
+                #     # bl_site_utils.check_login(result.get('cookies'))
+                #     bl_site_utils.start_delivery_order_blto17(result.get('cookies'))
+                #     # bl_site_utils.load_order_list(result.get('cookies'),{"ss":55})
+                # *******************
+
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "查询异常"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+
+        return JsonResponse(ret)
+
+    def start_run_thread(self):
+        main_thread = back_models.ThreadTask.objects.filter(task_name='main_thread').first()
+        if main_thread is None:
+            return
+        time_interval = main_thread.time_interval
+        if main_thread.is_run is True:
+
+            query_set = back_models.ThreadTask.objects.filter()
+            for item in query_set:
+                if item.task_name == 'load_order_yinahuo_yifahuo':
+                    self.start_load_yinahuo_yifahuo_thread(item)
+            timer = threading.Timer(time_interval, self.start_run_thread)
+            timer.start()
+
+        main_thread.last_run_time = time.time()
+        last_time2 = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
+        print("main_thread----")
+        print(last_time2)
+        main_thread.save()
+
+
+
+
+
+            # 已拿货已发货任务时间间隔 返回时间秒
+    def get_load_order_yinahuo_yifahuo_task_interval_time(self,cur_hour):
+        if (cur_hour>0 and cur_hour<12) or cur_hour == 12 or cur_hour == 0:
+            return 2 * 60 * 60
+        elif cur_hour == 13:
+            return 1 * 60 * 60
+        elif cur_hour == 14:
+            # 半小时
+            return 30 * 60
+        elif cur_hour > 14 and cur_hour < 19:
+            return 15 * 60
+        elif  cur_hour == 19:
+            return 30 *60
+        elif cur_hour > 19 and cur_hour < 24 :
+            return 1 * 60 * 60
+
+    def start_load_yinahuo_yifahuo_thread(self, item):
+        # 最后 一次运行时间
+        last_time = item.last_run_time
+        is_run = item.is_run
+        # 运行时间间隔 单位 秒
+        time_interval = item.time_interval
+        cur_time = time.time()
+
+        if last_time is None or last_time == "":
+            last_time = time.time()
+            item.last_run_time = last_time
+            item.save()
+        if is_run is False:
+            return
+        #
+        m_time = cur_time - (last_time + time_interval)
+        print("m_time:" + str(m_time))
+        if m_time > 0:
+            last_time2 = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(last_time))
+            cur_time_format = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(cur_time))
+            cur_hour = cur_time_format.split(" ")[1].split(":")[0]
+            print("laod thread----")
+            print(last_time2)
+            print(cur_hour)
+            result = bl_site_utils.login()
+            if result.get("code") == 'ok':
+                bl_site_utils.start_delivery_order_blto17(result.get('cookies'))
+            interval_time = self.get_load_order_yinahuo_yifahuo_task_interval_time(int(cur_hour))
+            item.time_interval = interval_time
+            item.last_run_time = time.time()
+            item.save()
+
+
+
+class ChangeAllOrderGoodsPurchasingStatusViews(APIView):
+    authentication_classes = [BackStageAuthentication, BackStageNahuoAuthentication]
+    permission_classes = [NahuoUserpermission]
+
+    def post(self, request, *args, **kwargs):
+        print(request.data)
+        try:
+            with transaction.atomic():
+                ret = {'code': "1000", 'message': ""}
+                ip = mIP_utils.get_windows_local_ip()
+                req_order_number_list = json.loads(request.data.get("order_number_list"))
+
+                order_queryset = trade_models.Order.objects.filter(Q(order_number__in=req_order_number_list)).distinct()
+
+                # 异常状态订单
+                exception_order_list = []
+                for sql_order in order_queryset:
+                    # 订单里有一个商品状态该为已拿货 就更新时间
+                    is_update_time = True
+                    tem_exceptions_order_goods = []
+                    sql_order_goods_query = trade_models.OrderGoods.objects.filter(order=sql_order)
+                    for sql_order_goods in sql_order_goods_query:
+                        if sql_order_goods.refund_apply_status == mcommon.refund_apply_choices2.get("无售后"):
+                            if sql_order_goods.status == mcommon.status_choices2.get("拿货中") or sql_order_goods.status == mcommon.status_choices2.get("明日有货") or sql_order_goods.status == mcommon.status_choices2.get("2-5天有货") or sql_order_goods.status == mcommon.status_choices2.get("已下架") or sql_order_goods.status == mcommon.status_choices2.get("已拿货") or sql_order_goods.status == mcommon.status_choices2.get("其他"):
+                                sql_order_goods.status = mcommon.status_choices2.get("已拿货")
+                                sql_order_goods.log = ""
+                                sql_order_goods.save()
+                            else:
+                                tem_exceptions_order_goods.append(sql_order_goods.id)
+                    if is_update_time:
+                        sql_order.update_time = time.time() * 1000
+                        sql_order.save()
+                    if len(tem_exceptions_order_goods) != 0:
+                        exception_order_list.append({"order_number": sql_order.order_number, 'orderGoods':tem_exceptions_order_goods})
+                ret['exception_order'] = exception_order_list
+                return JsonResponse(ret)
+
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "查询异常"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return JsonResponse(ret)
+
+
 # 修改拿货中状态商品 统一用这个接口（如 拿货中状态 改为 明日有货  2-5天有货 已拿货  其他）
 class ChangePurchasingStatus(APIView):
     authentication_classes = [BackStageAuthentication, BackStageNahuoAuthentication]
@@ -449,7 +695,6 @@ class ChangePurchasingStatus(APIView):
 
     def post(self, request, *args, **kwargs):
         # {'order_list': [{'order_number': 'os20191007141753133698', 'orderGoods': [{'goods_number': 'gs20191007141753153630', 'goods_count': 1}]}]}
-        print(" ChangePurchasingStatus''''''''''''''")
         print(request.data)
         try:
             with transaction.atomic():
@@ -697,7 +942,8 @@ class DeliverNullOrderView(APIView):
                                 return JsonResponse(ret)
                             else:
                                 req_id = req_id.replace('r', '')
-                                req_order_id_list.append(req_id)
+                                req_order_list['id'] = req_id
+                        req_order_id_list.append(req_id)
 
                 order_queryset = trade_models.NullPackageOrder.objects.select_for_update().filter(Q(id__in=req_order_id_list)).distinct()
                 for sql_order in order_queryset:

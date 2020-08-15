@@ -3,6 +3,7 @@ from django.forms.models import model_to_dict
 from utils import permission
 from rest_framework.views import APIView
 from utils import mcommon
+from user import user_utils
 from rest_framework import mixins
 from utils import m_serializers
 from rest_framework.pagination import PageNumberPagination
@@ -18,6 +19,7 @@ from django.db import transaction
 from rest_framework  import serializers
 from trade import models as trade_models
 from user import models as user_models
+from backstage import models as back_models
 from utils import mfile_utils
 from datetime import datetime
 from xiaoEdaifa import settings
@@ -27,6 +29,7 @@ from backstage import bserializers
 from _decimal import Decimal
 from utils import mtime
 import time
+from utils import String
 
 import xlwt
 import traceback
@@ -142,7 +145,7 @@ class OutPutOrdersView(APIView):
 
             excel_name = str(today_date) + '.xls'
             excel_path = settings.TEMP_FILE_DIRS + "/bk/" + excel_name
-            excel_url = mglobal.STATIC_URL_BK + settings.STATIC_URL + "temp/bk/" + excel_name
+            excel_url = mglobal.STATIC_URL_BK+"/back" + settings.STATIC_URL + "temp/bk/" + excel_name
 
             # 保存之前把之前生成的文件都删除了 以免时间长了存留太多文件
             file_list = mfile_utils.get_file_list(settings.TEMP_FILE_DIRS + "/bk/")
@@ -204,7 +207,7 @@ class OutPutOrdersView(APIView):
                 # 文件保存地址
                 excel_path = settings.TEMP_FILE_DIRS + "/bk/"
                 # 文件远程访问地址
-                excel_url = mglobal.STATIC_URL_BK + settings.STATIC_URL + "temp/bk/" + excel_name
+                excel_url = mglobal.STATIC_URL_BK +"/back"+ settings.STATIC_URL + "temp/bk/" + excel_name
                 if len(query_set) == 0:
                     ret['code'] = "1001"
                     ret['message'] = "没有符合条件的商品"
@@ -214,7 +217,7 @@ class OutPutOrdersView(APIView):
                     last_time_json_str = ""
                     for excel_name in file_list:
                         if excel_name.find('tag') != -1 and excel_name.find('xls') != -1:
-                            last_time_excel_url = mglobal.STATIC_URL_BK + settings.STATIC_URL + "temp/bk/" + excel_name
+                            last_time_excel_url = mglobal.STATIC_URL_BK+"/back" + settings.STATIC_URL + "temp/bk/" + excel_name
 
                             break
                     for json_file_name in file_list:
@@ -371,7 +374,7 @@ class OutPutOrdersView(APIView):
                 # 文件保存地址
                 excel_path = settings.TEMP_FILE_DIRS + "/bk/"
                 # 文件远程访问地址
-                excel_url = mglobal.STATIC_URL_BK + settings.STATIC_URL + "temp/bk/" + excel_name
+                excel_url = mglobal.STATIC_URL_BK+"/back" + settings.STATIC_URL + "temp/bk/" + excel_name
                 if len(order_query_set) == 0:
                     ret['code'] = "1001"
                     ret['message'] = "没有符合条件的商品"
@@ -381,7 +384,7 @@ class OutPutOrdersView(APIView):
                     last_time_json_str = ""
                     for excel_name in file_list:
                         if excel_name.find('tag') != -1 and excel_name.find('xls') != -1:
-                            last_time_excel_url = mglobal.STATIC_URL_BK + settings.STATIC_URL + "temp/bk/" + excel_name
+                            last_time_excel_url = mglobal.STATIC_URL_BK+"/back" + settings.STATIC_URL + "temp/bk/" + excel_name
 
                             break
                     for json_file_name in file_list:
@@ -431,6 +434,8 @@ class OutPutOrdersView(APIView):
 
                         while floor.find("区") !=-1:
                             floor = floor.replace("区","")
+                        while floor.find("f") != -1:
+                            floor = floor.replace("f", "F")
                         floor = floor[0:floor.find('F')+1]
                         import re
                         reg_ = '^[0-9]F'
@@ -573,7 +578,7 @@ class OutputNullOrderOtherSiteSuccessView(APIView):
 
 
         except:
-            print(traceback.print_exc())
+
             traceback.print_exc()
             ret['code'] = "1001"
             ret['message'] = "提交失败"
@@ -800,7 +805,7 @@ class SuperUserOrderGoodsAlterView(APIView):
 
 class CommonPagination(PageNumberPagination):
     # 指定每一页的个数
-    page_size = 10
+    page_size = 20
     # 可以让前端来设置page_szie参数来指定每页个数
     page_size_query_param = 'page_size'
     # 设置页码的参数
@@ -1030,6 +1035,7 @@ class NullOrderViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, GenericVi
     def get_object(self):
         return self.request.user
 
+
 class DiscountCardViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin,mixins.DestroyModelMixin, GenericViewSet):
     authentication_classes = [BackStageAuthentication, ]
     permission_classes = [permission.Superpermission, ]
@@ -1092,6 +1098,78 @@ class DiscountCardViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin,mixins.
             ret = {"code": "1000", "message": ""}
             discount_card_id = kwargs.get("pk")
             trade_models.DiscountCard.objects.filter(id=discount_card_id).delete()
+        except:
+            print(traceback.print_exc())
+            ret['code'] = "1001"
+            ret['message'] = "删除失败"
+        return Response(ret)
+
+    def get_object(self):
+        return self.request.user
+
+
+class UserViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin,mixins.DestroyModelMixin, GenericViewSet):
+    authentication_classes = [BackStageAuthentication, ]
+    permission_classes = [permission.Superpermission, ]
+    serializer_class = m_serializers.UserDetailSerializer
+    # 设置分页的class
+    pagination_class = CommonPagination
+
+    def list(self, request, *args, **kwargs):
+        ret = {"code": 1000, "message": ""}
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        except:
+            traceback.print_exc()
+            ret = {"code": "1001", "message": "获取数据失败"}
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return Response(ret)
+
+    def get_queryset(self):
+        print(self.request.query_params)
+        query_keys = self.request.query_params.get("user_name")
+        print("query_keys")
+        print(query_keys)
+        if query_keys is not None:
+            return user_models.User.objects.filter(user_name=query_keys).order_by('-add_time')
+        else:
+            return user_models.User.objects.all().order_by('-add_time')
+
+    def update(self, request, *args, **kwargs):
+        ret = {"code": "1000", "message": ""}
+        try:
+            discount_card_id = kwargs.get("pk")
+            partial = True
+            instance = user_models.User.objects.filter(id=discount_card_id).first()
+            print(instance)
+            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+        except:
+            print(serializer.error)
+            print(traceback.print_exc())
+            ret = {"code": "1001", "message": "更改失败"}
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return Response(ret)
+
+        ret['code'] = "1000"
+        ret['message'] = "更新成功"
+        ret['data'] = serializer.data
+        return Response(ret)
+
+    def destroy(self, request, *args, **kwargs):
+        ret = {"code": "1000", "message": ""}
+        print(kwargs.get("pk"))
+        try:
+            ret = {"code": "1000", "message": ""}
+            user_id = kwargs.get("pk")
+            user_models.User.objects.filter(id=user_id).delete()
         except:
             print(traceback.print_exc())
             ret['code'] = "1001"
@@ -1268,11 +1346,101 @@ class ReturnPackageInfoViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin,mi
         try:
             ret = {"code": "1000", "message": ""}
             id_ = kwargs.get("pk")
-            user_models.InviteRegisterInfo.objects.filter(id=id_).delete()
+            trade_models.ReturnPackageInfo.objects.filter(id=id_).delete()
         except:
             print(traceback.print_exc())
             ret['code'] = "1001"
             ret['message'] = "删除失败"
+        return Response(ret)
+
+
+class TaskThreadViewSet(mixins.CreateModelMixin,mixins.ListModelMixin, mixins.UpdateModelMixin,mixins.DestroyModelMixin, GenericViewSet):
+    authentication_classes = [BackStageAuthentication, ]
+    permission_classes = [permission.Superpermission, ]
+    serializer_class = bserializers.TaskThreadQuerySerializer
+    # 设置分页的class
+    pagination_class = CommonPagination
+
+    def list(self, request, *args, **kwargs):
+        ret = {"code": 1000, "message": ""}
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        except:
+            traceback.print_exc()
+            ret = {"code": "1001", "message": "获取数据失败"}
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return Response(ret)
+
+    def get_queryset(self):
+        print(self.request.query_params)
+
+        logistics_number = self.request.query_params.get("task_name")
+
+        if logistics_number is not None:
+            return back_models.ThreadTask.objects.filter(task_name=logistics_number).order_by('-add_time')
+        else:
+            return back_models.ThreadTask.objects.all().order_by('-add_time')
+
+    def destroy(self, request, *args, **kwargs):
+        ret = {"code": "1000", "message": ""}
+        print(kwargs.get("pk"))
+        try:
+            ret = {"code": "1000", "message": ""}
+            id_ = kwargs.get("pk")
+            back_models.ThreadTask.objects.filter(id=id_).delete()
+        except:
+            print(traceback.print_exc())
+            ret['code'] = "1001"
+            ret['message'] = "删除失败"
+        return Response(ret)
+
+    def update(self, request, *args, **kwargs):
+            ret = {"code": "1000", "message": ""}
+            try:
+                id_ = kwargs.get("pk")
+                partial = True
+                instance = back_models.ThreadTask.objects.filter(id=id_).first()
+                print(instance)
+                serializer = self.get_serializer(instance, data=request.data, partial=partial)
+                serializer.is_valid(raise_exception=True)
+                self.perform_update(serializer)
+            except:
+                print(traceback.print_exc())
+                print(serializer.error)
+
+                ret = {"code": "1001", "message": "更改失败"}
+                logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+                return Response(ret)
+
+            ret['code'] = "1000"
+            ret['message'] = "更新成功"
+            ret['data'] = serializer.data
+            return Response(ret)
+
+    def create(self, request, *args, **kwargs):
+        ret = {"code": "1000", "message": ""}
+        try:
+            with transaction.atomic():
+                # 得请求数据然后得到序列化对象  得到的是上面serializer_class对象模型
+                serializer = self.get_serializer(data=request.data)
+                # 进行数据校验
+                serializer.is_valid(raise_exception=True)
+                task = self.perform_create(serializer)
+                ret_dict = serializer.data
+
+
+        except:
+            print(traceback.print_exc())
+
+
+            ret = {"code": "1001", "message": "保存失败"}
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
         return Response(ret)
 
 
@@ -1330,19 +1498,22 @@ class OrderGoodsRefundViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, G
                     order_goods.return_logistics_number = logistics_num
                     order_goods.save()
                     order_owner = order_goods.order.order_owner
+                    order_owner =  user_models.User.objects.select_for_update().filter(id =order_goods.order.order_owner.id ).first()
                     # 申请退货数量不能大于下单的数量
                     if refund_apply_obj.goods_counts > order_goods.goods_count:
                         raise Exception
                     trade_moneys = order_goods.goods_price * refund_apply_obj.goods_counts
-                    self.log_user_pay_info(order_goods,order_goods.order,trade_moneys)
+                    self.log_user_pay_info(order_goods,order_goods.order,trade_moneys,"商品退货退款：","")
                     order_owner.balance = order_owner.balance + trade_moneys
                     order_owner.save()
-                    refund_apply_obj.delete()
+                    refund_apply_obj.refund_apply_progress = mcommon.refund_apply_progress_choices2['已退货退款']
+                    refund_apply_obj.save()
+                    # refund_apply_obj.delete()
             elif refund_apply_obj.refund_apply_type == mcommon.refund_apply_choices2.get("拦截发货"):
                 with transaction.atomic():
                     cur_order_goods = trade_models.OrderGoods.objects.filter(id=refund_apply_obj.orderGoods_id).first()
-                    # 是否退回快递费
-                    is_return_logistics_fee = self.is_return_logistics_fee(cur_order_goods.order,cur_order_goods)
+                    # 退回快递费
+                    return_logistics_fee = self.is_return_logistics_fee(cur_order_goods.order,cur_order_goods)
                     logistics_name = refund_apply_obj.return_logistics_name
                     logistics_num = refund_apply_obj.return_logistics_number
                     order_goods = trade_models.OrderGoods.objects.filter(id=refund_apply_obj.orderGoods_id).first()
@@ -1352,18 +1523,24 @@ class OrderGoodsRefundViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, G
                     order_goods.return_logistics_number = logistics_num
                     order_goods.save()
                     order_owner = order_goods.order.order_owner
+                    order_owner = user_models.User.objects.select_for_update().filter(id=order_owner.id).first()
                     # 申请退货数量不能大于下单的数量
                     if refund_apply_obj.goods_counts > order_goods.goods_count:
                         raise Exception
 
-                    logistics_fee = 0.0
-                    if is_return_logistics_fee:
-                        logistics_fee = cur_order_goods.order.logistics_fee
-                    trade_moneys = Decimal(str(order_goods.goods_price)) * Decimal(str(refund_apply_obj.goods_counts)) + Decimal(str(logistics_fee))
-                    self.log_user_pay_info(order_goods, order_goods.order, trade_moneys, "快递费：" + str(logistics_fee))
+                    logistics_fee = return_logistics_fee
+                    goods_moneys =  Decimal(str(order_goods.goods_price)) * Decimal(str(refund_apply_obj.goods_counts))
+                    trade_moneys = goods_moneys + Decimal(str(logistics_fee))
+                    self.log_user_pay_info(order_goods, order_goods.order, trade_moneys, "拦截发货审核通过 ","商品费用："+str(goods_moneys)+" 物流费：" + str(logistics_fee))
                     order_owner.balance = Decimal(str(order_owner.balance)) + Decimal(str(trade_moneys))
                     order_owner.save()
-                    refund_apply_obj.delete()
+                    is_return_lanjie_fee = bool(request._request.GET.get('is_return_lanjie_fee'))
+
+                    if is_return_lanjie_fee is True:
+                        # 退回拦截支付费用
+                        return_lanjie_money = refund_apply_obj.goods_counts * String.SERVER_FEE
+                        self.return_lanjie_fee(order_owner,order_goods,return_lanjie_money)
+                    # refund_apply_obj.delete()
 
         except:
             print(traceback.print_exc())
@@ -1371,21 +1548,55 @@ class OrderGoodsRefundViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, G
             ret['message'] = "更改失败"
         return Response(ret)
 
+#
+    def return_lanjie_fee(self, order_owner, order_goods,return_lanjie_money):
+
+        data = {
+            "user": order_owner,
+            "trade_number": trade_utils.get_trade_number(self, order_owner.id),
+            "trade_source": mcommon.trade_source_choices2.get("其他费用"),
+            "cash_in_out_type": mcommon.cash_in_out_type_choices2.get("收入"),
+            "user_balance": order_owner.balance,
+            "add_time": time.time() * 1000,
+            "trade_money": return_lanjie_money,
+            "is_pass": True,
+            "message": "退回拦截发货费用，订单编号：" + order_goods.order.order_number + " 商品编号：" + order_goods.goods_number,
+        }
+        order_owner.balance = Decimal(order_owner.balance) - Decimal(return_lanjie_money)
+        data['user_balance'] = order_owner.balance
+        trade_info = trade_models.TradeInfo.objects.create(**data)
+        order_owner.save()
+
 
     # 是否退 快递费
     def is_return_logistics_fee(self, order, cur_order_goods):
         # 这个函数只适合拦截退款款类型
         order_goods_queryset = trade_models.OrderGoods.objects.filter(order = order)
+        # 只有一个商品 进行退运费
+        if len(order_goods_queryset) == 1 and order_goods_queryset[0].goods_number == cur_order_goods.goods_number:
+            return order.logistics_fee
+        sql_active_goods_counts = 0  # 有效商品数量
         for order_goods in order_goods_queryset:
             # 订单有已发货状态的商品就不能退运费
             if order_goods.status == mcommon.status_choices2.get("已发货"):
-                return False
+                return 0.0
+            if order_goods.status != mcommon.status_choices2.get('待付款')  and order_goods.status != mcommon.status_choices2.get('已退款')  and order_goods.status != mcommon.status_choices2.get('已取消'):
+                sql_active_goods_counts = Decimal(str(sql_active_goods_counts)) + Decimal(str(order_goods.goods_count))
+        # 剩余有效商品
+        after_change_active_goods_counts = sql_active_goods_counts - cur_order_goods.goods_count
+        if after_change_active_goods_counts == 0:
+            return_logistics_fee = order.logistics_fee
+        elif after_change_active_goods_counts > String.FIRST_WEIGHT :
+                return_logistics_fee = cur_order_goods.goods_count * 3
+        elif after_change_active_goods_counts < String.FIRST_WEIGHT + 1 :
+            return_logistics_fee = Decimal(str(order.logistics_fee)) - Decimal(str(user_utils.get_user_logistics_after_discount_price(self,order.logistics_name)))
 
-        return True
 
-    def log_user_pay_info(self,order_goods,order,trade_moneys,ex_message=''):
+        return return_logistics_fee
+
+    def log_user_pay_info(self,order_goods,order,trade_moneys,ex_message_start,message_end):
         order_owner_balance = Decimal(str(order.order_owner.balance)) + Decimal(str(trade_moneys))
-        message = "商品退货退款" + " 订单编号："+order.order_number +" 商品编号："+order_goods.goods_number + " " +ex_message
+        message = ex_message_start+ "  订单编号："+order.order_number +" 商品编号："+order_goods.goods_number +"" +message_end
         trade_models.TradeInfo.objects.create(user = order.order_owner,
                                               trade_number=trade_utils.get_trade_number(self,self.request.user.id),
                                               user_balance=order_owner_balance,
@@ -1397,10 +1608,26 @@ class OrderGoodsRefundViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, G
                                               add_time=time.time()*1000)
 
     def get_queryset(self,):
-        return trade_models.Order.objects.filter(Q(orderGoods__refund_apply_status=mcommon.refund_apply_choices2.get("退货退款")) |
-                                                 Q(orderGoods__refund_apply_status=mcommon.refund_apply_choices2.get("仅退款")) |
-                                                 Q(orderGoods__refund_apply_status=mcommon.refund_apply_choices2.get("换货")) |
-                                                 Q(orderGoods__refund_apply_status=mcommon.refund_apply_choices2.get("拦截发货")) |
-                                                 Q(orderGoods__refund_apply_status=mcommon.refund_apply_choices2.get("取消订单"))
-                                                 ).distinct().order_by('-add_time')
+        default_query_keys = self.request.query_params.get("q")
+        status_filter = self.request.query_params.get("status")
+        user_name_query = self.request.query_params.get("user_name")
+        args= Q(orderGoods__refund_apply_status=mcommon.refund_apply_choices2.get("退货退款")) | Q(
+            orderGoods__refund_apply_status=mcommon.refund_apply_choices2.get("换货")) | Q(
+            orderGoods__refund_apply_status=mcommon.refund_apply_choices2.get("拦截发货")) | Q(
+            orderGoods__refund_apply_status=mcommon.refund_apply_choices2.get("取消订单"))
+        # 不包括已退款的
+        args = args & ~Q(orderGoods__status=mcommon.status_choices2.get("已退款"))
+
+        if default_query_keys is not None:
+            query_keys_args = Q(order_number=default_query_keys) | Q(consignee_name__contains=default_query_keys) | Q(logistics_number=default_query_keys) | Q(tb_order_number=default_query_keys)
+            # 手机字段为数字 用字符查询会报错
+            if default_query_keys.isdigit():
+                query_keys_args = query_keys_args | Q(consignee_phone=default_query_keys)
+                if len(query_keys_args) < 10:
+                    # id 查询
+                    query_keys_args = query_keys_args | Q(id=default_query_keys)
+            args = args & query_keys_args
+
+        # args = args & args_2
+        return trade_models.Order.objects.filter( args).order_by("-orderGoods__refund_apply__add_time")
 

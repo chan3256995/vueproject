@@ -253,7 +253,7 @@ class RefundApply(models.Model):
     goods_counts = models.SmallIntegerField(default=1)
     return_logistics_name = models.CharField(null=False, max_length=30)
     # 退货物流单号
-    return_logistics_number = models.CharField(null=False, max_length=40,unique=True)
+    return_logistics_number = models.CharField(null=True, max_length=40,unique=True)
 
 
 class RefundInfo(models.Model):

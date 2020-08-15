@@ -14,7 +14,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = models.User
-        fields = ("id","email", "type", "phone", "balance","user_name")
+        fields = ("id","qq","email", "type", "phone", "balance","user_name","add_time")
 
 
 # 对 android 监听到（支付宝或其他）提交上来的支付信息进行校验
@@ -109,6 +109,29 @@ class OrderGoodsRefundBalanceSerializer(serializers.ModelSerializer):
 
 
 # 订单支付验证
+class UserBalanceAlertSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(
+        default=serializers.CurrentUserDefault()
+    )
+    # # # 交易来源
+    # trade_source = serializers.ChoiceField(choices=mcommon.trade_source_choices,required=True)
+
+    # # 收入或支出
+    # cash_in_out_type = serializers.IntegerField(choices=mcommon.cash_in_out_type_choicess)
+    # 交易金额
+    trade_money = serializers.FloatField(required=True)
+    # 该交易是否通过
+    is_pass = serializers.BooleanField(default=False)
+    add_time = serializers.CharField(default=time.time()*1000)
+
+    class Meta:
+
+        model = models.TradeInfo
+        fields = ["user","trade_money","is_pass","add_time"]
+        depth = 0
+
+
+# 订单支付验证
 class OrderPayBalanceSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(
         default=serializers.CurrentUserDefault()
@@ -152,12 +175,20 @@ class QueryTradeInfoSerializer(serializers.ModelSerializer):
     #         return None
 
 
+# 退货申请
 class UserOrderGoodsRefundApplySerializer(serializers.ModelSerializer):
     class Meta:
         model = models.RefundApply
         fields = "__all__"
         depth = 0
 
+
+# 拦截申请验证
+class UserOrderGoodsRefundApplyLanjieSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.RefundApply
+        fields = ("orderGoods","goods_counts","refund_apply_type")
+        depth = 0
 
 class TradeOrderGoodsSerializer(serializers.ModelSerializer):
     """
