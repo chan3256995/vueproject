@@ -24,7 +24,7 @@
     "vue-qr": "^2.1.0",
     "vue-router": "^3.0.6",
     "vue-scroller": "^2.2.4",
-    "xlsx": "^0.15.1"
+    "xlsx": "^0.17.0"
   },
   "devDependencies": {
     "ajax-hook": "^1.8.3",
