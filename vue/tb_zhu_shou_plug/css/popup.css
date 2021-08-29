@@ -1,0 +1,15 @@
+body{
+background-image: url(../img/background.png);}
+#header{
+height: 45px;
+border-bottom: 1px solid #e1ddd8;
+text-align:center;
+font-size:26px;line-height:45px;font-weight:bold;
+background-image: url(../img/background-main.png)}
+#footer{
+border-top: 1px solid #e1ddd8;
+}
+button{cursor: pointer;margin:0 5px;}
+.site{margin:5px auto}
+#msgDiv{color:#f60;padding-top:2px;}
+.tab-pane {padding-top:1px;}
