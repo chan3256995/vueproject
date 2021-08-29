@@ -36,14 +36,29 @@
       <button class = "default_button global_btn_normal_style" @click="onHandAddGoodsClick">添加商品</button>
       <div>
         <div>
+          <input placeholder="货号记录搜索" @focus="art_no_input_focus" @blur="art_no_input_blur" style="width: 6em"  class="global_input_default_style defalut_input  auto_goods_input"/>
           <input :placeholder="goods_str_format_selected.text" class="global_input_default_style defalut_input  auto_goods_input" v-model="raw_goods_txt"/>
-         <button style="height: 2.8em" class = "default_button global_btn_normal_style" @click="onAddGoodsClick">识别商品</button>
+         <button style="height: 2.4em ; margin-bottom: 0px" class = "default_button global_btn_normal_style" @click="onAddGoodsClick">识别商品</button>
           <select v-model="goods_str_format_selected">
               <option :value="option" v-for="(option,index) in goods_str_format_options" :key="index">{{option.abbreviate}}</option>
           </select>
+             <ul  v-show="art_no_auto_search_ul_is_show" @focus="art_no_ul_focus" @blur="art_no_ul_blur" class="huohaolist">
+            <li  >市场名_楼层_档口号_货号_价格_颜色尺码_件数</li>
+            <li>市场名_楼层_档口号_货号_价格_颜色尺码_件数</li>
+            <li>市场名_楼层_档口号_货号_价格_颜色尺码_件数</li>
+            <li>市场名_楼层_档口号_货号_价格_颜色尺码_件数</li>
+            <li>市场名_楼层_档口号_货号_价格_颜色尺码_件数</li>
+            <li>市场名_楼层_档口号_货号_价格_颜色尺码_件数</li>
+            <li>市场名_楼层_档口号_货号_价格_颜色尺码_件数</li>
+            <li>市场名_楼层_档口号_货号_价格_颜色尺码_件数</li>
+            <li>市场名_楼层_档口号_货号_价格_颜色尺码_件数</li>
+            <li>市场名_楼层_档口号_货号_价格_颜色尺码_件数</li>
+          </ul>
         </div>
 
+        <div  >
 
+        </div>
         <label style="color: red" class = "defalut_input auto_goods_input"  v-text="goods_str_format_selected.text" >市场名_楼层_档口号_货号_价格_颜色尺码_件数(用空格 逗号 下划线 隔开)</label>
 
 
@@ -260,8 +275,9 @@
 
       data(){
         return{
+            art_no_auto_search_ul_is_show:false,
             goods_str_format_selected:{'text':'市场名_楼层_档口号_货号_价格_颜色尺码_件数(用空格 逗号 下划线 隔开)','value':'default',"abbreviate":"默认"},
-           goods_str_format_options:[
+            goods_str_format_options:[
              {'text':'市场名_楼层_档口号_货号_价格_颜色尺码_件数(用空格 逗号 下划线 隔开)','value':'default',"abbreviate":"默认"},
              {'text':'市场名_楼层_档口号_价格_货号_颜色尺码_件数(用空格 逗号 下划线 隔开)','value':'vvic',"abbreviate":'搜款网格式'},
 
@@ -321,6 +337,25 @@
 　　　　},
      }},
       methods:{
+        // 货号自动搜索框聚焦
+        art_no_input_focus(){
+            console.log("art_no_input_focus")
+          this.art_no_auto_search_ul_is_show = true
+        },
+        // 货号自动搜索框失焦
+        art_no_input_blur(){
+          console.log("art_no_input_blur")
+          this.art_no_auto_search_ul_is_show = false
+        },
+        art_no_ul_focus(){
+          console.log("art_no_ul_focus")
+          this.art_no_auto_search_ul_is_show = true
+        },
+
+        art_no_ul_blur(){
+          console.log("art_no_ul_blur")
+          this.art_no_auto_search_ul_is_show = false
+        },
        user_id_is_in_list(id,list){
          for(let i = 0;i<list.length;i++){
            if(id===list[i]){
@@ -363,7 +398,8 @@
 
                     let goods_str =  plug_order_data[i].order_goods_list[g].code +" "+color+size+" "+plug_order_data[i].order_goods_list[g].count
                     console.log("goods_str------",goods_str)
-                    order_goods_list =order_goods_list.concat( marketData.get_goods_list(goods_str,this.goods_str_format_options[0].value))
+                    // 用搜款网格式解析
+                    order_goods_list =order_goods_list.concat( marketData.get_goods_list(goods_str,this.goods_str_format_options[1].value))
 
                  }
                   let orderItem = {"quality_test":this.selected_quality_test,"logistics":this.selected_logistics,"address":addressObj,"orderGoods":order_goods_list};
@@ -1223,4 +1259,7 @@
   padding-top: 0.5em;
   padding-bottom: 0.5em;
 }
+  .huohaolist {left: 0; z-index: 999; background-color: #fff; top: 25px; width: 500px; height: auto; max-height: 150px; overflow-y: scroll; border: 1px solid #bbbbbb; }
+  .huohaolist li { height: 20px; line-height: 20px; border-bottom: 1px dashed #efefef;text-align: left }
+  .huohaolist li:hover { background-color: #1e90ff; color: #fff; }
 </style>

@@ -14,12 +14,7 @@
      DJANGO_SERVER_BASE_URL,
      VUE_REQUEST_BASE_URL,
      SERVER_FEE:2.0,
-       // LOGISTICS: [
-       //      { logistics_name: '圆通', price: '4.0' },
-       //      { logistics_name: '韵达', price: '4.0' },
-       //      { logistics_name: '中通', price: '5.0' },
-       //
-       //    ],
+
       //商品状态
      GOODS_STATUS:{
               1:"未付款",//未付款

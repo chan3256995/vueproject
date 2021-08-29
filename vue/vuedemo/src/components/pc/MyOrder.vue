@@ -134,6 +134,7 @@
                 <label>快递：{{item.logistics_name}}</label>
                <label>单号：{{item.logistics_number}}</label>
                 <button @click="show_logistics_qr(item.logistics_number)" v-if="item.logistics_number!=='' && item.logistics_number !== null">二维码单号</button>
+                <a  @click=" advance_logistics_number(item)"class = "refund_apply_btn" v-if="(item.logistics_number ==='' ||  item.logistics_number === null) && is_allow_advance_logistics_number(item)===true ">预支单号</a>
               </div>
         </li>
     </div>
@@ -254,6 +255,50 @@
                   // ...
               });
       },
+          // 是否允许预支单号
+          is_allow_advance_logistics_number(order_item){
+
+            // 已退款数量
+            let yituikuan_number = 0
+            let order_goods_list = order_item["orderGoods"]
+            for(let i = 0;i< order_goods_list.length;i++){
+               if(order_goods_list[i]['status'] === this.goods_status2["已退款"]){
+                 yituikuan_number = yituikuan_number+1
+               }
+               if(order_goods_list[i]['status'] !== this.goods_status2["已拿货"] && order_goods_list[i]['status'] !== this.goods_status2["已退款"]){
+                 return false
+               }
+               if(order_goods_list.length === yituikuan_number){
+                 return false
+
+               }
+            }
+            return true
+          },
+          advance_logistics_number(item){
+            let order_number = item.order_number
+            let order_number_list = []
+            order_number_list.push(order_number)
+            const user_url = mGlobal.DJANGO_SERVER_BASE_URL+"/user/bl_get_order_logistics_number/"
+            axios.post(user_url,{"order_number_list":order_number_list}).then((res)=>{
+              console.log("res--->",res)
+              if(res.data.code ==="1000"){
+                  let success_order_list = res.data.success_list
+                  for(let i = 0 ;i< success_order_list.length;i++){
+                  if(success_order_list[i]['order_number'] ===order_number ){
+                    item.logistics_number = success_order_list[i]['advance_logistics_number']
+                    console.log("item------",item)
+                     return success_order_list[i]['order_number']
+                  }
+                }
+              }
+
+              return ""
+            }).catch(error=>{
+                console.log("请求错误")
+            })
+
+        },
           // 用二维码显示物理单号
           show_logistics_qr(logistics_number){
             if(logistics_number.toString().trim() === ""){
