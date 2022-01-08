@@ -155,8 +155,44 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
 	}else if(method === "get_order_from_tb"){
 
-	    let all_result_list = tbapi_get_all_page_order_from_tb()
-             sendResponse(JSON.stringify(all_result_list));
+	    let tb_all_result_list = tbapi_get_all_page_order_from_tb()
+        console.log("从淘宝获取所有代发货订单，",tb_all_result_list)
+
+        //*************************************************************************
+        // let is_success = tb_all_result_list.is_success
+        // if (is_success === true ) {
+        //
+        //     let tb_order_number_list = []
+        //     let tb_order_list = tb_all_result_list.result
+        //     for (let i = 0; i < tb_order_list.length; i++) {
+        //          let tb_order_number = tb_order_list[i].tb_order_number
+        //          tb_order_number_list.push(tb_order_number)
+        //      }
+        //  // *************************获取17订单信息**********************************
+        //     let page_size = 15
+        //
+        //     let order_number_list = tb_order_number_list
+        //     let group_list =  group(JSON.parse(order_number_list),page_size)
+        //     let all_result_list_17 = []
+        //     for(let i = 0 ;i<group_list.length;i++){
+        //         let result = get_one_page_order(JSON.stringify(group_list[i]))
+        //        all_result_list_17 =  all_result_list_17.concat(result.results)
+        //    }
+        //     console.log("all_result_list--22-->",all_result_list)
+        //   // ***********************获取17订单信息************************************
+        //     let n_page_size = 15
+        //
+        //     let n_order_number_list = request.order_number_list
+        //     let n_group_list =  group(JSON.parse(n_order_number_list),n_page_size)
+        //     let all_result_list_17_null = []
+        //
+        //     for(let i = 0 ;i<n_group_list.length;i++){
+        //         let result = get_one_page_null_order(JSON.stringify(n_group_list[i]))
+        //        all_result_list_17_null =  all_result_list_17_null.concat(result.results)
+        //    }
+        // }
+         //*************************************************************************
+             sendResponse(JSON.stringify(tb_all_result_list));
     }else if(method === "delivery_order_to_tb"){
 	    console.log("request",request)
 	    let order_list = JSON.parse(request.order_list)
@@ -202,6 +238,60 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     })
     }else if(method === "add_order_to_chuanmei2"){
             sendResponse("hshs")
+    }else if(method === "get_more_address_by_order_numbers_tb_orders"){
+	    let new_order_list =JSON.parse( request.new_order_list)
+
+        for(let i=0;i<new_order_list.length;i++){
+            // 从淘宝获取地址详细信息
+           var result = tbapi_get_order_address_details(new_order_list[i]['order_id'])
+                if(result.success === false){
+                    continue
+                }
+            let order_address_result = result.data
+                while(order_address_result.indexOf(", ")!==-1){
+                    order_address_result = order_address_result.replace(", ","，")
+                }
+
+                var g = order_address_result.split("，");
+
+                var b = g[g.length - 2].trim();//name
+                var m = g[0].trim();
+                var h = g[g.length - 1].trim();//phone
+
+                new_order_list[i]['name'] = b;
+                new_order_list[i]['address']  = m;
+                new_order_list[i]['phone'] = h;
+        }
+        console.log("放完淘宝订单详细嘻嘻琬比：",new_order_list)
+            sendResponse(JSON.stringify(new_order_list))
+    }else if(method === "get_tb_goods_id_by_trade_id"){
+	    let new_order_list =JSON.parse( request.new_order_list)
+
+        for(let i=0;i<new_order_list.length;i++){
+
+
+
+           for(let x = 0 ;x< new_order_list[i]['order_goods_list'].length;x++){
+
+
+
+                var result = tbapi_get_tb_goods_id_by_trade_id(  new_order_list[i]['order_goods_list'][x]['tb_trade_href'])
+               console.log("获取商品id结果:",result)
+                  if(result.success === false || result["goods_id"] === undefined){
+                    continue
+                }
+                 console.log("获取商品id结果22:")
+                  let goods_id = result["goods_id"]
+                  new_order_list[i]['order_goods_list'][x]["tb_goods_id"] = goods_id
+           }
+
+
+
+
+
+        }
+         console.log("获取淘宝商品id后的数据：",new_order_list)
+            sendResponse(JSON.stringify(new_order_list))
     }
 	if(method == "test"){
 	    test2()
@@ -314,95 +404,95 @@ chrome.browserAction.setBadgeText({
 
 
 
-function get_order_from_tb(elems){
-     if( $(elems).find("label:contains(尺码：)").length !==0){
-         $(elems).find("label:contains(尺码：)").next().addClass("17_size");
-     }
-     if(  $(elems).find("label:contains(尺寸：)").length !==0){
-         $(elems).find("label:contains(尺寸：)").next().addClass("17_size");
-     }
-      var order_list = []
-    $(elems).find(".info").not(".msg").each(function() {
-        var tbody_elems = $(this).parents("tbody");
-
-        var orderdetail_size = tbody_elems.find(".orderdetail").size();
-        var m = "";
-        var total = "";
-
-        var order_goods_list=[]
-        for (var i = 0; i <= orderdetail_size - 1; i++) {
-
-            var order_goods_obj = {}
-            m = "";
-
-            m+= '"img":"'+tbody_elems.find("img:eq("+i+")").attr("src")+'",';
-            order_goods_obj['img'] = tbody_elems.find("img:eq("+i+")").attr("src")
-
-            total = tbody_elems.find(".total:eq(" + i + ")").text().toString().trim();
-            total = total.substring(total.indexOf("×") + 1).trim();
-            order_goods_obj['total'] = total
-
-            if (tbody_elems.find(".desc:eq(" + i + ")").length != 0) {
-                m += '"code":"' + tbody_elems.find(".desc:eq(" + i + ")").attr("title")+'",';
-                order_goods_obj['code'] = tbody_elems.find(".desc:eq(" + i + ")").attr("title")
-            }
-
-
-            if (tbody_elems.find(".17_size:eq(" + i + ")").length != 0) {
-                m += '"size":"' + tbody_elems.find(".17_size:eq(" + i + ")").text().toString() + '",';
-                order_goods_obj['size'] = tbody_elems.find(".17_size:eq(" + i + ")").text().toString()
-            }
-            if (tbody_elems.find(".17_color:eq(" + i + ")").length != 0) {
-                m += '"color":"' + tbody_elems.find(".17_color:eq(" + i + ")").text().toString() + '",';
-                order_goods_obj['color'] = tbody_elems.find(".17_color:eq(" + i + ")").text().toString()
-            }
-            m += '"total":"' + total + '"';
-            order_goods_list.push(order_goods_obj)
-
-
-        }
-        var order_goods_list_str = JSON.stringify(order_goods_list)
-
-        var order_obj = new Object();
-        var c = new Array();
-        var f = tbody_elems
-
-        f.find(".info").children("span").not(".j_telephone,.j_mobilePhone").remove();
-        var l = f.find(".info").text().toString().trim("	");
-        //console.log(l);
-        var g = l.split("，");
-        var b = g[g.length - 2].trim();//name
-        var m = g[0].trim();
-        var h = g[g.length - 1].trim();//phone
-
-        order_obj['name'] = b;
-        order_obj['address']  = m;
-        order_obj['phone'] = h;
-
-        // d.postscript = f.find("span.postscript").text().trim(" ");
-       order_obj['tb_order_number'] = f.find("span.order-number").text().replace("订单编号：",'').trim();
-       var new_goods_str_list = []
-       for (var x = 0; x < order_goods_list.length; x++) {
-        var order_goods = new Object()
-
-
-        order_goods['code'] =  typeof order_goods_list[x].code === "undefined" ? "" :order_goods_list[x].code.replace("#","^^^")
-        order_goods['img']= typeof order_goods_list[x].img === "undefined" ? "" : order_goods_list[x].img;
-        order_goods['size']= typeof order_goods_list[x].size === "undefined" ? "" : order_goods_list[x].size.replace("-",'~~')
-        order_goods['color']= typeof order_goods_list[x].color === "undefined" ? "" : order_goods_list[x].color;
-        order_goods['count']= typeof order_goods_list[x].total === "undefined" ? "" : order_goods_list[x].total;
-        new_goods_str_list.push(order_goods)
-    // d.goodinfo[x] = ordergoodslist[x];
-
-    }
-
-        order_obj['order_goods_list']=new_goods_str_list
-        order_list.push(order_obj)
-
-    })
-
-    return order_list
-}
+// function get_order_from_tb(elems){
+//      if( $(elems).find("label:contains(尺码：)").length !==0){
+//          $(elems).find("label:contains(尺码：)").next().addClass("17_size");
+//      }
+//      if(  $(elems).find("label:contains(尺寸：)").length !==0){
+//          $(elems).find("label:contains(尺寸：)").next().addClass("17_size");
+//      }
+//       var order_list = []
+//     $(elems).find(".info").not(".msg").each(function() {
+//         var tbody_elems = $(this).parents("tbody");
+//
+//         var orderdetail_size = tbody_elems.find(".orderdetail").size();
+//         var m = "";
+//         var total = "";
+//
+//         var order_goods_list=[]
+//         for (var i = 0; i <= orderdetail_size - 1; i++) {
+//
+//             var order_goods_obj = {}
+//             m = "";
+//
+//             m+= '"img":"'+tbody_elems.find("img:eq("+i+")").attr("src")+'",';
+//             order_goods_obj['img'] = tbody_elems.find("img:eq("+i+")").attr("src")
+//
+//             total = tbody_elems.find(".total:eq(" + i + ")").text().toString().trim();
+//             total = total.substring(total.indexOf("×") + 1).trim();
+//             order_goods_obj['total'] = total
+//
+//             if (tbody_elems.find(".desc:eq(" + i + ")").length != 0) {
+//                 m += '"code":"' + tbody_elems.find(".desc:eq(" + i + ")").attr("title")+'",';
+//                 order_goods_obj['code'] = tbody_elems.find(".desc:eq(" + i + ")").attr("title")
+//             }
+//
+//
+//             if (tbody_elems.find(".17_size:eq(" + i + ")").length != 0) {
+//                 m += '"size":"' + tbody_elems.find(".17_size:eq(" + i + ")").text().toString() + '",';
+//                 order_goods_obj['size'] = tbody_elems.find(".17_size:eq(" + i + ")").text().toString()
+//             }
+//             if (tbody_elems.find(".17_color:eq(" + i + ")").length != 0) {
+//                 m += '"color":"' + tbody_elems.find(".17_color:eq(" + i + ")").text().toString() + '",';
+//                 order_goods_obj['color'] = tbody_elems.find(".17_color:eq(" + i + ")").text().toString()
+//             }
+//             m += '"total":"' + total + '"';
+//             order_goods_list.push(order_goods_obj)
+//
+//
+//         }
+//         var order_goods_list_str = JSON.stringify(order_goods_list)
+//
+//         var order_obj = new Object();
+//         var c = new Array();
+//         var f = tbody_elems
+//
+//         f.find(".info").children("span").not(".j_telephone,.j_mobilePhone").remove();
+//         var l = f.find(".info").text().toString().trim("	");
+//         //console.log(l);
+//         var g = l.split("，");
+//         var b = g[g.length - 2].trim();//name
+//         var m = g[0].trim();
+//         var h = g[g.length - 1].trim();//phone
+//
+//         order_obj['name'] = b;
+//         order_obj['address']  = m;
+//         order_obj['phone'] = h;
+//
+//         // d.postscript = f.find("span.postscript").text().trim(" ");
+//        order_obj['tb_order_number'] = f.find("span.order-number").text().replace("订单编号：",'').trim();
+//        var new_goods_str_list = []
+//        for (var x = 0; x < order_goods_list.length; x++) {
+//         var order_goods = new Object()
+//
+//
+//         order_goods['code'] =  typeof order_goods_list[x].code === "undefined" ? "" :order_goods_list[x].code.replace("#","^^^")
+//         order_goods['img']= typeof order_goods_list[x].img === "undefined" ? "" : order_goods_list[x].img;
+//         order_goods['size']= typeof order_goods_list[x].size === "undefined" ? "" : order_goods_list[x].size.replace("-",'~~')
+//         order_goods['color']= typeof order_goods_list[x].color === "undefined" ? "" : order_goods_list[x].color;
+//         order_goods['count']= typeof order_goods_list[x].total === "undefined" ? "" : order_goods_list[x].total;
+//         new_goods_str_list.push(order_goods)
+//     // d.goodinfo[x] = ordergoodslist[x];
+//
+//     }
+//
+//         order_obj['order_goods_list']=new_goods_str_list
+//         order_list.push(order_obj)
+//
+//     })
+//
+//     return order_list
+// }
 function Toast(msg,duration,elem){
       duration=isNaN(duration)?3000:duration;
       var m = document.createElement('div');

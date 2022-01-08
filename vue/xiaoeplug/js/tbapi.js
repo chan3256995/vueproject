@@ -1,6 +1,9 @@
-
+let default_tb_code = "女人街 12F A12-A-12#12"
+let default_tb_code2_youfei = "youfei"
 let logistics_choies2 = {
     "圆通":101,
+    "圆通[菜鸟]":101,
+    "圆通[拼多多]":101,
     "圆通实包":101,
     "圆通空包":101,
     "圆通纸板":101,
@@ -11,6 +14,7 @@ let logistics_choies2 = {
     "韵达纸板":102,
     "韵达纸巾":102,
     "韵达洗衣粉":102,
+
 }
 // 颜色 需要修改的取代
 let replace_goods_data = {
@@ -85,7 +89,7 @@ function tbapi_delivery_order_to_tb(order_list,logistics_name,server_url){
                           let logistic_elem = $(item_table[i]).find("input[name='_fmw.m."+page_order_id+".m']")[0]
                           let post_code_elem = $(item_table[i]).find("input[name='_fmw.r."+page_order_id+".z']")[0]
                            let post_code = $(post_code_elem).val()
-                           if(post_code.length!==6){
+                           if(post_code !== undefined && post_code.length!==6){
                                post_code_elem.setAttribute("value",'000000')
                            }
                           logistic_elem.setAttribute("value",order.logistics_number)
@@ -434,7 +438,13 @@ function tbapi_get_page_order_from_tb(page_number,page_counts){
     },
             success : function(result) {
                     if (result !== ""){
-
+                        let shop_wangwang_id = null
+                        let reg = /AES_CONFIG.username = "(.*?)"/
+                         let name_arr =  result.match(reg)
+                        if(name_arr.length !==0){
+                             shop_wangwang_id = name_arr[0].substring(0,name_arr[0].length-1).replace('AES_CONFIG.username = "',"")
+                        }
+                        console.log("店铺旺旺id:",shop_wangwang_id)
 
                         let html = result.substring(result.indexOf("<html>"),result.indexOf("</html>")+7)
                          html = $.parseHTML(html)
@@ -449,6 +459,9 @@ function tbapi_get_page_order_from_tb(page_number,page_counts){
                     })
                      }
                     result = get_order_goods_str_from_elems(html)
+                    for(let r = 0 ; r<result.length;r++){
+                        result[r]['wangwang_id'] = shop_wangwang_id
+                    }
 
 
                     $(html).find(".J_Trigger").each(function () {
@@ -514,6 +527,49 @@ function tbapi_get_order_address_details(orderId){
     console.log("结束获取地址信息。。。");
     return return_result
 }
+function tbapi_get_tb_goods_id_by_trade_id(trade_href){
+
+    // trade_id = "2125690599487847907"
+    var urls =  "https:"+trade_href+"&snapShot=true"
+    console.log("获取商品id,url",urls);
+    var  return_result = {success:false}
+
+    $.ajax({
+            async : false,
+            url :urls,
+            // url :"https://wuliu.taobao.com/user/batch_consign.htm",
+            type : "GET",
+            // dataType : 'json',
+            // data : data2,
+            timeout : 5000,
+            success : function(result){
+                console.log("交易快照结果："+result)
+
+                let tem_str1 = result.substring(result.indexOf(" var data = JSON.parse("),result.length)
+
+
+                let tem_str2 = tem_str1.substring(0,tem_str1.indexOf("</script>"))
+
+                let tem_str3 = tem_str2.replace("var data = JSON.parse(","").trim()
+
+                let tem_str4 = tem_str3.substring(0,tem_str3.length-2)
+
+                // tem_str4.find("item.htm?id")
+                let reg = /id=\d{12,13}&/;//“， /”三个字符出现两个 不分顺序
+                let match_result =   tem_str4.match(reg)
+                if(match_result.length !== 0){
+                    return_result["success"] = true
+                    return_result["goods_id"] = match_result[0].replace("id=","").replace("&","")
+                }
+            },
+            error:function (err) {
+                console.log("交易快照结果失败" + err);
+            }
+
+        });
+
+    return return_result
+}
 function get_order_goods_str_from_elems(elems){
      if( $(elems).find("label:contains(尺码：)").length !==0){
          $(elems).find("label:contains(尺码：)").next().addClass("17_size");
@@ -536,8 +592,14 @@ function get_order_goods_str_from_elems(elems){
             var order_goods_obj = {}
             m = "";
 
-            m+= '"img":"'+tbody_elems.find("img:eq("+i+")").attr("src")+'",';
-            order_goods_obj['img'] = tbody_elems.find("img:eq("+i+")").attr("src")
+            m+= '"tb_trade_href":"'+tbody_elems.find("a:eq("+i+")").attr("href")+'",';
+            order_goods_obj['tb_trade_href'] = tbody_elems.find("a:eq("+i+")").attr("href")
+
+            let item_details = tbody_elems.find(".orderdetail:eq("+i+")")
+
+            m+= '"img":"'+$(item_details).find("img:eq(0)").attr("src")+'",';
+
+            order_goods_obj['img'] = $(item_details).find("img:eq(0)").attr("src")
 
             total = tbody_elems.find(".total:eq(" + i + ")").text().toString().trim();
             total = total.substring(total.indexOf("×") + 1).trim();
@@ -570,17 +632,21 @@ function get_order_goods_str_from_elems(elems){
         var f = tbody_elems
        order_obj['tb_order_number'] = f.find("span.order-number").text().replace("订单编号：",'').trim();
        order_obj['order_id'] = f.find("input.trigger").val().trim();
-       // 从淘宝获取地址详细信息
-       var order_address_result = tbapi_get_order_address_details(order_obj['order_id'])
+
        console.log("order_id",order_obj['order_id'])
         f.find(".logis-info").children("span").not(".j_telephone,.j_mobilePhone").remove();
 
+        var user_wangwang_span = f.find(".info").children("span")[0]
         var address_span = f.find(".info").children("span")[1]
         var address_str1 = $(address_span).text().toString().trim(" ");
-        if(order_address_result.success === true){
-            address_str1 = order_address_result.data
-        }
+        var user_wangwang_id = $(user_wangwang_span).text().toString().trim();
 
+        // 从淘宝获取地址详细信息
+       // var order_address_result = tbapi_get_order_address_details(order_obj['order_id'])
+       //  if(order_address_result.success === true){
+       //      address_str1 = order_address_result.data
+       //  }
+        // // 从淘宝获取地址详细信息
 
         console.log("---...--.-address_str1.-",address_str1);
         while(address_str1.indexOf(", ")!==-1){
@@ -588,7 +654,7 @@ function get_order_goods_str_from_elems(elems){
         }
 
         var g = address_str1.split("，");
-        console.log("---...--.-g g g g .-",g );
+
         var b = g[g.length - 2].trim();//name
         var m = g[0].trim();
         var h = g[g.length - 1].trim();//phone
@@ -596,6 +662,7 @@ function get_order_goods_str_from_elems(elems){
         order_obj['name'] = b;
         order_obj['address']  = m;
         order_obj['phone'] = h;
+        order_obj['user_wangwang_id'] = user_wangwang_id;
 
         // d.postscript = f.find("span.postscript").text().trim(" ");
 
@@ -607,16 +674,17 @@ function get_order_goods_str_from_elems(elems){
         let old_code = m_code
         let   new_code = m_code.replace(/#/g,"^^^").trim()
 
-        if (new_code === "youfei"){
+        if (new_code === default_tb_code2_youfei){
             continue
         }
         if (new_code === ""){
-            new_code = "女人街 12F A12-A-12#12"
+            new_code = default_tb_code
         }
+        // ***********************************************************去除搜款网编码的尾巴（id）
         // 搜款网商品id
-        let goods_id= new_code.substring(new_code.lastIndexOf('-')+1,new_code.length)
-           console.log("收款网id：",goods_id)
-        if(!isNaN(goods_id)){
+        let skw_goods_id= new_code.substring(new_code.lastIndexOf('-')+1,new_code.length)
+           
+        if(!isNaN(skw_goods_id) &&  skw_goods_id >1000000){
             console.log("收款网id 是数字")
             //去掉数字id
             new_code = new_code.substring(0,new_code.lastIndexOf('-'))
@@ -624,6 +692,7 @@ function get_order_goods_str_from_elems(elems){
         }else{
             console.log("收款网id 不是数字")
         }
+         // ***********************************************************去除搜款网编码的尾巴（id）
  console.log("new_code:",new_code)
            let new_color= typeof order_goods_list[x].color === "undefined" ? "" : order_goods_list[x].color;
         if(new_color.indexOf("+")!== -1){
@@ -634,7 +703,7 @@ function get_order_goods_str_from_elems(elems){
         order_goods['size']= typeof order_goods_list[x].size === "undefined" ? "" : order_goods_list[x].size
         order_goods['color']= new_color
         order_goods['count']= typeof order_goods_list[x].total === "undefined" ? "" : order_goods_list[x].total;
-
+        order_goods['tb_trade_href'] = order_goods_list[x]['tb_trade_href']
         //取代一些字符
         replace_goods_property(order_goods,old_code)
         new_goods_str_list.push(order_goods)
