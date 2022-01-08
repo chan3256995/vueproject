@@ -13,7 +13,7 @@ return y+'-'+add0(m)+'-'+add0(d)+' '+add0(h)+':'+add0(mm)+':'+add0(s);
 }
 
 
- function add0(m){return m<10?'0'+m:m }
+ 
 
 
 //谷歌cookie 转换为 key - value 键值对对象
@@ -34,12 +34,6 @@ function mcommon_chrome_cookie_to_obj(chrome_cookie){
                  
 	 return cookies_obj
 }
-function mcommon_get_base_vue_url_17(){
-    // let base_url_bl = "http://192.168.1.102:8082"
-    let base_url_bl = "http://17daina.com"
-    return base_url_bl
-}
-
 
 function mcommon_get_base_server_url_17(){
     // let base_url_bl = "http://192.168.1.102:8009"

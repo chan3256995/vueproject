@@ -1,4 +1,5 @@
-
+let default_tb_code = "女人街 12F A12-A-12#12"
+let default_tb_code2_youfei = "youfei"
 let logistics_choies2 = {
     "圆通":101,
     "圆通实包":101,
@@ -386,6 +387,31 @@ function tbapi_get_all_page_order_from_tb(){
           return    {"result":order_list,"is_success":true }
 
 }
+function tbapi_check_login(){
+   
+        let is_login = false
+    $.ajax({
+                async: false,
+                url: " https://i.taobao.com/my_taobao.htm",
+                type: "GET",
+                // dataType : 'json',
+                // data: submit_data_str,
+                timeout: 5000,
+                success: function (result) {
+                console.log("tbapi_check_login :",result)
+                 
+
+        },
+                 error: function (err) {
+                    console.log("错了:" + err);
+                    console.log("错了:" + JSON.stringify(err));
+
+
+        }
+
+    });
+    return is_login
+}
 
 function tbapi_get_page_order_from_tb(page_number,page_counts){
 
@@ -482,25 +508,44 @@ function tbapi_get_page_order_from_tb(page_number,page_counts){
 
      return return_data
 }
-function tbapi_get_order_info_by_order_number(order_number){
+function tbapi_get_order_info_last_months(page_number){
 
 
     let request_url = "https://trade.taobao.com/trade/itemlist/asyncSold.htm?event_submit_do_query=1&_input_charset=utf8&"
     let parms = {
-                 "source":"",
-                 "callUrl":"",
-                 // "_tb_token_":"ffe0157689337",
-                 "orderStatusShow" :"send",
-                 "receiverName" :"",
-                 "receiverWangWangId":"" ,
-                 "beginDate" :"",
-                 "endDate" :"",
-                 "taobaoTradeId" :"",
-                 "shipping2":"-1",
-                 "orderType":"-1",
-                 "orderSource":"0",
-                 "currentPage" :page_number,
-
+                 "auctionType": 0,
+"close": 0,
+"pageNum":page_number,
+"pageSize": 15,
+"queryMore": false,
+"rxAuditFlag": 0,
+"rxElectronicAllFlag": 0,
+"rxElectronicAuditFlag": 0,
+"rxHasSendFlag": 0,
+"rxOldFlag": 0,
+"rxSendFlag": 0,
+"rxSuccessflag": 0,
+"rxWaitSendflag": 0,
+"showQueryTag": true,
+"tradeTag": 0,
+"useCheckcode": false,
+"useOrderInfo": false,
+"errorCheckcode": false,
+"action": "itemlist/SoldQueryAction",
+"prePageNo": 3,
+"buyerNick":"",
+"dateBegin": 0,
+"dateEnd": 0,
+"logisticsService":"",
+"orderStatus":"",
+"queryOrder": "desc",
+"rateStatus":"",
+"refund":"",
+"sellerNick":"",
+"tabCode": "latest3Months",
+"sifg":"",
+// "bx-ua": "214!aahBYrdpaHypv5In350qgzpXuXhTaE RSxN jv0phajgq 51OEmFNnXgDjJFRBBHyRmwb2mc8saSKmHcVT2oLT6MYuf8hFQsY1L jhr5jjgJ/AFCk3ppr 1SBH/lmvNBercNI D5Y1ihQu8eoD5w214P0vZHjeOUA9DnLHO4CTbhYJ0DhnB6S gTnC4ADZG1wwKVtlQh2uKXtL01Zv7H c0gSWXz8AohwOhssTMw0GMs/LNjx6RjQoL wzoFPga9jfOrdx jRk dWnjU/M/sdn/M0442DqffYLadT48yHapSd95aNjIh2KIF4m0pkLNZxaoJqv2Ad1zoObZ doiVHGr2D/GoLKKw2A5FXk/bKkHWHQ4HMxv0WWivmFsCM8RHT23DRuQBpvAnem1Ei4OM/iX1eRhwK4vmygQYnhNNI6 i2iI2uFIO9MkCSpfa04 tWM62DkLOVQHHkpZ/VWBpPOkCwLZc00jRkCW wWaa908CkpD Hor08WXkHeD1auyEA keSQdUtpGGQFvNdx6BqJD36ri0NnPSMX9/BKBI2ixyte4fMKIQhm/dFWLimfq9dRAdrQxrz1q14579q2iQ sOkrowmlkkWISxiZZSm uroBJ iW7AqVLOS6HQTRan02 bHZgsW9xJo2osc0M/FF8 YyLqXKpTqDfXgW1sbvMkBwyXxUR/g/Acx9muXi5JABRmM7dj5SyTpZAM9J2Ks05lYXvHh qcpBf7AILalchoXw41WXmwKdtBU1Vi1ocx3pDbHen7TA v5OtbIfiTfeMPoGEdsMft5y6JgXw tVH/JaGdCZ0G8RY8apLfweWyKebuN81rCqgbSDnT lXin2Z1tUz9mOghqijY97jkJ8KFBtf0I9QVDmiYneBisgeVCFU9NoZb2rZ8pFrGP4nEbapVCqN4AjV4i3toJYrXL8VXzjYxvKA2ue8Z42DwgR6CmiWoz5ooWFb/Xr1gm6OoVj8WhzRiXFKOuk2xseh8gMHBUYvhXiebW7Y52kcIfZ9RgEMNpDaCRdvKk0NHy/ONvcbo7qj3OzNz5CSq9I MLWRS4MQ7oeR60Q VR0XzJVWcvizvF5x398J1jA2uCF7sStmlyW/Jitns0LXy9azlNOus2HqVEU6ps47vjLLKezTxIg3Bvygqp O2zgyDzhRsr11hSqOoKeMuvfK1/2mTOzR7a25k7BzqbLW9v3lMJhkEaksAKGT2tqyaKlJbb8I8pVOSiUCDAkIr OPH F/ziVXtiymz3VxieHnR7iTxBfI0JEjtcKbnUI2NSf2Rk0idFbGo99fd8Ja1ksUx3A9Bxx15VDWgp62Ivtu61CShA6BwzXEanEN9DiVonCJX4yiXEHk8fQij2oDMtXDNSnf2O7LZ5YDG/RgUAK6972fYhQpjaTi1V5k4D/ztdn7fuVhirtFiKV S9kiwijGZBQOwTFGcILRFMLk45m7XkghCJNGT8gOhlAhClRYamf/V 4J8lQzJTXi5WoMwlzxnRf BoitobPkhz5AN1qHQo1qugZ38IyQEIJmDICDG4wAnC4JFTYsaZfz50IIXQzgzJhCVkCH0/8pwbK0yQtm4FHwhk9J63gRmaELdL6Xdw0sB39ytszU4MVbnwVgzCoLMyneWfvtXAKUhEFQkTT0LGGkVNeHJnYDUEUo4jHF6adkql9zYMBNcavvoVgTBPoQZjoTF0fVOx09Ha4L1/sYPIxnIpvM0SqY73QJuioH9iPLH1pZIcahjdQbc4WdaQK796EJRCY9e70v250To7k8A3rhDwX9vKolPaTiF34CWlCuh2oE6xPFXfePD6ANfWu6uenQmB1NB27X2F/rZHfSlxF3ZgJ8WVfmgzoc6fxspuP9YxbWwTyCBAxHkX JctiG4MDYJrzp0slRw92ovZI7vV8OPHr9MbLa2WL1QGXKyycCu75p2Zg8GUxnui7gN4TfuFmuGWjqnQGioyDAD0HGdx/2QlcSK3YuzCmPr1hBzbKcHGWV Q7/XEscjDj0yMSH0usNWqIM5GM32PXz2vw9P9HwbUMbjqLa1nAQ074DsQ33sAGZ14R3 loX1b1a/7hVtVXLq8mCm0JWiJGZV0OFAloxFbECWPlv66RHk9zCOhzkMsKW9tE6oyNRrpgnFXlUM=\n" +
+//     "bx-umidtoken: T2gAvfovhtZUguwMfVq5iNTC0uFw0VPpExf6WS5aSEcFNNSTocCl-aFyEGwTmF6uBTw="
              }
     let  return_data = null
     $.ajax({
@@ -512,63 +557,250 @@ function tbapi_get_order_info_by_order_number(order_number){
             timeout : 5000,
             complete: function(jqXHR){
 
-                if(jqXHR.responseText !==undefined && jqXHR.responseText.indexOf("扫码登录更安全")!==-1){
-                    return_data =  {"is_success":false, "message":"go_to_login_tb", }
-            }
+
     },
             success : function(result) {
-                    if (result !== ""){
 
+                    console.log("三个月订单获取结果...........",JSON.parse(result))
 
-                        let html = result.substring(result.indexOf("<html>"),result.indexOf("</html>")+7)
-                         html = $.parseHTML(html)
-                     if(page_number===1){
-                          let dom = html
-                          let page_dom = $(dom).find(".page-top")[0]
-                          let  papge_a = $(page_dom).find("a")
-                          papge_a.each(function () {
-                          if(!isNaN($(this).text())){
-                            page_counts = $(this).text()
-                        }
-                    })
-                     }
-                    result = get_order_goods_str_from_elems(html)
-
-
-                    $(html).find(".J_Trigger").each(function () {
-                        // console.log("11",$(this))
-
-                    })
-
-                     return_data =  {
-                         "result":result,
-                         "page_number":page_number,
-                         "page_counts":page_counts,
-                         "is_success":true
-                     }
-                    }
-
+                    return_data = result
 
 
             },
             error:function (err) {
                 console.log("错了:" + err);
                 console.log("错了:" + JSON.stringify(err));
-                if(JSON.stringify(err).indexOf("NetworkError: Failed to execute 'send'")){
-                    return_data =  {"is_success":false, "message":"go_to_login_tb", }
-                }else{
-                    return_data =  {
 
-                         "is_success":false,
-                         "message":"",
-                     }
-                }
-
-                return return_data
             }
         });
 
-            console.log("return_data",return_data)
+
+
+     return return_data
+}
+function websqlapi_delete_goods_comment(goods_id){
+      let db2 = openDatabase('my_tb_db',"1.0","taobaoshuju",5*1024*1024)
+             db2.transaction(function (tx) {
+             console.log("进入事务")
+
+             tx.executeSql('DELETE from TBCOMMONTS WHERE goods_id =?',[goods_id],function (tx,res) {
+                    console.log("sh删除结果:",res)
+             })
+         })
+}
+function websqlapi_delete_all_comment(){
+      let db2 = openDatabase('my_tb_db',"1.0","taobaoshuju",5*1024*1024)
+             db2.transaction(function (tx) {
+             console.log("进入删除事务")
+
+             tx.executeSql('DELETE from TBCOMMONTS WHERE 1 = 1')
+         })
+}
+function websqlapi_save_tb_comment(comment_list){
+
+         let db2 = openDatabase('my_tb_db',"1.0","taobaoshuju",5*1024*1024)
+
+
+
+                 for(let i = 0;i<comment_list.length;i++){
+                    //  let is_continue = true
+                    // tx.executeSql("SELECT * FROM TBCOMMONTS where comment_id=?",[comment_list[i]['comment_id']],function (tx,results) {
+                    //     console.log("查询要插入数据条数:",results.rows.length)
+                    //     if(results.rows.length!==0){
+                    //         is_continue = false
+                    //     }
+                    //     },null)
+                    //  if(is_continue === false){
+                    //      continue
+                    //  }
+                        db2.transaction(function (tx) {
+                             tx.executeSql('INSERT INTO   TBCOMMONTS (goods_id,comment_id,user_name,user_pic,level,comment_text,monment_date,color_size) VALUES (?,?,?,?,?,?,?,?) ',[comment_list[i]["goods_id"],comment_list[i]["comment_id"],comment_list[i]["user_name"],comment_list[i]["user_pic_img"],comment_list[i]["user_level"],comment_list[i]["comment_content"],comment_list[i]["comment_date"],comment_list[i]["sku_info"]],function (tx,res) {
+                             console.log("插入数据到表TBCOMMONTS成功:",res)
+                         })
+             })
+                 }
+
+
+
+
+             // db2.transaction(function (tx) {
+             //     console.log("1111:进入事务")
+             //      tx.executeSql("SELECT * FROM TBCOMMONTS",[],function (tx,results) {
+             //      console.log("goodslength:",results.rows.length)
+             //     for(let i = 0 ;i<results.rows.length;i++){
+             //         console.log("goodsid:",results.rows.item(i).goods_id)
+             //     }
+             // },null)
+             // })
+    
+    
+ }
+ function websqlapi_get_tb_comment2(confindent_obj){
+        // confindent_obj = {
+        //     "user_name":"f***h（匿名）",
+        //      "goods_id":"652378353165"
+        // }
+       
+        let _str = ""
+        let _str_arr = []
+        for(let key in confindent_obj){
+            _str = _str + key+"=? AND "
+            _str_arr.push(confindent_obj[key])
+        }
+        _str = _str.substring(0,_str.length-4)
+
+        console.log("_str_arr",_str_arr)
+        let check_sql = "SELECT * FROM TBCOMMONTS   WHERE "+_str
+     console.log("查询语句开始",check_sql)
+         let db2 = openDatabase('my_tb_db',"1.0","taobaoshuju",5*1024*1024)
+
+             db2.transaction(function (tx) {
+                 console.log("进入查询事务")
+                  tx.executeSql(check_sql,_str_arr,function (tx,results) {
+                  console.log("goodslength:",results.rows.length)
+                      let return_list = []
+                 for(let i = 0 ;i<results.rows.length;i++){
+                     console.log("user_name:",results.rows.item(i).user_name)
+
+                     return_list.push({
+                         "user_name":results.rows.item(i).user_name,
+                         "comment_date":results.rows.item(i).monment_date,
+                     })
+                 }
+
+                 
+             },null)
+             })
+     
+    
+ }
+function websqlapi_init_tb_comment_db(){
+      let db2 = openDatabase('my_tb_db',"1.0","taobaoshuju",5*1024*1024)
+             db2.transaction(function (tx) {
+             console.log("1111:进入事务")
+             tx.executeSql('CREATE TABLE IF NOT EXISTS   TBCOMMONTS (goods_id,comment_id unique ,user_name,user_pic,level,comment_text,monment_date,color_size)',[],function (tx,res) {
+                 console.log("创建表TBCOMMONTS结果:",res)
+             })
+         })
+}
+function tbapi_get_goods_comments(request_url){
+
+
+    // let request_url = "https://rate.taobao.com/feedRateList.htm?callback=jQuery2140046533426516300214_1631272119232&auctionNumId=650529116135&userNumId=3412532094&currentPageNum=2&pageSize=20&rateType=&orderType=sort_weight&attribute=&sku=&hasSku=false&folded=0&_=1631272119233"
+
+    let  return_data = null
+    $.ajax({
+            async : false,
+            url :request_url,
+            type : "GET",
+            // dataType : 'json',
+            // data : parms,
+            timeout : 5000,
+            complete: function(jqXHR){
+
+
+    },
+            success : function(result) {
+
+                    console.log("获取评论结果...........",result)
+
+                  
+
+
+            },
+            error:function (err) {
+                console.log("错了:" + err);
+                console.log("错了:" + JSON.stringify(err));
+
+            }
+        });
+
+
+
+     return return_data
+}
+function tbapi_get_refund2_info(url){
+
+
+    let request_url = url
+
+    let  return_data = {"send_info":null,"return_info":null}
+    $.ajax({
+            async : false,
+            url :request_url,
+            type : "GET",
+            // dataType : 'json',
+            // data : parms,
+            timeout : 5000,
+            complete: function(jqXHR){
+
+
+    },
+            success : function(result) {
+
+                    console.log("获取退款结信息...........")
+                let start_index = result.indexOf("disputeData =")
+                let tem_str = result.substring(start_index,result.length).replace("disputeData =","")
+                let end_index = tem_str.indexOf("</script>")
+                let data_str = tem_str.substring(0,end_index).trim()
+                 data_str = data_str.substring(0,data_str.length - 1)
+
+                let data_obj = JSON.parse(data_str)['data']
+                 console.log("data_obj:",data_obj)
+                 let  return_info = {}
+                 let  sendInfo = {}
+                for(let key in data_obj){
+
+                    if(key.indexOf("logisticsDetail")!==-1){
+                        
+                        let  logistics_number = data_obj[key]['fields']["trackingNum"]
+                        let  logistics_name = data_obj[key]['fields']["companyName"]
+                       
+                        sendInfo['logistics_name'] = logistics_name
+                        sendInfo['logistics_number'] = logistics_number
+
+                    }else  if(key.indexOf("logistics_")!==-1){
+                        let  return_logistics = data_obj[key]
+                        let  return_logistics_number = data_obj[key]['fields']["trackingNum"]
+                        let  return_logistics_name = data_obj[key]['fields']["company"]
+                        let  latestMsg = data_obj[key]['fields']["latestMsg"]
+                        let  latestTime = data_obj[key]['fields']["latestTime"]
+                         //  return_info = {
+                         //        "return_logistics_name":return_logistics_name,
+                         //        "return_logistics_number":return_logistics_number,
+                         //        "latestMsg":latestMsg,
+                         //        "latestTime":latestTime,
+                         // }
+                         return_info["return_logistics_name"] = return_logistics_name
+                         return_info["return_logistics_number"] = return_logistics_number
+                         return_info["latestMsg"] = latestMsg
+                         return_info["latestTime"] = latestTime
+
+                    }else if(key.indexOf("negotiationInfoItem")!==-1){
+                            if(data_obj[key]["fields"]){
+                               let info =  data_obj[key]["fields"]['info']
+                                if(info !== undefined && info.indexOf('商家确认收货地址')!==-1){
+                                    let return_address = info
+                                    return_info["return_address"] = return_address
+                                }
+
+                            }
+                    }
+                    return_data['send_info'] = sendInfo
+                    return_data['return_info'] = return_info
+                }
+                  
+
+
+            },
+            error:function (err) {
+                console.log("错了:" + err);
+                console.log("错了:" + JSON.stringify(err));
+
+            }
+        });
+
+
 
      return return_data
 }

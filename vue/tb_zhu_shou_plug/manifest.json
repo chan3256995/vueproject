@@ -6,16 +6,16 @@
   "version": "1.0",
 
   "permissions": [
-    "https://*/*", "http://*/" , "webRequest", "webRequestBlocking","cookies","webNavigation"
+    "https://*/*", "http://*/" , "webRequest", "webRequestBlocking","cookies","webNavigation","storage"
   ],
 "background": {
-      "scripts": ["js/jquery-2.0.3.min.js", "js/jquery.json-2.4.js", "js/background.js","js/jquery-form.js","js/tbapi.js","js/mcommon.js","js/encoding.js","js/zhaoyjingapi.js","js/wuxieapi.js","js/encoding-indexes.js","js/zhangmenrenapi.js"]
+      "scripts": ["js/jquery-2.0.3.min.js", "js/jquery.json-2.4.js", "js/background.js","js/jquery-form.js","js/tbapi.js","js/mcommon.js","js/encoding.js","js/zhaoyjingapi.js","js/wuxieapi.js","js/encoding-indexes.js","js/zhangmenrenapi.js","js/api17.js","js/api315.js","js/websqlapi.js"]
    },
    "content_scripts": [{
       "exclude_matches": [ "http://member1.taobao.com/*" ],
-      "matches": ["https://*.taobao.com/*", "http://*.tmall.com/*", "https://*.taobao.com/*","https://s.taobao.com/*","https://*.vvic.com/*","https://taobao.vvic.com/*","http://*.wuxiegj.com/*","http://*.zmr188.com/*","http://*.106.13.166.248/*"],
+      "matches": ["https://*.taobao.com/*", "http://*.tmall.com/*", "https://*.taobao.com/*","https://s.taobao.com/*","https://*.vvic.com/*","https://taobao.vvic.com/*","http://*.wuxiegj.com/*","http://*.17daina.com/*","http://*.zmr188.com/*","https://*.315df.com/*","http://*.315df.com/*","http://*.106.13.166.248/*","https://*.chuanmeidayin.com/*","http://17daina.com/*"],
       "run_at": "document_end",
-      "js": [ "js/version.js","js/jquery-2.0.3.min.js", "js/jquery.json-2.4.js", "js/main.js","js/jquery-form.js","js/tbapi.js","js/chuanmeiapi.js","js/mcommon.js","js/zhaoyjingapi.js","js/wuxieapi.js","js/zhangmenrenapi.js"]
+      "js": [ "js/version.js","js/jquery-2.0.3.min.js", "js/jquery.json-2.4.js", "js/main.js","js/jquery-form.js","js/tbapi.js","js/chuanmeiapi.js","js/mcommon.js","js/zhaoyjingapi.js","js/wuxieapi.js","js/zhangmenrenapi.js","js/api17.js","js/api315.js","js/websqlapi.js"]
    }],
 
   "browser_action": {

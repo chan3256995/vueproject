@@ -1,8 +1,10 @@
 
 let wuxie_base_url = "https://wuxiegj.com/"
 let wuxie_dabiao_url = "https://db.wuxiegj.com/user/1/tag"
+let wuxie_login_url = "https://db.wuxiegj.com/doLogin"
 //淘宝打标
 function wuxieapi_dabiao (key_word,goods_link,wangwang_id){
+    wuxieapi_login()
     console.log("开始淘宝打标id：",wangwang_id)
     console.log("开始淘宝打标链接：",goods_link)
     console.log("开始淘宝打标关键词：",key_word)
@@ -48,5 +50,35 @@ function wuxieapi_dabiao (key_word,goods_link,wangwang_id){
             }
         });
     return return_message
+}
+function wuxieapi_get_name_pwd(){
+    let user_info = {
+        user_name :13411269012,
+        password :"a12345678",
+    }
+    return user_info
+}
+function wuxieapi_login(){
+    let user_info = wuxieapi_get_name_pwd()
+    let post_data = {
+        username:user_info["user_name"],
+        password:user_info["password"]
+    }
+       $.ajax({
+            async : false,
+            url :wuxie_login_url,
+            type : "POST",
+            // dataType : 'json',
+            data : post_data,
+            timeout : 5000,
+            success : function(result) {
+
+
+            },
+            error:function (err) {
+
+
+            }
+        });
 }
  
