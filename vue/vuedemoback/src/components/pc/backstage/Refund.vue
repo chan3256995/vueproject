@@ -22,7 +22,8 @@
 
                           <label  v-if="goods.refund_apply.length>0"   >申请件数：{{goods.refund_apply[0].goods_counts}}</label>
 
-                          <button  v-if="goods.refund_apply.length>0" @click=" get_order_info_bl({'order_number':item.order_number,'order_goods_list':JSON.stringify([].push(goods))})"  >bl 获取订单信息</button>
+                          <button  v-if="goods.refund_apply.length>0" @click=" bl_utils.get_account_record_by_order_number_bl(item.order_number)"  >bl 获取订单资金流水</button>
+                          <button  v-if="goods.refund_apply.length>0" @click=" bl_utils.get_order_info_bl({'order_number':item.order_number,'order_goods_list':JSON.stringify([].push(goods))})"  >bl 获取订单信息</button>
                           <button  v-if="goods.refund_apply.length>0  && refund_apply_status[goods.refund_apply_status] ==='退货退款'" @click=" refund_tuihuotuik_bl({'goods_number':goods.goods_number,'goods_id':goods.id,'return_logistics_name':goods.refund_apply[0].return_logistics_name,'return_logistics_number':goods.refund_apply[0].return_logistics_number})"  >bl 申请退货退款</button>
                           <button  v-if="goods.refund_apply.length>0" @click="check_pass(goods.refund_apply[0].id)"  >通过</button>
                           <button style="margin-left: 1em" v-if="goods.refund_apply.length>0 && refund_apply_status[goods.refund_apply_status] ==='拦截发货'" @click="check_pass(goods.refund_apply[0].id,'True')"  >通过并退回拦截费用</button>
@@ -79,12 +80,14 @@
   import mtime from '../../../utils/mtime.js';
   import mGlobal from '../../../utils/mGlobal';
     import  axios  from 'axios'
+  import blUtils from '../../../utils/bl_utils'
      //设为true 就会带cookies 访问
     axios.defaults.withCredentials=true;
     export default {
         name: "MyOrder",
       data(){
           return{
+            bl_utils:blUtils,
             customer_service_message:"",
             all_order_counts:"",
             query_q:"",
@@ -157,47 +160,7 @@
                    alert("提交失败")
               })
             },
-            get_order_info_bl(order_info){
-                   let order_list = []
-                   order_list.push(order_info)
 
-                   let url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/bl_get_order_info/";
-                   //设为true 就会带cookies 访问
-                  axios.defaults.withCredentials=true;
-
-                  axios.post(url,{"order_list":JSON.stringify(order_list)}).then((res)=>{
-                   if(res.data.code === "1000"){
-
-                     let return_order_list = res.data.order_info_list
-                     if(return_order_list.length === 0){
-                       alert("未从bl查到相关信息")
-                       return
-                     }
-                     let cur_order  = return_order_list[0]
-                     let str = ""
-                     str = str +"订单："+cur_order['order_number']+'\n'
-                     str = str +"订单状态："+cur_order['order_status']+'\n'
-                      str = str +"----------------"+'\n'
-                     let order_goods_list = cur_order['order_goods_list']
-                     console.log("order_goods_list:  ",order_goods_list)
-                     for(let i = 0;i<order_goods_list.length;i++){
-
-                       str = str +"商品："+i+'\n'
-                       str = str +"商品状态："+order_goods_list[i]['status']+'\n'
-                       str = str +"商品价格： "+order_goods_list[i]["goods_price"] + " x" +order_goods_list[i]["goods_count"]+'\n'
-                       str = str +"备注： "+order_goods_list[i]["mark"]+'\n'
-                       str = str +"------------------"+'\n'
-                     }
-                     alert(str)
-
-                   }else{
-                      alert("提交失败")
-                   }
-              }).catch(error => {
-                  console.log(error)
-                   alert("提交失败")
-              })
-            },
             check_pass(refund_apply_id,is_return_lanjie_fee){
             let url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/goodsRefund/"+refund_apply_id+"/";
              //设为true 就会带cookies 访问

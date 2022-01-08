@@ -28,7 +28,7 @@
         <input v-model="query_q" placeholder="订单ID，订单号，收货人名，手机号，快递单号" style="width: 30em; height: 2em ; "  /><button @click='on_orders_query({"q":query_q.trim()})' style="margin-left: 0.5em">查询</button><button style="margin-left: 0.5em" @click='on_orders_query(null,null,"search_all_order_btn")' >查询全部{{all_order_counts}}</button>
         <label style="margin-left: 0.5em">时间选择</label><input style="width: 12em" placeholder="点击选择时间" @click="calendar_show = !calendar_show" v-model="during_str">
       </div>
-      <div > <button style="margin-top: 1.5em" @click="select_all(is_all_order_selected)">全选</button><button style="margin-top: 1.5em; margin-left: 2em" @click="copy_order_str(selected_order_list)">复制选中订单</button></div>
+      <div > <button style="margin-top: 1.5em" @click="select_all(is_all_order_selected)">全选</button><button style="margin-top: 1.5em; margin-left: 2em" @click="cancel_wait_pay_order_goods(selected_order_list)">修改选中订单未付款为取消</button></div>
         <li class="item_order" v-for="(item,index) in order_list" :key="index">
           <div  class="order_div" >
             <input style="width: 1.5em; height: 1.5em " @change="checkbox_change(index,item)" type="checkbox" v-model="item.is_checked" >
@@ -36,12 +36,14 @@
             <label style="margin-right: 0.2em; color:black; font-size: 1.2em">{{item.id}}</label>
             <a style="cursor:pointer; text-decoration:underline; " @click="show_user(item.order_owner)">下单人:{{item.order_owner.user_name}}</a>
               <label  class="order_label" >订单号：{{item.order_number}}</label>
+              <label style="color: red"  class="order_label" >店铺：{{item.wangwang_id}}</label>
               <label  class="order_label" v-if="item.tb_order_number!==null && item.tb_order_number!==''" >淘宝订单号：{{item.tb_order_number}}</label>
              <label   style="color:black">跟单人：</label>
              <label v-if="item.order_follower !==null" style="color:black">{{item.order_follower.user_name}}</label>
             <label>包裹状态：{{order_status[item.order_status]}}</label>
               <label> {{item.consignee_name}} {{item.consignee_phone}} {{item.consignee_address}}</label>
           </div>
+          <div style="display: inline-block;width: 100%" ><button @click="blUtil.get_order_info_bl({'order_number':item.order_number,'order_goods_list':JSON.stringify([])})" style="float: right">bl 获取订单信息</button></div>
           <div style="display: inline-block;width: 100%" ><button @click="item_detail_show(index,item)" style="float: right">显示/隐藏</button></div>
           <div :class="{'refunded_style': goods.status === goods_status2['已退款'],'refunded_style input':goods.status === goods_status2['已退款'],'refunded_style button':goods.status === goods_status2['已退款'],'refunded_style select':goods.status === goods_status2['已退款']}"  class="item_goods"  v-for="(goods,index2) in item.orderGoods" v-if="item.show">
           <div   class="order_goods_div" >
@@ -56,7 +58,7 @@
                  <td>价格</td>
                  <td>件数</td>
             </tr>
-            <tr ><td></td>
+            <tr ><td>  <img style="width: 3.5em; height: 3.5em;float: left" v-bind:src="goods.image_url"/></td>
                  <td><input  v-model="goods.shop_market_name" /></td>
                  <td><input  v-model="goods.shop_floor" /></td>
                  <td><input  v-model="goods.shop_stalls_no"/></td>
@@ -141,11 +143,13 @@
      //设为true 就会带cookies 访问
     axios.defaults.withCredentials=true;
     import mGlobal from "../../../utils/mGlobal"
+    import blUtil from "../../../utils/bl_utils"
     import Vue from 'vue'
     export default {
         name: "MyOrder",
       data(){
           return{
+            blUtil :blUtil,
             calendar_show:false,
             defaultDate:[],
             disabledDate:[],
@@ -362,72 +366,41 @@
               alert("修改失败"+error)
           })
         },
+                  //修改商品信息
+        alter_order_goods_info2(id ,data){
+          const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/back/orderGoods/"+id+"/";
+          axios.defaults.withCredentials=true;
+           axios.put(url,data)
+             .then(res=>{
+               if(res.data.code === "1000"){
+
+               }else{
+                 alert("修改失败"+res.data.message)
+               }
+
+           }).catch(error =>{
+              alert("修改失败"+error)
+          })
+        },
 
         goto_place_order_page(data){
 
           this.$router.push({path:"/pc/home/porder",query:{data:data}})
         },
 
-        //复制商品到剪切板
-        copy_order_str(selected_order_list){
+        //批量取消未付款订单
+        cancel_wait_pay_order_goods(selected_order_list){
           let goods_list_tem = []
           for(let i = 0 ; i<selected_order_list.length;i++){
             for(let g=0;g<selected_order_list[i].orderGoods.length;g++){
-              goods_list_tem.push(selected_order_list[i].orderGoods[g])
+             if(selected_order_list[i].orderGoods[g].status === mGlobal.GOODS_STATUS2['未付款']){
+               this.alter_order_goods_info2(selected_order_list[i].orderGoods[g].id,{'status':mGlobal.GOODS_STATUS2['已取消']})
+             }
+
             }
           }
-          goods_list_tem.sort(function (a,b) {
 
-            if(a.shop_market_name ===  b.shop_market_name){
-
-
-               if(a.shop_floor === b.shop_floor){
-                  if(a.shop_stalls_no === b.shop_stalls_no){
-                      if(a.art_no === b.art_no){
-                         if(a.goods_color === b.goods_color){
-                           return 0
-                        }
-                        if(a.goods_color > b.goods_color){
-                          return 1
-                        }else{
-                          return -1
-                        }
-                      }
-                      if(a.art_no > b.art_no){
-                        return 1
-                      }else{
-                        return -1
-                      }
-                  }
-                  if(a.shop_stalls_no > b.shop_stalls_no){
-                    return 1
-                  }else{
-                    return -1
-                  }
-               }
-
-
-               if(a.shop_floor > b.shop_floor){
-                  return 1
-               }else{
-                  return -1
-               }
-            }
-            if(a.shop_market_name > b.shop_market_name){
-               return 1
-            }else{
-               return -1
-            }
-
-          })
-          let copy_text = ""
-          for(let i = 0 ;i<goods_list_tem.length;i++){
-            let text_line = goods_list_tem[i].shop_market_name+" "+ goods_list_tem[i].shop_floor+" "+goods_list_tem[i].shop_stalls_no+ " "+goods_list_tem[i].art_no+" "+goods_list_tem[i].goods_color+" "+goods_list_tem[i].goods_price+" "+goods_list_tem[i].goods_count+"件"
-            console.log(text_line)
-            copy_text = copy_text +text_line+'\n'
-          }
-           this.$copyText(copy_text)
-          this.$toast("复制成功")
+          this.$toast("修改完成")
         },
         select_all(){
 

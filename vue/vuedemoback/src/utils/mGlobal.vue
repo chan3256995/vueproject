@@ -6,20 +6,15 @@
   //后台服务器地址
 
   const DJANGO_SERVER_BASE_URL = "http://39.96.69.115:8089"
-    // const DJANGO_SERVER_BASE_URL = "http://192.168.2.110:8009"
+    // const DJANGO_SERVER_BASE_URL = "http://192.168.1.102:8009"
   // 前段访问地址
     const VUE_REQUEST_BASE_URL = "http://39.96.69.115:8080/#"
-    // const VUE_REQUEST_BASE_URL = "http://192.168.2.110:8082/#"
+    // const VUE_REQUEST_BASE_URL = "http://192.168.1.102:8080/#"
     export default {
      DJANGO_SERVER_BASE_URL,
      VUE_REQUEST_BASE_URL,
      SERVER_FEE:2.0,
-       // LOGISTICS: [
-       //      { logistics_name: '圆通', price: '4.0' },
-       //      { logistics_name: '韵达', price: '4.0' },
-       //      { logistics_name: '中通', price: '5.0' },
-       //
-       //    ],
+
       //商品状态
      GOODS_STATUS:{
               1:"未付款",//未付款

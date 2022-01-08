@@ -32,8 +32,10 @@
             <td></td>
           </tr>
           <tr  v-for="(item,index) in account_log_list" :key="index">
-            <td style="width: 8em">{{item.user.user_name}}</td>
-            <td style="width: 4em">{{item.user.id}}</td>
+            <td style="width: 8em" v-if="item.user !== null">{{item.user.user_name}}</td>
+            <td style="width: 8em" v-else > </td>
+            <td style="width: 4em" v-if="item.user !== null" >{{item.user.id}}</td>
+            <td style="width: 4em" v-else > </td>
             <td style="width: 15em">{{item.trade_number}}</td>
             <td v-if="item.cash_in_out_type ===1">收入</td>
             <td v-else-if="item.cash_in_out_type ===2">支出</td>
