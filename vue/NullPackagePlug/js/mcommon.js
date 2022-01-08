@@ -25,7 +25,7 @@ function mcommon_get_null_package_logistics_type_choise_bl(){
 function mcommon_get_null_package_base_url_bl(){
      // 空包代发地址
     let null_package_base_url_gs = "http://www.17to17.vip"
-    let null_package_base_url_js = "http://speed.tkttt.com"
+    // let null_package_base_url_js = "http://speed.tkttt.com"
     let null_package_base_url = null_package_base_url_gs
     return null_package_base_url
 }

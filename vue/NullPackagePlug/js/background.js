@@ -46,7 +46,9 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 	let method = request.method;
 	if (method === "add_null_order_tobl")
 	{
-
+                     let base_url = mcommon_get_null_package_base_url_bl()
+                    let user_info = apibl_get_user_name_and_pwd()
+                    apibl_login2(base_url,user_info['user_name'],user_info['password'])
 	    let cookies_url = request.url;
         chrome.cookies.getAll({'url':cookies_url}, function(cookie) {
             let cookies_obj = {}
@@ -72,6 +74,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
                 let res = apibl_init_add_null_order_page_parms(mcommon_get_null_package_base_url_bl())
 
                 if(res.is_success){
+
                      let ret = start_add_null_package_order_tobl(order_list,mcommon_get_null_package_base_url_bl(),res.parms)
                     success_counts = success_counts + ret['success_counts']
                     if(ret['message']==="未登录"){
@@ -162,6 +165,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
                      cookie_str += (name + "=" + value + ";\n");
                      cookie_string += (name + "=" + value + "&");
                  }
+                 console.log("获取17vue cookies：，",cookies_obj)
                 let is_login = apibl_check_is_login(mcommon_get_base_url_bl())
                  if(!is_login){
                      window.open(mcommon_get_base_url_bl()+"/Login.aspx/")
@@ -173,7 +177,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
                 let parms = result.parms
                 let date = new Date()
                 let  end_time=  dateFtt("yyyy-MM-dd hh:mm:ss", date)
-                date.setDate(date.getDate()-10)
+                date.setDate(date.getDate()-3)
 
                 let  start_time=  dateFtt("yyyy-MM-dd hh:mm:ss",date )
 
@@ -215,11 +219,11 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
     }else if(method === "delivery_order_315to17"){
 	  
-	    return
+
 	        console.log("method",method)
             let date = new Date()
             let  end_time=  dateFtt("yyyy-MM-dd ", date)
-            date.setDate(date.getDate()-20)
+            date.setDate(date.getDate()-5)
             let  start_time=  dateFtt("yyyy-MM-dd",date )
             console.log("end_time",end_time)
             console.log("start_time",start_time)
@@ -230,7 +234,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             }
 
             let page_info = {}
-                            chrome.cookies.getAll({'url':mcommon_get_base_vue_url_17()}, function(cookie) {
+             chrome.cookies.getAll({'url':mcommon_get_base_url_17()}, function(cookie) {
                  let cookies_obj = {}
                  let cookie_str = ""
                  let cookie_string = ""
@@ -240,16 +244,19 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
                      cookies_obj[name] = value;
                      cookie_str += (name + "=" + value + ";\n");
                      cookie_string += (name + "=" + value + "&");
-                     do{
-                let result  = api315_get_order_from315(data)
-                console.log("api315_get_order_from315--->result",result)
 
-                api17_delivery_order_to17(result.data.order_list,mcommon_get_base_url_17(),cookies_obj)
-                page_info = result.data.page_info
-                data['page'] = page_info.cur_page +1
-                page_info.cur_page = parseInt(page_info.cur_page)+1;
-            }while((parseInt(page_info.cur_page) < parseInt(page_info.page_counts)) || (parseInt(page_info.cur_page) ===  parseInt(page_info.page_counts)) )
-                 }})
+                 }
+                  console.log("获取17 cookies：，",cookies_obj)
+                 do{
+                        let result  = api315_get_order_from315(data)
+                        console.log("api315_get_order_from315--->result",result)
+
+                        api17_delivery_order_to17(result.data.order_list,mcommon_get_base_url_17(),cookies_obj)
+                        page_info = result.data.page_info
+                        data['page'] = parseInt(page_info.cur_page) +1
+                        page_info.cur_page = parseInt(page_info.cur_page)+1;
+                    }while((parseInt(page_info.cur_page) < parseInt(page_info.page_counts)) || (parseInt(page_info.cur_page) ===  parseInt(page_info.page_counts)) )
+             })
 
 
 
@@ -422,6 +429,14 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
 
                  })
+    }else if(method === "keep_cookie_active_315"){
+        // api315_keep_cookie_active()
+	         
+    }else if(method === "add_tag_to_chuanmei_tb"){
+	    let post_data = JSON.parse(request.post_data)
+        let result = apichuanmei_add_tag_tb(post_data['tb_wangwangid'],post_data['tb_order_number'],post_data['flag'])
+        sendResponse(JSON.stringify(result))
+	         
     }
 
 });
@@ -464,7 +479,7 @@ function sleep(n) {
     }
 
 function start_add_null_package_order_tobl(order_list,url_base,page_parms){
-
+            
 
             let success_id_list = []
             let fail_id_list = []

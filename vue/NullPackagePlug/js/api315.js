@@ -9,7 +9,15 @@ let testing_choies_315 = {
     "精检":19,
 }
 
-
+function api315_keep_cookie_active(){
+    let _time = 3*60*1000
+    console.log("保持315 cookie 存活 ----"+ new Date())
+    setTimeout(function () {
+        api315_check_is_login(BASE_URL_315)
+        apibl_check_is_login(mcommon_get_null_package_base_url_bl())
+        api315_keep_cookie_active()
+    },_time)
+}
 function api315_check_is_login(balse_url){
     let is_login = false
     $.ajax({
@@ -89,10 +97,16 @@ function api315_add_order_17to315(submit_order_list){
                          }
 
                         let order_count = page_dom.length
-                        console.log("order_count",order_count)
-                        let save_result = saveCheckOrder(page_dom)
-                        if(save_result.code === "ok"){
 
+                        let save_result = saveCheckOrder(page_dom)
+                        console.log("保存",order_count)
+                        if(save_result.code === "ok"){
+                           
+                           
+                        }else{
+                            
+                             ret['code'] = 'error'
+                             ret['message'] = save_result.message
                         }
                     }
 
@@ -119,7 +133,7 @@ function api315_add_order_17to315(submit_order_list){
      return ret
 }
 function api315_get_order_from315(params){
-   let url = "https://www.315df.com/user/order/daifa"
+   let url = BASE_URL_315+"/user/order/daifa"
     let order_list = []
     let ret = {"code":"ok", "message":""}
     let obj = {}
@@ -182,6 +196,9 @@ function api315_get_order_from315(params){
                                      let logistics_name1 = name_number_arr[0].trim()
                                      let logistics_number1 = name_number_arr[1].trim()
                                      if(logistics_name1 !=="" && logistics_number1!=="" ){
+                                         if(logistics_name1==="圆通-【菜鸟】"){
+                                             logistics_name1 = logistics_name1.replace("圆通-【菜鸟】","圆通[菜鸟]")
+                                         }
                                         logistics_name = logistics_name1
                                         logistics_number = logistics_number1
                                      }
@@ -263,10 +280,10 @@ function saveCheckOrder(page_dom){
                         data: {jsonstr:postdata},
                         timeout: 5000,
                         success: function (result) {
-                         if(result.toString().indexOf("errcode: 1")!==-1){
+                         if(result['errcode']===1){
                               ret['code'] = "error"
-                              ret['message'] = "提交错误"
-                             console.log("提交错误")
+                              ret['message'] = result['errmsg']
+                             console.log("提交错误,",result['errmsg'])
                          }else{
                              ret['code'] = "ok"
                               ret['message'] = ""
@@ -376,6 +393,10 @@ function checkGoodsData(obj) {
             item.price = $(this).find("input[name='price']").val();
             item.goods_img = $(this).find("input[name='goods_img']").val();
             item.customize = $(this).find("input[name='customize']").val();
+            item.product_id = 0;
+            item.product_attr_id = 0;
+            item.product_ware_id = 0;
+            item.product_user_id = 0;
             if(item.market_name===undefined || obj.market_name === ""){return {"code":"error","message":"市场不能为空"}};
             if(item.floor===undefined || obj.floor === ""){return {"code":"error","message":"楼层不能为空"}};
             if(item.mouths===undefined || obj.mouths === ""){return {"code":"error","message":"档口号不能为空"}};

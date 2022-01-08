@@ -7,17 +7,24 @@ console.log("curLocation",curLocation)
 if (curLocation.indexOf("pc/back/home/order")){
 
         init_order_page()
+        chrome.runtime.sendMessage({"method":"keep_cookie_active_315"},function (response) {
+
+
+                        
+                })
 }
 
 if (curLocation.indexOf("17to17.vip/login.aspx") !== -1 || curLocation.indexOf("17to17.vip/Login.aspx") !== -1){
  window.onload=function(){
      console.log("curLocation------->",curLocation)
-        $("#btnLogin").before(" <input type='button' id='gs_delivery_button'   value='gs自动后台密码登录'>");
-                let base_url = "http://www.17to17.vip"
+        $("a:contains('找回密码')").after(" <input type='button' id='gs_delivery_button'   value='gs自动后台密码登录'>");
+        $("#gs_delivery_button").click(function () {
+            let base_url = mcommon_get_null_package_base_url_bl()
+         let user_info = apibl_get_user_name_and_pwd()
+         apibl_login2(base_url,user_info['user_name'],user_info['password'])
+            window.open(base_url+"/User/Gift_List.aspx")
+        })
 
-                let user_name = "gs01"
-                let password = "a123a123a"
-                apibl_login2(base_url,user_name,password)
            }
 }
 
@@ -26,7 +33,7 @@ if(curLocation.indexOf("pc/back/home/nullOrder")!==-1){
     window.onload=function(){
 
     init_null_package_page()
-        
+
     }
 
 }
@@ -372,7 +379,8 @@ function init_order_page(){
                 $("#query_div2").after(" <div>" +
                "<input type='button' id='delivery_order_button_blto17'    value='bl已发货订单同步到17'>" +
                "<input style='margin-left: 1em' type='button' id='load_tuihuan_order_frombl'    value='加载退货退款订单'>" +
-               "<input style='margin-left: 1em' type='button' id='add_order_button_17tobl'         value='已付款订单下单到bl'></div>");
+               "<input style='margin-left: 1em' type='button' id='add_order_button_17tobl'         value='已付款订单下单到bl'></div>"+
+               "<input style='margin-left: 1em' type='button' id='add_tag_to_chuanmei'         value='已选择订单添加传美备注'></div>");
                 $("#load_tuihuan_order_frombl").click(function () {
                     chrome.runtime.sendMessage({"method":"load_tuihuan_order_frombl"},function (response) {
 
@@ -423,7 +431,7 @@ function init_order_page(){
              }
              let select_order_item_list = JSON.parse(select_order_item_cache)
              let new_order_number_list = []
-
+             console.log("select_order_item_list缓存：",select_order_item_list)
              for(let i = 0 ; i<select_order_item_list.length ;i++){
                  for(let g = 0; g < select_order_item_list[i].orderGoods.length ; g++){
                      let goods_item  = select_order_item_list[i].orderGoods[g]
@@ -487,6 +495,42 @@ function init_order_page(){
 
 
          })
+         $("#add_tag_to_chuanmei").click(function () {
+             
+             let select_order_item_cache = $("#order_item_cache")[0].value
+             if(select_order_item_cache === undefined || select_order_item_cache === "" || JSON.parse(select_order_item_cache).length ===0){
+                 Toast("请勾选")
+                 return
+             }
+              let select_order_item_list = JSON.parse(select_order_item_cache)
+             for(let i = 0 ; i<select_order_item_list.length ;i++) {
+                      let tb_order_number = select_order_item_list[i].tb_order_number
+                      console.log("选择订单tb_order_number",tb_order_number)
+                      if(tb_order_number!==undefined && tb_order_number!==""){
+                          let post_data = {
+                              "tb_wangwangid":select_order_item_list[i]['wangwang_id'],
+                              "tb_order_number":tb_order_number,
+                              "flag":1,
+                          }
+
+                           chrome.runtime.sendMessage({"method":"add_tag_to_chuanmei_tb","post_data":JSON.stringify(post_data)},function (response) {
+                              console.log("传美插旗结果，",response)
+                              let result = JSON.parse(response)
+                               if(result["success"] === false){
+                                   Toast(post_data["tb_order_number"]+" 插旗失败，"+result["message"])
+                               }else{
+                                    Toast(post_data["tb_order_number"]+" 插旗成功，"+result["message"],300)
+                               }
+
+                            })
+
+                      }
+
+                   }
+
+
+
+         })
 }
 function init_null_package_page(){
 
@@ -501,8 +545,11 @@ function init_null_package_page(){
          $("#gs_add_null_order_button").click(function () {
          $("#gs_add_null_order_button").attr("disabled",true)
              let cookies_url =  mcommon_get_base_vue_url_17()
+             // let base_url = mcommon_get_null_package_base_url_bl()
+             // let user_info = apibl_get_user_name_and_pwd()
+             // apibl_login2(base_url,user_info['user_name'],user_info['password'])
 
-         chrome.runtime.sendMessage({"method":"get_tab_id" },function (response) {
+             chrome.runtime.sendMessage({"method":"get_tab_id" },function (response) {
                     chrome.runtime.sendMessage({"method":"add_null_order_tobl","url":cookies_url },function (response) {
                     })
              })
@@ -658,6 +705,7 @@ function add_order_17tobl(order_list){
 
 }
 function add_order_17to315(order_list) {
+    console.log("批量下单到315的订单数据：",order_list)
      let submit_order_list = []
                      for(let i = 0;i<order_list.length;i++){
                          let order_object = {}
@@ -677,10 +725,11 @@ function add_order_17to315(order_list) {
                              let info = goods.shop_market_name +" " +goods.shop_floor +" "+goods.shop_stalls_no+" "+goods.art_no+" "+goods.goods_price
                              let cs = goods.goods_color
                              let num = goods.goods_count
+                             let image_url = goods.image_url
                              goodsinfo.push(info)
                              goodcs.push(cs)
                              goodnum.push(num)
-                             goodimg.push("")
+                             goodimg.push(image_url)
                          }
                          order_object['goodinfo'] = goodsinfo
                          order_object['goodcs'] =goodcs
@@ -690,8 +739,18 @@ function add_order_17to315(order_list) {
                      }
                     chrome.runtime.sendMessage({"method":"api315_add_order_17to315","submit_order_list":JSON.stringify(submit_order_list)},function (response) {
                         let res = JSON.parse(response)
-                         if(res.code ===  'error' && res.message === '未登录'){
-                             window.open("https://account.315df.com/login.html")
+                         if(res.code ===  'error' ){
+                             if(res.message === '未登录'){
+                                  window.open("https://account.315df.com/login.html")
+                             }else {
+
+                                  
+                                 alert(res['message'])
+                                 console.log("保存到315失败，",res)
+                             }
+
+                         }else{
+                             Toast("提价成功")
                          }
                     })
                      

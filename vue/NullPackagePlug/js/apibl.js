@@ -69,6 +69,14 @@ function apibl_login2(base_url,user_name,password){
     });
     return is_login
 }
+function apibl_get_user_name_and_pwd(){
+    let user_info = {
+        user_name : "gs01",
+        password :"a123a123a",
+    }
+   
+    return user_info
+}
 function apibl_check_is_login(base_url){
     let is_login = false
     $.ajax({
