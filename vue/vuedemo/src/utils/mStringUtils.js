@@ -3814,11 +3814,18 @@ export default {
          },
   
   
-     getAddressInfo(address){
+     getAddressInfo(address,name,phone){
         let info = this.getAddressInfo1(address);
         console.log('info',info)
         if(info.province === "" || info.city ===""){
           info = this.getAddressInfo2(address)
+        }
+
+        if(name!==undefined){
+          info['name'] = name
+        }
+        if(phone!==undefined){
+          info['phone'] = phone
         }
         return info
      },
@@ -3916,7 +3923,7 @@ export default {
               let area_data = this.data().mdata[provice_res.province][city_res.city];
               let area_res  = this.searchArea(address,area_data)
               if(area_res !==""){
-                console.log(area_res.area)
+
                 area = area_res.area
               }
             }
@@ -3968,7 +3975,7 @@ export default {
         name_str = name_str.substring(0,name_str.length-1)
       }
       name = name_str;
-     return {'name':name.trim(),'phone':phone.trim()}
+     return {'name':name,'phone':phone}
    },
    getDetails(address,start_words){
      let index = address.search(start_words)

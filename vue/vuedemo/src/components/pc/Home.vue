@@ -3,6 +3,7 @@
 
     <div class="top">
       <ul style="padding-right: 3em; margin: 0 auto ">
+      <li><a style="cursor:pointer;color: red" @click="go_to_my_goods_page()" >我的商品库</a></li>
       <li><a style="cursor:pointer;color: red" @click="go_to_plugs_page()" >淘宝订单同步教程</a></li>
       <li><a style="cursor:pointer;color: blue" @click="on_logout" >退出登录</a></li>
       <li style=""><a style="cursor:pointer;color: blue" @click="go_to_personal" v-text="user"> 个人中心</a></li>
@@ -234,6 +235,10 @@
             //****
 
         },
+        go_to_my_goods_page(){
+             let  routeData = this.$router.resolve({ path: '/pc/pMyGoods'})
+            window.open(routeData.href, '_blank')
+          },
           go_to_plugs_page(){
              let  routeData = this.$router.resolve({ path: '/pc/pPlugsInfo'})
             window.open(routeData.href, '_blank')

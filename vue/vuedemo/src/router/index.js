@@ -8,6 +8,7 @@ import pResetPassword from '../components/pc/ResetPassword'
 import pHome from '../components/pc/Home.vue'
 import pNullPackageHome from '../components/pc/NullPackageHome.vue'
 import pPlugsInfo from '../components/pc/PlugsInfos.vue'
+import pMyGoods from '../components/pc/MyGoods.vue'
 import pNullOrder from '../components/pc/PlaceNullOrder.vue'
 import pMyNullOrder from '../components/pc/MyNullOrder.vue'
 import ppOrder from '../components/pc/PlaceOrder.vue'
@@ -152,6 +153,11 @@ export default new VueRouter({
     },
 
     {
+      path: '/pc/pMyGoods',
+      name: 'pMyGoods',
+      component: pMyGoods,
+    },
+    {
       path: '/pc/pPlugsInfo',
       name: 'pPlugsInfo',
       component: pPlugsInfo,
@@ -161,7 +167,7 @@ export default new VueRouter({
 
     //后台路由
 
-       {
+    {
       path:'/pc/back/qr',
       name:'pbkQR',
       component:pbkQR

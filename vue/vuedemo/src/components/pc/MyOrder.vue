@@ -52,12 +52,12 @@
                   </div>
 
 
-
                     <div style="float: left">
                        <label  class="order_label"  >订单号：{{item.order_number}}</label>
                     </div>
                     <div style="float: left">
-                       <label  class="order_label"  style="color: red" v-if="item.tb_order_number!=='' && item.tb_order_number!==null " >淘宝订单号：{{item.tb_order_number}}</label>
+                      <label>店铺：{{item.wangwang_id}}</label>
+                       <label  class="order_label"  style="color: red" v-if="item.tb_order_number!=='' && item.tb_order_number!==null " > 淘宝订单号：{{item.tb_order_number}}</label>
                     </div>
                      <div style="cursor:pointer; float: left;padding-left: 0.5em" @click="modify_remarks(item)">
                       <label   style="color: gray ;cursor:pointer;"    @click="modify_remarks(item)">▼</label>
@@ -81,43 +81,48 @@
           </div>
 
               <div class="item_goods"  v-for="(goods,index2) in item.orderGoods">
-                <div style="   margin-bottom: 0.4em;">
-                  <label >商品:{{index2+1}}
-                    {{goods.shop_market_name}}_{{goods.shop_floor}}_{{goods.shop_stalls_no}}_{{goods.art_no}}_{{goods.goods_price}}元_{{goods.goods_color}}_{{goods.goods_count}}件
-                 </label>
-                  <!--<button @click="test(goods)">修改商品</button>-->
-                  <!--<a  @click="alter_goods(goods)"  style="margin-bottom: 1em" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='未付款' || goods_status[goods.status] ==='已付款' ||goods_status[goods.status] ==='明日有货' || goods_status[goods.status] ==='已下架' ||  goods_status[goods.status] ==='2-5天有货' ||  goods_status[goods.status] ==='其他' || goods_status[goods.status] ==='缺货') &&  refund_apply_status[goods.refund_apply_status] ==='无售后'">修改商品</a>-->
-                  <a  @click="alter_goods(goods)"  style="margin-bottom: 1em" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='未付款' )">修改商品</a>
-                </div>
 
-                 <div style="float:right;margin-right: 4em">
-                         <label>{{goods.refund_apply.value}}</label>
-                         <label>{{goods.goods_price}} x {{goods.goods_count}} =  {{goods.goods_price * goods.goods_count}}元 </label>
-                          <a  @click="apply_click(goods,item)" class = "refund_apply_btn" v-if="goods_status[goods.status] ==='已发货' ">申请售后</a>
-                          <a  @click="apply_refund(goods.goods_count,goods.goods_number,refund_apply_type['拦截发货'],'确定拦截发货吗？申请后不能恢复发货，系统自动转为售后订单')" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='拿货中') &&  (refund_apply_status[goods.refund_apply_status] ==='无售后') &&  item.orderGoods.length===1">拦截发货</a>
-                          <a  @click="apply_refund(goods.goods_count,goods.goods_number,refund_apply_type['仅退款'], '确定申请退款吗？')" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='2-5天有货' || goods_status[goods.status] ==='已下架' || goods_status[goods.status] ==='已下架' || goods_status[goods.status] ==='明日有货' ||  goods_status[goods.status] ==='其他' || goods_status[goods.status] ==='已付款') &&  refund_apply_status[goods.refund_apply_status] ==='无售后'">申请退款</a>
-                          <a  @click="goto_place_order_page(JSON.stringify(goods))" class = "refund_apply_btn">再次下单</a>
-                         <!--<select @change="selectVal($event,goods)" >-->
-                           <!--<option :value="option.value" v-for="(option,index) in options" :key="index">{{option.text}}</option>-->
-                         <!--</select>-->
-                </div>
+                <img style="width: 3.5em; height: 3.5em;float: left" v-bind:src="goods.image_url"/>
+                <div style="" >
+                  <div style="   margin-bottom: 1em;">
 
-                  <div style="float: left" > <label style="width: 5em;float: left" >商品状态:</label>  <label style="width:3em;color: red" >{{goods_status[goods.status]}}  </label><label style="color: red" v-if="goods.log !== null && goods.log!==''">({{goods.log}})</label> </div>
-                  <div  >
-                    <label style="padding-left: 2em">申请类型:</label>
-                    <label  style="color: red"  > {{ refund_apply_status[goods.refund_apply_status]}}</label>
-                    <label style="padding-left: 2em">售后进度:</label>
-                    <!--<label  style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> {{refund_apply_status[goods.refund_apply_status]}}</label>-->
-                    <!--<label v-if="refund_apply_status[goods.refund_apply_status]!=='无售后' && goods.refund_apply.length === 0 " style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> （已处理）</label>-->
-                    <!--<label v-else-if="refund_apply_status[goods.refund_apply_status]!=='无售后' && goods.refund_apply.length >0 " style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> （处理中）</label>-->
-                    <label v-if="goods.refund_apply.length > 0 " style="color: red"  > {{ refund_apply_progress[goods.refund_apply[0].refund_apply_progress]}}</label>
-
+                    <label >商品:{{index2+1}}
+                      {{goods.shop_market_name}}_{{goods.shop_floor}}_{{goods.shop_stalls_no}}_{{goods.art_no}}_{{goods.goods_price}}元_{{goods.goods_color}}_{{goods.goods_count}}件
+                   </label>
+                    <!--<button @click="test(goods)">修改商品</button>-->
+                    <!--<a  @click="alter_goods(goods)"  style="margin-bottom: 1em" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='未付款' || goods_status[goods.status] ==='已付款' ||goods_status[goods.status] ==='明日有货' || goods_status[goods.status] ==='已下架' ||  goods_status[goods.status] ==='2-5天有货' ||  goods_status[goods.status] ==='其他' || goods_status[goods.status] ==='缺货') &&  refund_apply_status[goods.refund_apply_status] ==='无售后'">修改商品</a>-->
+                    <a  @click="alter_goods(goods)"  style="margin-bottom: 1em" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='未付款' )">修改商品</a>
                   </div>
-                  <div v-if="goods.return_logistics_name !== null " ><label style="float: left">售后物流:</label><label  > {{goods.return_logistics_name}}:{{goods.return_logistics_number}}  </label> </div>
-                 <label style="display:block;color: red"v-if="goods.customer_message!==null && goods.customer_message!==''">  我的留言：{{goods.customer_message}}</label>
 
-                 <label style="float:none;display:block;color: red" v-if="goods.customer_service_message!==null && goods.customer_service_message!==''">   客服留言:{{goods.customer_service_message}}</label>
+                   <div style="float:right;margin-right: 4em">
+                           <label>{{goods.refund_apply.value}}</label>
+                           <label>{{goods.goods_price}} x {{goods.goods_count}} =  {{goods.goods_price * goods.goods_count}}元 </label>
+                            <a  @click="apply_click(goods,item)" class = "refund_apply_btn" v-if="goods_status[goods.status] ==='已发货' ">申请售后</a>
+                            <a  @click="apply_refund(goods.goods_count,goods.goods_number,refund_apply_type['拦截发货'],'确定拦截发货吗？申请后不能恢复发货，系统自动转为售后订单')" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='拿货中') &&  (refund_apply_status[goods.refund_apply_status] ==='无售后') &&  item.orderGoods.length===1">拦截发货</a>
+                            <a  @click="apply_refund(goods.goods_count,goods.goods_number,refund_apply_type['仅退款'], '确定申请退款吗？')" class = "refund_apply_btn" v-if="(goods_status[goods.status] ==='2-5天有货' || goods_status[goods.status] ==='已下架' || goods_status[goods.status] ==='已下架' || goods_status[goods.status] ==='明日有货' ||  goods_status[goods.status] ==='其他' || goods_status[goods.status] ==='已付款') &&  refund_apply_status[goods.refund_apply_status] ==='无售后'">申请退款</a>
+                            <a  @click="goto_place_order_page(JSON.stringify(goods))" class = "refund_apply_btn">再次下单</a>
+                           <!--<select @change="selectVal($event,goods)" >-->
+                             <!--<option :value="option.value" v-for="(option,index) in options" :key="index">{{option.text}}</option>-->
+                           <!--</select>-->
+                  </div>
 
+                    <div style="float: left" > <label style="width: 5em;float: left" >商品状态:</label>  <label style="width:3em;color: red" >{{goods_status[goods.status]}}  </label><label style="color: red" v-if="goods.log !== null && goods.log!==''">({{goods.log}})</label> </div>
+                    <div  >
+                      <label style="padding-left: 2em">申请类型:</label>
+                      <label  style="color: red"  > {{ refund_apply_status[goods.refund_apply_status]}}</label>
+                      <label style="padding-left: 2em">售后进度:</label>
+                      <!--<label  style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> {{refund_apply_status[goods.refund_apply_status]}}</label>-->
+                      <!--<label v-if="refund_apply_status[goods.refund_apply_status]!=='无售后' && goods.refund_apply.length === 0 " style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> （已处理）</label>-->
+                      <!--<label v-else-if="refund_apply_status[goods.refund_apply_status]!=='无售后' && goods.refund_apply.length >0 " style="color: red" :class="{red_color:refund_apply_status[goods.refund_apply_status]!=='无售后'}"> （处理中）</label>-->
+                      <label v-if="goods.refund_apply.length > 0 " style="color: red"  > {{ refund_apply_progress[goods.refund_apply[0].refund_apply_progress]}}</label>
+
+                    </div>
+                    <div v-if="goods.return_logistics_name !== null " ><label style="float: left">售后物流:</label><label  > {{goods.return_logistics_name}}:{{goods.return_logistics_number}}  </label> </div>
+                   <label style="float:none;display:block;color: red"v-if="goods.customer_message!==null && goods.customer_message!==''">  我的留言：{{goods.customer_message}}</label>
+
+                   <label style="float:none;display:block;color: red" v-if="goods.customer_service_message!==null && goods.customer_service_message!==''">   客服留言:{{goods.customer_service_message}}</label>
+
+              </div>
               </div>
               <div>
 
@@ -906,7 +911,7 @@
 
 
   .item_goods{
-    margin-bottom: 0.5em;
+    margin-bottom: 1.5em;
 
     background: #f0f0f0;
     padding-left: 1.5em

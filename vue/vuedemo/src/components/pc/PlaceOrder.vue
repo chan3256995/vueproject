@@ -159,8 +159,10 @@
           <button style=" width:4em;height:2em;float: right; margin-right: 2em" @click="onDeleteRawGoods(index,order_obj['order_list'])">删除</button>
          </div>
 
-         <table class = "market_table">
-              <tr>
+         <table class = "market_table" style="margin-left: 3em">
+
+                <tr>
+
                  <td>市场</td>
                  <td>楼层</td>
                  <td>档口</td>
@@ -170,10 +172,14 @@
                  <td>件数</td>
             </tr>
 
+
+
             </table>
 
          <table class = "market_table" style="width: 100%" v-for="(goodsitem,index) in item.orderGoods " >
-            <tr  >
+           <div>
+                 <img style="width:2.5em; height: 2.5em;float: left" v-bind:src="goodsitem.image_url"/>
+            <tr   >
                  <td><input  class="global_input_default_style defalut_input "   :class="{'input_tip':goodsitem.shop_market_name===''}" v-model="goodsitem.shop_market_name"/></td>
                  <td><input   class="global_input_default_style defalut_input " :class="{'input_tip':goodsitem.shop_floor===''}" v-model="goodsitem.shop_floor"/></td>
                  <td><input   class="global_input_default_style defalut_input " :class="{'input_tip':goodsitem.shop_stalls_no===''}" v-model="goodsitem.shop_stalls_no" /></td>
@@ -186,6 +192,8 @@
                 <!--<tr  v-if="my_account!=='' && user_id_is_in_list(my_account.id,allow_message_user_id_list)===true "style="display: block; color:red">-->
                       <label> </label><input style="color:red"  placeholder="留言" class="global_input_default_style defalut_input "      v-model="goodsitem.customer_message" />
               </tr>
+           </div>
+
         </table>
        <div style="padding-top:5px">
 
@@ -255,18 +263,28 @@
              let p3 =  this.load_discount_card()
 
              Promise.all([p1, p2, p3]).then((res) => {
-               if(typeof(this.$route.query.plug_order_data) !== 'undefined'){
-                  this.analysis_tb_plug_order_data(this.$route.query.plug_order_data)
+               let my_tb_wait_send_order_cache =    window.localStorage.getItem("my_tb_wait_send_order_cache")
+               console.log("等待发货的淘宝订单缓存：",my_tb_wait_send_order_cache)
+           //     if(typeof(this.$route.query.plug_order_data) !== 'undefined'){
+           //        this.analysis_tb_plug_order_data(this.$route.query.plug_order_data)
+           //
+           //        console.log('mount:',document.getElementById('div-id').offsetTop);
+           //        window.scrollTo(0,document.getElementById('div-id').offsetTop);
+           // }
+
+                if(typeof(my_tb_wait_send_order_cache) !== 'undefined'){
+                  this.analysis_tb_plug_order_data(my_tb_wait_send_order_cache)
+                  window.localStorage.removeItem("my_tb_wait_send_order_cache")
                   console.log('mount:',document.getElementById('div-id').offsetTop);
                   window.scrollTo(0,document.getElementById('div-id').offsetTop);
            }
 })
 
-           if(typeof(this.$route.query.data) !== 'undefined'){
-              let goods =  JSON.parse(this.$route.query.data);
-              this.raw_goods_txt = goods.shop_market_name + "_" + goods.shop_floor + "_" + goods.shop_stalls_no +"_" + goods.art_no+"_"+goods.goods_price+"_"
-                            +goods.goods_color+"/1@"
-           }
+           // if(typeof(this.$route.query.data) !== 'undefined'){
+           //    let goods =  JSON.parse(this.$route.query.data);
+           //    this.raw_goods_txt = goods.shop_market_name + "_" + goods.shop_floor + "_" + goods.shop_stalls_no +"_" + goods.art_no+"_"+goods.goods_price+"_"
+           //                  +goods.goods_color+"/1@"
+           // }
 
       },
       mounted(){
@@ -382,29 +400,47 @@
 
                   let address_str = plug_order_data[i]['name']+","+ plug_order_data[i]['phone']+ ","+plug_order_data[i].address
                   let tb_order_number = plug_order_data[i]['tb_order_number']
+                  let wangwang_id = plug_order_data[i]['wangwang_id']
 
-                  let addressObj = mStringUtils.getAddressInfo(address_str);
+                  let addressObj = mStringUtils.getAddressInfo(address_str,plug_order_data[i]['name'],plug_order_data[i]['phone']);
                   let order_goods_list = []
 
 
                   for(let g = 0 ;g<plug_order_data[i].order_goods_list.length;g++){
                     plug_order_data[i].order_goods_list[g]['code'] = plug_order_data[i].order_goods_list[g].code.replace("^^^","#")
-                    let color = plug_order_data[i].order_goods_list[g].color.trim()
+                    let color = plug_order_data[i].order_goods_list[g].color.replace("-",'^').replace("/","^").replace(" ","").trim()
                     let size = ""
 
                     if(plug_order_data[i].order_goods_list[g].size !==undefined){
-                      size = plug_order_data[i].order_goods_list[g].size.replace("-",'^').replace("/","^").trim()
+                      size = plug_order_data[i].order_goods_list[g].size.replace("-",'^').replace("/","^").replace(" ","").trim()
                     }
 
                     let goods_str =  plug_order_data[i].order_goods_list[g].code +" "+color+size+" "+plug_order_data[i].order_goods_list[g].count
                     console.log("goods_str------",goods_str)
+                    console.log("商品图片",plug_order_data[i].order_goods_list[g].img)
                     // 用搜款网格式解析
-                    order_goods_list =order_goods_list.concat( marketData.get_goods_list(goods_str,this.goods_str_format_options[1].value))
+                    let return_list =  marketData.get_goods_list(goods_str,this.goods_str_format_options[1].value)
+                    if(return_list.length === 1){
+                      let goods_img = plug_order_data[i].order_goods_list[g].img
+                      let tb_goods_id = plug_order_data[i].order_goods_list[g].tb_goods_id
+                      if(goods_img!==undefined && goods_img !== ""){
+                         return_list[0]["image_url"] = "https:"+goods_img.replace("https:","")
+                      }
+                      if(tb_goods_id!==undefined && tb_goods_id !== ""){
+                         return_list[0]["tb_goods_id"] = tb_goods_id
+                      }
+
+                    }
+                    order_goods_list =order_goods_list.concat(return_list )
 
                  }
                   let orderItem = {"quality_test":this.selected_quality_test,"logistics":this.selected_logistics,"address":addressObj,"orderGoods":order_goods_list};
                  if(tb_order_number !== undefined && tb_order_number.trim() !==""){
                    orderItem['tb_order_number']=tb_order_number
+
+                 }
+                 if(wangwang_id !== undefined && wangwang_id.trim() !==""){
+                   orderItem['wangwang_id']=wangwang_id
 
                  }
                   console.log("orderItem-------------------------------------------",orderItem)
@@ -803,6 +839,7 @@
            }
            let news_list = [];
            let order_list = this.order_obj["order_list"]
+           console.log("order_list",order_list)
             for(let i = 0;i<order_list.length;i++){
                 let consignee_address = order_list[i].address.province+","+
                           order_list[i].address.city+","+
@@ -811,20 +848,25 @@
                 let consignee_name =order_list[i].address.name;
                 let consignee_phone =order_list[i].address.phone;
                 let tb_order_number =order_list[i].tb_order_number;
+                let wangwang_id =order_list[i].wangwang_id;
 
                 let orderGoods = order_list[i].orderGoods;
                 news_list.push(
-                  {"tb_order_number":tb_order_number,
+                  {
+                    "tb_order_number":tb_order_number,
+                    "wangwang_id":wangwang_id,
                     "consignee_address":consignee_address,"consignee_name":consignee_name,'logistics_name':order_list[i].logistics.logistics_name,
                     'logistics_id':order_list[i].logistics.logistics_id,
                    "consignee_phone":consignee_phone,"orderGoods":orderGoods,"quality_testing_name":order_list[i].quality_test.quality_testing_name
                 })
             }
+            console.log("news_list:",news_list)
             let jsonStr = JSON.stringify(news_list);
             this.postToServer(jsonStr);
          },
 
          postToServer(data){
+          console.log("data:",data)
            const url  = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/addOrders/"
            //设为true 就会带cookies 访问
            axios.defaults.withCredentials=true
