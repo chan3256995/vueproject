@@ -269,20 +269,24 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
         for(let i=0;i<new_order_list.length;i++){
 
-
-
            for(let x = 0 ;x< new_order_list[i]['order_goods_list'].length;x++){
 
-
-
                 var result = tbapi_get_tb_goods_id_by_trade_id(  new_order_list[i]['order_goods_list'][x]['tb_trade_href'])
-               console.log("获取商品id结果:",result)
+
                   if(result.success === false || result["goods_id"] === undefined){
+                      console.log("获取商品ID失败：",result)
                     continue
                 }
-                 console.log("获取商品id结果22:")
+
                   let goods_id = result["goods_id"]
                   new_order_list[i]['order_goods_list'][x]["tb_goods_id"] = goods_id
+                  new_order_list[i]['order_goods_list'][x]["user_code"] = goods_id
+                  let goods_code = new_order_list[i]['order_goods_list'][x]["code"]
+               console.log("商品编码：",goods_code)
+                  if(goods_code!==undefined && goods_code !== default_tb_code){
+                      new_order_list[i]['order_goods_list'][x]["user_code"] = goods_code
+                  }
+
            }
 
 

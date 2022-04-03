@@ -253,10 +253,14 @@ if (curLocation.indexOf("trade.taobao.com/trade/itemlist/list_sold_items.htm") !
             //此处为是否加载完成
     }
 }else if(curLocation.indexOf("pc/home/porder")!==-1){
-    chrome.storage.local.get({"my_tb_wait_send_order_cache":{}},function (local_data) {
+    chrome.storage.local.get({"my_tb_wait_send_order_cache":null},function (local_data) {
 
          let lacal_obj = local_data["my_tb_wait_send_order_cache"]
-         console.log("拿到谷歌插件缓存订单数据:",lacal_obj)
+         console.log("tb_plug拿到谷歌插件缓存订单数据:",lacal_obj)
+
+         if(lacal_obj === null){
+             return
+         }
          window.localStorage.setItem("my_tb_wait_send_order_cache",lacal_obj)
          let my_tb_wait_send_order_cache =    window.localStorage.getItem("my_tb_wait_send_order_cache")
         console.log("window缓存的订单数据:",my_tb_wait_send_order_cache)
@@ -374,7 +378,6 @@ if(curLocation.indexOf("/pc/home")!==-1) {
                                 orders_list_17 = Object(results[1].orders)
                                 null_orders_list_17 = Object(results[0].null_orders)
                             }
-
                             let new_order_list = []
 
                             //不存在的订单才同步
@@ -397,6 +400,7 @@ if(curLocation.indexOf("/pc/home")!==-1) {
 
                                     let new_order_list = JSON.parse(response)
                                       console.log("获取goods后：",new_order_list)
+                                    
                                     let data_ = JSON.stringify(new_order_list)
                                     window.localStorage.setItem("my_tb_wait_send_order_cache",data_)
 
@@ -655,6 +659,7 @@ alert("my_functon666666")
 function init_daifa_elems() {
     $("input[value='批量打印发货单']").after(" <input type='button' class='synchronization_all_order_to17'  value='同步所有订单到17代发网'>");
     $("input[value='批量打印发货单']").after(" <input type='button' class='daifa_17'  value='17批量代发'>");
+    $("input[value='批量打印发货单']").after(" <input type='button' class='show_logistic_order'  value='显示有物流单号订单'>");
      if( $("label:contains(尺码：)").length !==0){
          $("label:contains(尺码：)").next().addClass("17_size");
      }
@@ -788,7 +793,37 @@ chrome.runtime.sendMessage({greeting: m},function(response) {
 
 
  });
+        //显示有物流订单
+        $(".show_logistic_order").click(function () {
 
+            $(".order_info_table_17").each(function(){
+                let display_status = $(this).parent().css("display")
+                console.log("显示状态",display_status)
+                let logistics_number_elem = $(this).find(".logistics_number_17")
+
+                if(logistics_number_elem.length!== 0 ){
+                    let logistics_number =   $(logistics_number_elem[0]).text().replace("单号：","").replace("null","").trim()
+                     console.log("logistics_number:",logistics_number)
+                    if(logistics_number === ""){
+                        if(display_status ==="none"){
+                            $(this).parent().css("display",'table')
+                        }else{
+                            $(this).parent().css("display",'none')
+                        }
+                   }//
+                }else{
+                     if(display_status ==="none"){
+                            $(this).parent().css("display",'table')
+                        }else{
+                            $(this).parent().css("display",'none')
+                        }
+                }
+
+
+
+            })
+
+          });
           //批量代发
         $(".daifa_17").click(function () {
         var checkblinput = 0;
@@ -1203,7 +1238,7 @@ function add_order_info_to_wuliu_page(order_list){
          table_17.remove()
         newget = '<table  class="order_info_table_17" width="100%"><tr bgcolor="#ffff99"><td height="30" align="center"><span style="margin-right: 40px;">17代发订单：'+order.tb_order_number+' </span>';
         newget += '<span style="margin-right: 40px;">快递：'+order.logistics_name+'</span>';
-        newget += '<span style="margin-right: 40px;">单号：'+order.logistics_number+'</span>';
+        newget += '<span class="logistics_number_17" style="margin-right: 40px;">单号：'+order.logistics_number+'</span>';
         newget += '<span style="margin-right: 40px;">订单状态：'+order.order_status+'</span>';
         newget += '</td></tr></table>';
 

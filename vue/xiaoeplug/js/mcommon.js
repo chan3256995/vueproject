@@ -1,3 +1,4 @@
+ 
 function mcommon_form_serialize_data_to_obj(serialize_data){
        serialize_data = decodeURIComponent(serialize_data)
         let    serialize_data_array = serialize_data.split("&")
@@ -62,3 +63,35 @@ $.ajax({
 )
 }
 
+// 取代商家编码一些字符
+function mcommon_replace_goods_code_str(code_str){
+        let m_code =  code_str === "undefined" ? "" :code_str.trim()
+        
+        let new_code = m_code.replace(/#/g,"^^^").trim()
+
+        if (new_code === default_tb_code2_youfei){
+            return default_tb_code2_youfei
+        }
+        if (new_code === ""){
+
+            return default_tb_code
+        }
+        // ***********************************************************去除搜款网编码的尾巴（id）
+        // 搜款网商品id
+        let skw_goods_id= new_code.substring(new_code.lastIndexOf('-')+1,new_code.length)
+           
+        if(!isNaN(skw_goods_id) &&  skw_goods_id >1000000){
+             
+            //去掉数字id
+            new_code = new_code.substring(0,new_code.lastIndexOf('-'))
+
+        }else{
+            console.log("收款网id 不是数字")
+        }
+         // ***********************************************************去除搜款网编码的尾巴（id）
+          
+         
+        return new_code
+}
+
+ 

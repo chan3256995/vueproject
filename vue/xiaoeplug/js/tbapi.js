@@ -1,4 +1,4 @@
-let default_tb_code = "女人街 12F A12-A-12#12"
+let default_tb_code = "女人街 12F A12-A-临时款号#12"
 let default_tb_code2_youfei = "youfei"
 let logistics_choies2 = {
     "圆通":101,
@@ -14,6 +14,7 @@ let logistics_choies2 = {
     "韵达纸板":102,
     "韵达纸巾":102,
     "韵达洗衣粉":102,
+    "EMS":2,
 
 }
 // 颜色 需要修改的取代
@@ -554,10 +555,13 @@ function tbapi_get_tb_goods_id_by_trade_id(trade_href){
 
                 let tem_str4 = tem_str3.substring(0,tem_str3.length-2)
 
-                // tem_str4.find("item.htm?id")
-                let reg = /id=\d{12,13}&/;//“， /”三个字符出现两个 不分顺序
+                console.log("tem_str4：",tem_str4)
+                let reg = /id=\d{12,13}&/;
+
                 let match_result =   tem_str4.match(reg)
-                if(match_result.length !== 0){
+
+
+                if(match_result!==null && match_result.length !== 0){
                     return_result["success"] = true
                     return_result["goods_id"] = match_result[0].replace("id=","").replace("&","")
                 }
@@ -671,30 +675,31 @@ function get_order_goods_str_from_elems(elems){
         var order_goods = new Object()
 
         let m_code =  typeof order_goods_list[x].code === "undefined" ? "" :order_goods_list[x].code.trim()
-        let old_code = m_code
-        let   new_code = m_code.replace(/#/g,"^^^").trim()
 
-        if (new_code === default_tb_code2_youfei){
-            continue
-        }
-        if (new_code === ""){
-            new_code = default_tb_code
-        }
-        // ***********************************************************去除搜款网编码的尾巴（id）
-        // 搜款网商品id
-        let skw_goods_id= new_code.substring(new_code.lastIndexOf('-')+1,new_code.length)
-           
-        if(!isNaN(skw_goods_id) &&  skw_goods_id >1000000){
-            console.log("收款网id 是数字")
-            //去掉数字id
-            new_code = new_code.substring(0,new_code.lastIndexOf('-'))
-
-        }else{
-            console.log("收款网id 不是数字")
-        }
-         // ***********************************************************去除搜款网编码的尾巴（id）
+        let new_code = mcommon_replace_goods_code_str(m_code)   
+        // let   new_code = m_code.replace(/#/g,"^^^").trim()
+        //
+        // if (new_code === default_tb_code2_youfei){
+        //     continue
+        // }
+        // if (new_code === ""){
+        //     new_code = default_tb_code
+        // }
+        // // ***********************************************************去除搜款网编码的尾巴（id）
+        // // 搜款网商品id
+        // let skw_goods_id= new_code.substring(new_code.lastIndexOf('-')+1,new_code.length)
+        //   
+        // if(!isNaN(skw_goods_id) &&  skw_goods_id >1000000){
+        //     console.log("收款网id 是数字")
+        //     //去掉数字id
+        //     new_code = new_code.substring(0,new_code.lastIndexOf('-'))
+        //
+        // }else{
+        //     console.log("收款网id 不是数字")
+        // }
+        //  // ***********************************************************去除搜款网编码的尾巴（id）
  console.log("new_code:",new_code)
-           let new_color= typeof order_goods_list[x].color === "undefined" ? "" : order_goods_list[x].color;
+        let new_color= typeof order_goods_list[x].color === "undefined" ? "" : order_goods_list[x].color;
         if(new_color.indexOf("+")!== -1){
             new_color = new_color.replace("+","＋")
         }
@@ -705,7 +710,7 @@ function get_order_goods_str_from_elems(elems){
         order_goods['count']= typeof order_goods_list[x].total === "undefined" ? "" : order_goods_list[x].total;
         order_goods['tb_trade_href'] = order_goods_list[x]['tb_trade_href']
         //取代一些字符
-        replace_goods_property(order_goods,old_code)
+        replace_goods_property(order_goods,new_code)
         new_goods_str_list.push(order_goods)
     // d.goodinfo[x] = ordergoodslist[x];
 
