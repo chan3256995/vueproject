@@ -3,12 +3,43 @@ let logistics_choies = {
     "圆通[菜鸟]":19,
     "圆通[拼多多]":27,
     "韵达":3,
+    "EMS":29,
 }
 let testing_choies_315 = {
     "普通质检":19,
     "精检":19,
 }
+// 根据所选物流检查地址是否可到达
+function api315_check_address_is_ok(logistics_value,privince,address){
 
+
+        // let url_ = "https://www.315df.com"+"/ajax/kuaidi?kdid="+logistics_value+"&area="+privince+"&adr="+address
+        let url_ = "https://www.315df.com/ajax/kuaidi?kdid=19&area=%E5%B9%BF%E4%B8%9C%E7%9C%81&adr=%E5%B9%BF%E4%B8%9C%E7%9C%81,%E6%B7%B1%E5%9C%B3%E5%B8%82,%E5%AE%9D%E5%AE%89%E5%8C%BA,%E6%96%B0%E5%AE%89%E8%A1%97%E9%81%93%E5%9B%BA%E6%88%8D%E5%9C%B0%E9%93%81%E7%AB%99"
+
+
+    let is_login = false
+    $.ajax({
+                async: false,
+                url: url_,
+                type: "GET",
+                // dataType : 'json',
+                // data: submit_data_str,
+                timeout: 5000,
+                success: function (result) {
+
+
+
+        },
+                 error: function (err) {
+                    console.log("错了:" + err);
+                    console.log("错了:" + JSON.stringify(err));
+
+
+        }
+
+    });
+    return is_login
+}
 function api315_keep_cookie_active(){
     let _time = 3*60*1000
     console.log("保持315 cookie 存活 ----"+ new Date())

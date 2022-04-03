@@ -3,8 +3,20 @@ var curLocation = window.location.href.toString();
 // var daifa_server_url = "http://192.168.2.110:8009";
 // var daifaURL315 = "https://www.315df.com";
 // var daifaURL_bl_ho = "http://www.haioudaifa.com";
-console.log("curLocation",curLocation)
-if (curLocation.indexOf("pc/back/home/order")){
+console.log("curLocatio2n",curLocation)
+
+if(curLocation.indexOf("https://www.315df.com/user/order/daifa")!==-1){
+    console.log("8888",$("a:contains('扫码充值')"))
+ $("a:contains('扫码充值')").before("<button id='check_315_address'> 检查地址</button>")
+  $("#check_315_address").click(function () {
+       let result = api315_check_address_is_ok(19,"广东省","广东省,深圳市,宝安区,新安街道固戍地铁站")
+        chrome.runtime.sendMessage({"method":"check_315_address_is_ok"},function (response) {
+                              console.log("传美插旗结果，",response)
+
+         })
+  })
+
+}else if (curLocation.indexOf("pc/back/home/order")){
 
         init_order_page()
         chrome.runtime.sendMessage({"method":"keep_cookie_active_315"},function (response) {
@@ -17,9 +29,9 @@ if (curLocation.indexOf("pc/back/home/order")){
 if (curLocation.indexOf("17to17.vip/login.aspx") !== -1 || curLocation.indexOf("17to17.vip/Login.aspx") !== -1){
  window.onload=function(){
      console.log("curLocation------->",curLocation)
-        $("a:contains('找回密码')").after(" <input type='button' id='gs_delivery_button'   value='gs自动后台密码登录'>");
+        $("#btnLogin").before(" <input type='button' id='gs_delivery_button'   value='gs自动后台密码登录'>");
         $("#gs_delivery_button").click(function () {
-            let base_url = mcommon_get_null_package_base_url_bl()
+         let base_url = mcommon_get_null_package_base_url_bl()
          let user_info = apibl_get_user_name_and_pwd()
          apibl_login2(base_url,user_info['user_name'],user_info['password'])
             window.open(base_url+"/User/Gift_List.aspx")
@@ -393,6 +405,8 @@ function init_order_page(){
             })
 
             $("#delivery_order_button_from_315").click(function () {
+
+
                     chrome.runtime.sendMessage({"method":"delivery_order_315to17"},function (response) {
                     console.log("response",response)
                     let result = JSON.parse(response)
@@ -414,6 +428,8 @@ function init_order_page(){
 
          // $("#query_div2").after(" <input type='button' id='add_order_button_to315'   value='已付款订单下单到315'>");
          $("#add_order_button_to315").click(function () {
+
+
              let select_order_item_cache = $("#order_item_cache")[0].value
              if(select_order_item_cache === undefined || select_order_item_cache === "" || JSON.parse(select_order_item_cache).length ===0){
                  Toast("请勾选")

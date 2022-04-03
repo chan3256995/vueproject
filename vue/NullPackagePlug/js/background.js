@@ -437,6 +437,21 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         let result = apichuanmei_add_tag_tb(post_data['tb_wangwangid'],post_data['tb_order_number'],post_data['flag'])
         sendResponse(JSON.stringify(result))
 	         
+    }else if(method === "check_315_address_is_ok"){
+	     chrome.cookies.getAll({'url':"https://www.315df.com"}, function(cookie) {
+	            let cookies_obj = {}
+                 let cookie_str = ""
+                 let cookie_string = ""
+                 for (let i in cookie) {
+                     let name = cookie[i].name;
+                     let value = cookie[i].value;
+                     cookies_obj[name] = value;
+                     cookie_str += (name + "=" + value + ";\n");
+                     cookie_string += (name + "=" + value + "&");
+                 }
+         })
+	     let result = api315_check_address_is_ok(19,"广东省","广东省,深圳市,宝安区,新安街道固戍地铁站")
+         sendResponse(JSON.stringify(result))
     }
 
 });
