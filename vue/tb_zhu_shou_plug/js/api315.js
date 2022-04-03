@@ -77,10 +77,84 @@ function api315_check_is_login(){
                     let dom = $(html)
                     let tr_el = dom.find("button:contains('商品日志')").parent().parent()
                     if(tr_el.length !==0){
-                        let text1 = $($(tr_el[0]).children()[6]).text().trim().replaceAll("  "," ")
-                        let text2 = $($(tr_el[0]).children()[8]).text().trim().replaceAll("  "," ")
-                         pacakge_info = text1 + text2
+
+                        let text1 = $($(tr_el[0]).children()[6]).text().trim()
+                        let text2 = $($(tr_el[0]).children()[8]).text().trim()
+                        try{
+                            text1 = text1.replaceAll("  "," ")
+                            text2 = text2.replaceAll("  "," ")
+                        }catch (e) {
+
+                        }
+
+
+                         pacakge_info = text1 +" "+ text2
                     }
+
+
+
+
+        },
+                 error: function (err) {
+                    console.log("错了:" + err);
+                    console.log("错了:" + JSON.stringify(err));
+
+
+        }
+
+    });
+    return pacakge_info
+}
+
+//货号查询订单
+ function api315_query_order(params_obj,cookies){
+    let params_str = ""
+     console.log("params_obj:",params_obj)
+    for(let key in Object.keys(params_obj)){
+        params_str = key + "="+params_obj[key]+"&"
+    }
+    params_str = params_str.substring(0,params_str.length-1)
+ //search_field=goods_sn&q="+art_no+"&status=&do=&reserdate=
+    let url_315_order_check = BASE_URL_315+"/user/order/daifa?"+params_str
+     url_315_order_check = "https://www.315df.com/user/order/daifa?search_field=goods_sn&q=8055&status=&do=&reserdate="
+    let pacakge_info = null
+     let header = {
+
+        // "Host": return_logistics_number,
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36",
+
+          'Content-Type': 'application/x-www-form-urlencoded',
+                // "Host": "315df.com",
+                'origin': 'http://www.315df.com',
+                // 'referer': 'http://www.315df.com/user/order/tuihuan',
+     }
+
+    let post_data = {
+
+        "url": url_315_order_check,
+        "method": "GET",
+
+        "header":header,
+        "cookies":cookies,
+    }
+
+    $.ajax({
+                async: false,
+                url: "http://39.96.69.115:8089/user/getWebPageContent/",
+                // url: "http://192.168.1.202:8009/user/getWebPageContent/",
+                // url: url_315_order_check,
+                type: "post",
+                // dataType : 'application/json',
+                data: {"req_parms":JSON.stringify(post_data)},
+                timeout: 5000,
+                success: function (result) {
+                    let data = result['data']
+                    let htmlt = data.substring(data.indexOf("<html>"),data.indexOf("</html>")+7)
+                    let html = $.parseHTML(htmlt)
+                    console.log("html--------->",htmlt)
+                    let dom = $(html)
+                    let tr_el = dom.find("button:contains('商品日志')").parent().parent()
+             
 
 
 

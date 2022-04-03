@@ -89,7 +89,9 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
                 }
 
 
-                    
+                    if(order_number===""){
+                        order_number = req_list[i]["return_logistics_number"]
+                    }
                     return_res[order_number] = {
                          "return_logistics_name":return_package_17resultt['return_logistics_name'],
                          "return_logistics_number":return_package_17resultt['return_logistics_number'],
@@ -106,13 +108,13 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     }else if(method === "get_315_tuikuan_package"){
 	     let return_logistics_number =  request.return_logistics_number
 	      let url_315 = BASE_URL_315
-        
+         let from = request.from;
 	    chrome.cookies.getAll({'url':url_315}, function(cookie) {
 	    let cookie_obj_315 =  mcommon_chrome_cookie_to_obj(cookie)
          let result = api315_get_return_package(return_logistics_number,cookie_obj_315)
          console.log("get 315 return package result:",result)
             let returndata = {"return_logistics_number":return_logistics_number,"data":result}
-            chrome.tabs.sendMessage(sender.tab.id, {method:"result_315_tuikuan_package",to:"tb_refund2_page",result_data:JSON.stringify(returndata)}, function(response) {
+            chrome.tabs.sendMessage(sender.tab.id, {method:"result_315_tuikuan_package",to:from,result_data:JSON.stringify(returndata)}, function(response) {
 
                  });
             // chrome.runtime.sendMessage({method:"result_315_tuikuan_package",to:"tb_refund2_page",result_data:JSON.stringify(returndata)},function (response) {
@@ -122,6 +124,27 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
                 })
        
+
+    }else if(method === "get_315_order"){
+	    //search_field=goods_sn&q="+art_no+"&status=&do=&reserdate=
+	     let parms_obj =  JSON.parse(request.parms_str)
+	      let url_315 = BASE_URL_315
+         let from = request.from;
+	    chrome.cookies.getAll({'url':url_315}, function(cookie) {
+	    let cookie_obj_315 =  mcommon_chrome_cookie_to_obj(cookie)
+         let result = api315_query_order(parms_obj,cookie_obj_315)
+         console.log("get 315 order result:",result)
+             
+         chrome.tabs.sendMessage(sender.tab.id, {method:"result_315_order_query",to:from,result_data:""}, function(response) {
+
+                 });
+            // chrome.runtime.sendMessage({method:"result_315_tuikuan_package",to:"tb_refund2_page",result_data:JSON.stringify(returndata)},function (response) {
+            //     console.log("result_315_tuikuan_package,",response)
+            // })
+
+
+                })
+
 
     }else if(method === "keep_web_cookies_alive"){
 	  

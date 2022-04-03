@@ -199,6 +199,33 @@ if(curLocation.indexOf("vvic.com/user/favoriteUpload")!==-1 ) {
 
 
     }
+}else if(curLocation.indexOf("tusou.vvic.com/list")!==-1){
+     //clearfix shop-name-box
+    window.onload = function(){
+        setTimeout(function(){
+            let shop_div = $(".shop-name-box").prepend("<button class='query_315_btn' style='float: left'>315查询</button>")
+            $(".query_315_btn").click(function () {
+                let art_no = $(this).next().text().replace("现货","").replace("实拍","").replace("大量","").replace("优质","").replace("##","").replace("#","").trim()
+                console.log("art_no：",art_no)
+                 //search_field=goods_sn&q="+art_no+"&status=&do=&reserdate=
+                let params = {
+                    "search_field":"goods_sn",
+                    "q": art_no,
+                    "status": "",
+                    "reserdate": "",
+                }
+
+
+
+                chrome.runtime.sendMessage({from:"skw_tusou_page",method:"get_315_order",parms_str:JSON.stringify(params)},function (response) {
+                         console.log("获取315订单嘻嘻",response)
+
+                     })
+            })
+           console.log("shop_div",shop_div)
+        },10000)
+
+    }
 }
 
 if(curLocation.indexOf("#/pc/home/myorder")!==-1){
@@ -457,10 +484,15 @@ if(curLocation.indexOf("member/Taskmanage/advancePaymentManagement")!==-1 ) {
     }
 }else if(curLocation.indexOf("pc/home/porder")!==-1){
     console.log("tb_zhusou_plug项目入注",curLocation)
-    chrome.storage.local.get({"my_tb_wait_send_order_cache":{}},function (local_data) {
+    chrome.storage.local.get({"my_tb_wait_send_order_cache":null},function (local_data) {
 
          let lacal_obj = local_data["my_tb_wait_send_order_cache"]
-         console.log("拿到谷歌插件缓存订单数据:",lacal_obj)
+         console.log("bt_zhushou_拿到谷歌插件缓存订单数据:",lacal_obj)
+         if(lacal_obj === null){
+
+             return
+         }
+
          window.localStorage.setItem("my_tb_wait_send_order_cache",JSON.stringify(lacal_obj))
          let my_tb_wait_send_order_cache =    window.localStorage.getItem("my_tb_wait_send_order_cache")
          console.log("window缓存的订单数据:",my_tb_wait_send_order_cache)
@@ -642,7 +674,10 @@ if(curLocation.indexOf("item.manager.taobao.com/taobao/manager/render.htm?tab=in
         // $(".TempList").append("<button id='order_cache_btn'>订单缓存到本地</button>")
         // $(".TempList").append(" <button id='to_place_order_17'  style='margin: 1em; padding-left: 1em;padding-right: 1em'>选中的获取地址去下单</button>")
         $(".StatisticsTradeCount").prepend('<span id="daifa_page_span" class="StatisticsTradeTab StatisticsTradeTabCheck">代发页面订单</span>')
-          
+        $(".OpenDetail ").before("<button id='init_17_elems' style='margin-left: 5em'>初始化订单</button>")
+        $("#init_17_elems").click(function () {
+            console.log("订单嘻嘻：",$(".OrderShopDetailItemHeader"))
+        })
        
         $("#daifa_page_span").click(function () {
              $(".data_div17").remove()
@@ -663,7 +698,9 @@ if(curLocation.indexOf("item.manager.taobao.com/taobao/manager/render.htm?tab=in
                  let append_elems_str = '<div class="data_div17">\n'+
                      '<div><button id="to_place_order_17"  style="margin: 1em; padding-left: 1em;padding-right: 1em">选中的获取地址去下单</button>' +
                      '<button id="order_cache_btn">订单缓存到本地</button>' +
+                     '<input placeholder="缓存前几页" style="width: 6em" id="order_cache_page_count"/>' +
                      '<button id="ignore_order_btn">不显示已下单订单</button>' +
+
                      '</div>'
                  let wait_send_list = local_data["chuanmei_order_list_cache"]
                  console.log("读取本地储存记录,",wait_send_list)
@@ -709,7 +746,6 @@ if(curLocation.indexOf("item.manager.taobao.com/taobao/manager/render.htm?tab=in
              }
              $(".WaitPrintListHeight").css("display",chuanmei_data_show)
              $(".data_div17").css("display",data_show_17)
-
 
 
          })
@@ -968,10 +1004,30 @@ if(curLocation.indexOf("refund2.taobao.com/dispute/sellerDisputeList.htm")!== -1
 }
 if(curLocation.indexOf("www.315df.com/user/order/daifa")!== -1){
     window.onload = function () {
+        let tr_ =  $(".daiFaGoods")
        let add_goods_btn =  $("button:contains('添加商品')")
         console.log("315添加商品按钮：",add_goods_btn)
-        add_goods_btn.after("<button style='float:left;'>添加商品</button>")
+            add_goods_btn.after("<button style='float:left;'>添加商品</button>")
+      tr_.after("<span  class='init_btn'  style='margin-top: 2em;float:left;background: #2d8cf0;color: white'>初始化按钮</span>")
 
+
+        $(".init_btn").click(function () {
+             $(".tianjia_shanggpin").remove()
+             $(".shanchu_shanggpin").remove()
+             let add_goods_btn_item =  $("button:contains('增加商品')")
+            let delete_goods_btn_item =  $("button:contains('删除商品')")
+
+            add_goods_btn_item.parent().parent().prepend("<span  class='tianjia_shanggpin'  style='margin-top: 2em;float:left;background: #2d8cf0;color: white'>增加商品</span>")
+            delete_goods_btn_item.parent().parent().prepend("<span  class='shanchu_shanggpin'  style='margin-top: 2em;float:left;background: #2d8cf0;color: white'>删除商品</span>")
+             $(".tianjia_shanggpin").click(function () {
+            console.log("tianjiasss ",$(this).parent().find("button:contains('增加商品')"))
+            $(this).parent().find("button:contains('增加商品')").click()
+            })
+            $(".shanchu_shanggpin").click(function () {
+                console.log("tianjiasss ",$(this).parent().find("button:contains('删除商品')"))
+            $(this).parent().find("button:contains('删除商品')").click()
+        })
+        })
     }
 }
 function init_search_page_elems_data(){
@@ -1085,7 +1141,23 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     }else if(to ==="tb_refund2_page" && method ==="result_315_tuikuan_package"){
         let result = JSON.parse(request.result_data)
         let return_logistics_number = result["return_logistics_number"]
-        $("."+return_logistics_number+"").after("<span>"+result['data']+"</span>")
+        $("."+return_logistics_number+"").after("<span style='background: #3bb4f2'>"+result['data']+"</span>")
+        Toast(result)
+    }else if(to ==="chuanmei_refund2_page" && method ==="result_315_tuikuan_package"){
+        let result = JSON.parse(request.result_data)
+        let return_logistics_number = result["return_logistics_number"]
+        if(return_logistics_number === undefined || return_logistics_number === "undefined" || return_logistics_number === "" || return_logistics_number === null || return_logistics_number === "null"){
+            return
+        }
+        let return_logistics_number_div = $("div:contains("+return_logistics_number+")")
+        let return_logistics_number_div_length = return_logistics_number_div.length
+
+        if(return_logistics_number_div_length>0){
+            console.log("return_logistic_div,",$(return_logistics_number_div[return_logistics_number_div_length-1]),)
+
+             $(return_logistics_number_div[return_logistics_number_div_length-1]).after("<span class='return_package_info_table_315' style='background: #3bb4f2'>"+result['data']+"</span>")
+        }
+
         Toast(result)
     }else if(to ==="tb_refund2_page" && method ==="update_tb_refund2_page_data"){
         setTimeout(function () {
@@ -1132,7 +1204,7 @@ function update_tbrefund2_data(){
             console.log("返回登录17结果",token_result)
             if(token_result!==null && token_result['is_suc'] === true){
                   window.localStorage.setItem("17back_token",token_result['token'])
-                console.log("储存到localstorage" )
+                console.log("17back_token储存到localstorage" )
             }
 
         console.log("main_info_div",main_info_div)
@@ -1162,19 +1234,22 @@ function update_tbrefund2_data(){
                 let return_address  = result["return_info"]['return_address']
                  if(return_address !== undefined && return_address.length >29){
                      return_address = return_address.replace("商家确认收货地址：","")
-                     return_address = return_address.substring(0,23)+"..."
+                     return_address = return_address.substring(0,18)+"..."
                  }else{
                      return_address = ""
                  }
                 $(main_info_div[i]).after("<div style='background: yellow'> "+result["return_info"]['latestMsg']+" "+result["return_info"]['latestTime']+"</div>")
-
-                 $(main_info_div[i]).after("<div style='background: yellow'> 退货物流："+result["return_info"]['return_logistics_name']+" "+return_logistics_number+"  退货地址："+return_address+  "  <button class='"+return_logistics_number+"'>从315获取退包信息</button></div>")
-                 req_17return_package_info_list.push({"order_number":order_number,"return_logistics_number":return_logistics_number})
-                 $("."+return_logistics_number+"").click(function () {
-
-                      chrome.runtime.sendMessage({method:"get_315_tuikuan_package",return_logistics_number:return_logistics_number},function (response) {
+                 if(return_address.indexOf("18719368068") === -1){
+                     $(main_info_div[i]).after("<div style='background: yellow'> <button class='"+return_logistics_number+"'>从315获取退包信息</button></div>")
+                     if(return_logistics_number !== undefined  && return_logistics_number!== "" && return_logistics_number!=="undefined"){
+                         chrome.runtime.sendMessage({from:"tb_refund2_page",method:"get_315_tuikuan_package",return_logistics_number:return_logistics_number},function (response) {
                          console.log("获取315退包信息",response)
 
+                     })
+                     }
+                     $("."+return_logistics_number+"").click(function () {
+                         chrome.runtime.sendMessage({from:"tb_refund2_page",method:"get_315_tuikuan_package",return_logistics_number:return_logistics_number},function (response) {
+                         console.log("获取315退包信息",response)
 
                      })
 
@@ -1182,6 +1257,11 @@ function update_tbrefund2_data(){
 
 
                  })
+                 }
+
+                 $(main_info_div[i]).after("<div style='background: yellow'> 退货物流："+result["return_info"]['return_logistics_name']+" "+return_logistics_number+"  退货地址："+return_address+  " </div>")
+                 req_17return_package_info_list.push({"order_number":order_number,"return_logistics_number":return_logistics_number})
+
             }
 
 
@@ -1408,6 +1488,31 @@ function add_order_info_to_chuanmei_wait_send_page(order_list,order_type){
 //更新传美售后页面插件信息
 function update_chuammei_refund_page_data(){
         let order_number_div = $("div[class='RefundOrderBox']")
+        $(".check_return_package").remove()
+        $('.return_package_info_table_17').remove()
+        let req_17return_package_info_list  = []
+        $("div[class='TempList']").after("<button class='check_return_package'>检测退件 </button>")
+        let return_logistics_div1 = $(".ExpressNumberTitle")
+        for(let i = 0;i<return_logistics_div1.length;i++){
+
+        let return_number_div = $(return_logistics_div1[i]).next()
+
+
+        let return_number = return_number_div.text().trim()
+          console.log("退回单号0000000：",return_number)
+        if(return_number!==""){
+             let arr_tem = return_number.split("，")
+            if(arr_tem.length >1){
+                return_number = arr_tem[1].trim()
+
+                req_17return_package_info_list.push({"order_number":"",return_logistics_number:return_number})
+            }
+
+        }
+
+
+   }
+        console.log("req_17return_package_info_list",req_17return_package_info_list)
         console.log("RefundOrderBox:",order_number_div)
         let tb_order_number_list = []
         for(let i = 0; i<order_number_div.length;i++){
@@ -1418,6 +1523,7 @@ function update_chuammei_refund_page_data(){
            tb_order_number_list.push(tb_order_number)
 
          }
+
         chrome.runtime.sendMessage({order_number_list: JSON.stringify(tb_order_number_list),method:'get_orders_from17'},function(response) {
            let order_list = replace_data(JSON.parse(response))
             console.log("传美售后获取17订单结果：",order_list)
@@ -1432,6 +1538,53 @@ function update_chuammei_refund_page_data(){
             add_order_info_to_chuanmei_refund_page(order_list,"null_order")
 
 	    });
+        $(".check_return_package").click(function () {
+            $('.return_package_info_table_315').remove()
+            console.log("req_17return_package_info_list,",req_17return_package_info_list)
+            for(let n = 0;n<req_17return_package_info_list.length;n++){
+                let return_logistics_number = req_17return_package_info_list[n]['return_logistics_number']
+
+                // 获取315 退件信息
+                chrome.runtime.sendMessage({from:"chuanmei_refund2_page",method:"get_315_tuikuan_package",return_logistics_number:return_logistics_number},function (response) {
+                         console.log("获取315退包信息",response)
+
+                     })
+            }
+// return
+            // 获取17 退件信息
+            chrome.runtime.sendMessage({method:"login_17"},function(response) {
+            $('.return_package_info_table_17').remove()
+
+            let token_result = JSON.parse(response)
+
+            console.log("返回登录17结果",token_result)
+            if(token_result!==null && token_result['is_suc'] === true){
+                  window.localStorage.setItem("17back_token",token_result['token'])
+                console.log("17back_token储存到localstorage" )
+            }
+
+           chrome.runtime.sendMessage({method:"get_17return_package",token:token_result['token'],req_info_list:JSON.stringify(req_17return_package_info_list)},function (response) {
+              console.log("17back 获取退货物流信息1：",response)
+
+               let result = JSON.parse(response)
+
+                let return_logistics_div1 = $(".ExpressNumberTitle")
+              for(let i = 0;i<return_logistics_div1.length;i++){
+
+                let return_number_div = $(return_logistics_div1[i]).next()
+                    console.log("退回单号div：",return_number_div)
+
+                let order_number = return_number_div.text().trim().split("，")[1].trim()
+
+                console.log("order_number",order_number)
+                  let return_pacakge_17 = result[order_number]
+                  if(return_pacakge_17!==undefined){
+                        $(return_logistics_div1[i]).after("<div class='return_package_info_table_17' style=';background: yellowgreen'> [我仓收到]："+result[order_number]["return_logistics_number"]+"</div>")
+                  }
+               }
+          })
+        });
+        })
 }
 function update_chuammei_wait_send_page_data(){
         let order_number_lb = $("label[class='tb_order_number_lb_17']")
@@ -1450,13 +1603,14 @@ function update_chuammei_wait_send_page_data(){
            let order_list = replace_data(JSON.parse(response))
             console.log("传美待发货页面获取17订单结果：",order_list)
             $('.order_info_table_17').remove()
+
             add_order_info_to_chuanmei_wait_send_page(order_list,"order")
 
 	    });
         chrome.runtime.sendMessage({order_number_list: JSON.stringify(tb_order_number_list),method:'get_null_orders_from17'},function(response) {
 
            let order_list = replace_null_order_data(JSON.parse(response))
-            console.log("传美待发货页面获取17订单结果：",order_list)
+            console.log("传美待发货页面获取17空包结果：",order_list)
             $('.null_order_info_table_17').remove()
             add_order_info_to_chuanmei_wait_send_page(order_list,"null_order")
 

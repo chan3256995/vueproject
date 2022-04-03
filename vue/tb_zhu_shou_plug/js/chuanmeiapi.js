@@ -1,3 +1,4 @@
+
 let  CHUAMMEI_BASE_URL = "https://tb29.chuanmeidayin.com"
 let chuammei_order_status = {
     WAIT_SELLER_SEND_GOODS:"待发货",
@@ -310,20 +311,8 @@ function apichuanmei_order_item_replace(chuanmei_order_item){
                 if(sku_code!==""){
                     goods_code = sku_code
                 }
-                if(goods_code === ""){
-                    goods_code = default_tb_code
-                }
-                    // ***********************************************************去除搜款网编码的尾巴（id）
-                // 搜款网商品id
-                let skw_goods_id= goods_code.substring(goods_code.lastIndexOf('-')+1,goods_code.length)
+                goods_code = mcommon_replace_goods_code_str(goods_code)
 
-                if(!isNaN(skw_goods_id) &&  skw_goods_id >1000000){
-                    console.log("收款网id 是数字")
-                    //去掉数字id
-                    goods_code = goods_code.substring(0,goods_code.lastIndexOf('-'))
-
-                }
-                // ***********************************************************去除搜款网编码的尾巴（id）
                 new_goods_obj['color'] = color
                 new_goods_obj['size'] = size
                 
@@ -341,7 +330,7 @@ function apichuanmei_order_item_replace(chuanmei_order_item){
                     
     return new_order_obj
 }
-//传美代发货页面
+// 传美代发货页面
 function apichuammei_wait_send_page_init(){
 
        $("#to_place_order_17").click(function () {
@@ -386,8 +375,13 @@ function apichuammei_wait_send_page_init(){
                          if(towm===undefined){
                              towm = ""
                          }
+
                           new_item['address'] = cur_item["province"]+","+cur_item["city"]+","+cur_item["area"]+towm+cur_item["address"]
-                          new_item['name'] = cur_item["name"]
+                         new_item['province'] = cur_item["province"]
+                         new_item['city'] = cur_item["city"]
+                         new_item['area'] = cur_item["area"]
+                         new_item['address_details'] = cur_item["address"]
+                         new_item['name'] = cur_item["name"]
                           new_item['wangwang_id'] = cur_item["sellerNick"]
                           new_item['order_id'] = ""
                           new_item['phone'] = cur_item["phone"]
@@ -397,11 +391,18 @@ function apichuammei_wait_send_page_init(){
                           let order_goods_list = []
                           for(let g = 0;g<cur_item_order_goods_list.length;g++){
                               let goods = {}
-                              goods['code'] = cur_item_order_goods_list[g]['code']
+                              let code = cur_item_order_goods_list[g]['code']
+                              goods['code'] = code
                               goods['color'] = cur_item_order_goods_list[g]['color']
                               goods['size'] = cur_item_order_goods_list[g]['size']
                               goods['img'] = cur_item_order_goods_list[g]['goods_pic']
                               goods['tb_goods_id'] = cur_item_order_goods_list[g]['goods_id']
+                              //用户编码
+                              goods['user_code'] = cur_item_order_goods_list[g]['goods_id']
+                              if(code!==undefined && code!==default_tb_code){
+                                  goods['user_code'] = code
+                              }
+
                               goods['count'] = cur_item_order_goods_list[g]['goods_counts']
                               order_goods_list.push(goods)
                           }
@@ -487,7 +488,8 @@ function apichuammei_wait_send_page_init(){
 
        $("#order_cache_btn").click(function () {
 
-
+            let customer_set_page_count = 0
+            customer_set_page_count =  $("#order_cache_page_count")[0].value
             let end_time_stm = new Date().getTime()
             let dur_time_stm = 60*24*60*60*1000
             let start_time_stm = end_time_stm  - dur_time_stm
@@ -503,7 +505,12 @@ function apichuammei_wait_send_page_init(){
             if(counts_result.success === true){
                 counts = counts_result["data"]['counts']
             }
+
             total_page  = Math.ceil(parseInt(counts,10)/page_size)// 向上去整
+           if(customer_set_page_count!==undefined && customer_set_page_count!=='' && customer_set_page_count!==0 && (!isNaN(customer_set_page_count)) && customer_set_page_count < total_page){
+               total_page =  customer_set_page_count
+            }
+            console.log("总页数："+total_page)
             let order_list = []
             let order_data = {}
             let order_data_list = []
@@ -541,7 +548,15 @@ function apichuammei_wait_send_page_init(){
         })
        $("#ignore_order_btn").click(function () {
 
-         $(".order_info_table_17").each(function(){
+           $(".order_info_table_17").each(function(){
+                let dis = $(this).parent().css("display")
+                if(dis ==="none"){
+                    $(this).parent().css("display",'list-item')
+                }else{
+                    $(this).parent().css("display",'none')
+                }
+                })
+           $(".null_order_info_table_17").each(function(){
                 let dis = $(this).parent().css("display")
                 if(dis ==="none"){
                     $(this).parent().css("display",'list-item')
@@ -550,6 +565,7 @@ function apichuammei_wait_send_page_init(){
                 }
                 })
         })
+
 
 }
 

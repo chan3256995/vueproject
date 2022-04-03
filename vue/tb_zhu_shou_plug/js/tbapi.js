@@ -1,4 +1,4 @@
-let default_tb_code = "女人街 12F A12-A-12#12"
+let default_tb_code = "女人街 12F A12-A-12#临时款号"
 let default_tb_code2_youfei = "youfei"
 let logistics_choies2 = {
     "圆通":101,
