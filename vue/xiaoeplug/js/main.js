@@ -657,7 +657,7 @@ alert("my_functon666666")
 
 }
 function init_daifa_elems() {
-    $("input[value='批量打印发货单']").after(" <input type='button' class='synchronization_all_order_to17'  value='同步所有订单到17代发网'>");
+    $("input[value='批量打印发货单']").after(" <input style='color: red' type='button' class='go_send_order_page_btn'  value='分页发货'>");
     $("input[value='批量打印发货单']").after(" <input type='button' class='daifa_17'  value='17批量代发'>");
     $("input[value='批量打印发货单']").after(" <input type='button' class='show_logistic_order'  value='显示有物流单号订单'>");
      if( $("label:contains(尺码：)").length !==0){
@@ -895,70 +895,55 @@ chrome.runtime.sendMessage({greeting: m},function(response) {
           //***********************testdata************************
 
     });
-        $(".synchronization_all_order_to17").click(function () {
+        $(".go_send_order_page_btn").click(function () {
+             $(".tb_order").attr("disabled", true)
+             $(".tb_order").css("color", "grey")
+            chrome.runtime.sendMessage({ method:'get_order_from_tb'},function(response) {
+            console.log("获取淘宝代发货订单：",response)
+            let order_page = JSON.parse(response)
+            let is_success = order_page.is_success
+            let message = order_page.message
+            if(is_success===false && message==="go_to_login_tb"){
 
-
-              let eye_elems = $(".logis-info")
-
-
-
-            show_tb_address(eye_elems,0)
-
-
-            return
-
-
-            let request_url = "https://wuliu.taobao.com/user/order_list_new.htm"
-            let parms = "" +
-                 "source:\n" +
-                 "callUrl:\n" +
-                 "_tb_token_:ffe0157689337\n" +
-                 "orderStatusShow:send\n" +
-                 "receiverName:\n" +
-                 "receiverWangWangId:\n" +
-                 "beginDate:\n" +
-                 "endDate:\n" +
-                 "taobaoTradeId:\n" +
-                 "shipping2:-1\n" +
-                 "orderType:-1\n" +
-                 "orderSource:0\n" +
-                 "currentPage:2\n" +
-                 "currentPage:2"
-             parms = {
-                 "source":"",
-                 "callUrl":"",
-                 // "_tb_token_":"ffe0157689337",
-                 "orderStatusShow" :"send",
-                 "receiverName" :"",
-                 "receiverWangWangId":"" ,
-                 "beginDate" :"",
-                 "endDate" :"",
-                 "taobaoTradeId" :"",
-                 "shipping2":"-1",
-                 "orderType":"-1",
-                 "orderSource":"0",
-                 "currentPage" :"2",
-
-             }
-
-		   $.ajax({
-            async : false,
-            url :request_url,
-              xhrFields: {
-       withCredentials: false,
-    },
-            type : "POST",
-            // dataType : 'json',
-            data : parms,
-            timeout : 5000,
-            success : function(result) {
-                 // sendResponse(JSON.stringify(result));
-                    console.log(result)
-            },
-            error:function (err) {
-                console.log("错了:" + err);
+                 $(".go_send_order_page_btn").attr("disabled",false)
+                 $(".go_send_order_page_btn").css("color","red")
+                 window.open("https://login.taobao.com/");
+                 return
             }
+            let order_list = order_page.result
+            let tb_order_number_list = []
+
+           for(let i = 0;i<order_list.length;i++){
+              let  tb_order_number = order_list[i].tb_order_number
+              tb_order_number_list.push(tb_order_number)
+           }
+           let p1 =new Promise(function(resolve,reject){
+                deliveried_order_to_tb(tb_order_number_list,"front")
+                resolve(1);
         });
+            let p2 =new Promise(function(resolve,reject){
+                deliveried_null_order_to_tb(tb_order_number_list,"front")
+                resolve(2);
+        });
+
+            Promise.all([p1,p2]).then(function (results) {
+            console.log('success:'+results);
+
+
+            $(".go_send_order_page_btn").attr("disabled",false)
+            $(".go_send_order_page_btn").css("color","red")
+        }).catch(function(r){
+
+            $(".go_send_order_page_btn").attr("disabled",false)
+            $(".go_send_order_page_btn").css("color","red")
+            console.log("error");
+            console.log(r);
+        });
+
+
+      })
+
+
 
          })
 
@@ -1312,14 +1297,24 @@ function add_order_info_to_batch_consign_page(order_list){
 
      $(".order-number").each(function(){
                 let orders_number =$(this).text().replace('订单编号：','').trim();
+
                 let order = find_order(orders_number,order_list)
 
                 let tboy_elems = $(this).parents("tbody")
+                let table_elems = $(this).parents("table")
                 let table_17 = tboy_elems.find('.order_info_table_17')
                var newget=null
                 if(order!==null){
-                    table_17.remove()
                     var d=order
+                    table_17.remove()
+                    let logistics_number_input = table_elems.find("label:contains(运单号码：)").next()
+                    console.log("物流单号输入框：",logistics_number_input)
+                    if(logistics_number_input.length !==0){
+                        $(logistics_number_input[0]).val(d.logistics_number)
+                        console.log("赋值成功：",$(logistics_number_input[0]).val())
+                    }
+
+
                     var newget = '<table class = "order_info_table_17" width="100%"><tr bgcolor="#ffff99"><td height="30" align="center"><span style="margin-right: 40px;">17代发订单：'+d.tb_order_number+'</span>';
                     newget += '<span style="margin-right: 40px;">快递：'+d.logistics_name+'</span>';
                     newget += '<span style="margin-right: 40px;">单号：'+d.logistics_number+'</span>';
@@ -1526,7 +1521,9 @@ function Toast(msg,duration,elem){
         setTimeout(function() { document.body.removeChild(m) }, d * 1000);
       }, duration);
     }
-function deliveried_order_to_tb(tb_order_number_list){
+
+    // send_method那种方式发货  打开页面发货  后台发货
+function deliveried_order_to_tb(tb_order_number_list,send_method){
      chrome.runtime.sendMessage({order_number_list: JSON.stringify(tb_order_number_list),method:'get_orders_from17'},function(response) {
                let response_order_list = replace_data(JSON.parse(response))
                let new_order_list = []
@@ -1535,7 +1532,7 @@ function deliveried_order_to_tb(tb_order_number_list){
                // 根据物流分类储存
                let order_list_sort_object = {}
                for(let g = 0 ;g<response_order_list.length;g++){
-                       if (response_order_list[g].order_status ==='已发货' && response_order_list[g].logistics_number !==null && response_order_list[g].logistics_number !==''){
+                       if (response_order_list[g].logistics_number !==null && response_order_list[g].logistics_number !==''){
                             new_order_list.push(response_order_list[g])
                             if(order_list_sort_object[response_order_list[g].logistics_name] === undefined ){
                                  let new_list =  [];
@@ -1552,15 +1549,19 @@ function deliveried_order_to_tb(tb_order_number_list){
                    let order_list = order_list_sort_object[key]
                    let logistics_name = key
                         console.log("sendMessage-------order_list>",order_list)
-                   chrome.runtime.sendMessage({order_list: JSON.stringify(order_list),method:'delivery_order_to_tb',logistics_name:logistics_name},function(response) {
+                   if(send_method ==="front"){
+                       go_tb_send_order_page(order_list,logistics_name)
+                   }else{
+                       chrome.runtime.sendMessage({order_list: JSON.stringify(order_list),method:'delivery_order_to_tb',logistics_name:logistics_name},function(response) { });
 
+                   }
 
-                });
                }
 
             });
 }
-function deliveried_null_order_to_tb(tb_order_number_list){
+// send_method那种方式发货  打开页面发货  后台发货
+function deliveried_null_order_to_tb(tb_order_number_list,send_method){
      chrome.runtime.sendMessage({order_number_list: JSON.stringify(tb_order_number_list),method:'get_null_orders2'},function(response) {
                let response_order_list = replace_null_order_data(JSON.parse(response))
                let new_order_list = []
@@ -1568,7 +1569,7 @@ function deliveried_null_order_to_tb(tb_order_number_list){
                console.log("get_null_orders2:",response_order_list)
                  let order_list_sort_object = {}
                for(let g = 0 ;g<response_order_list.length;g++){
-                       if (response_order_list[g].order_status ==='已发货(刷包)' && response_order_list[g].logistics_number !==null && response_order_list[g].logistics_number !==''){
+                       if ( response_order_list[g].logistics_number !==null && response_order_list[g].logistics_number !==''){
                             new_order_list.push(response_order_list[g])
                             if(order_list_sort_object[response_order_list[g].logistics_name] === undefined ){
                                 let new_list =  [];
@@ -1582,15 +1583,29 @@ function deliveried_null_order_to_tb(tb_order_number_list){
 
                for(let key in order_list_sort_object){
                    let order_list = order_list_sort_object[key]
+
                    let logistics_name = key
                    console.log("order_list55555",order_list)
-                   chrome.runtime.sendMessage({order_list: JSON.stringify(order_list),method:'delivery_order_to_tb',logistics_name:logistics_name},function(response) {
+                   if(send_method ==="front"){
+                       go_tb_send_order_page(order_list,logistics_name)
+                   }else{
+                       chrome.runtime.sendMessage({order_list: JSON.stringify(order_list),method:'delivery_order_to_tb',logistics_name:logistics_name},function(response) { });
+                   }
 
-
-                });
                }
 
             });
+}
+
+// 打开淘宝发货页面
+function go_tb_send_order_page(order_list,logistics_name){
+    let tb_order_number = ""
+    for (let i = 0 ;i<order_list.length;i++){
+        tb_order_number = tb_order_number + order_list[i].tb_order_number+","
+    }
+    let url = "https://wuliu.taobao.com/user/batch_consign.htm?trade_ids="+tb_order_number
+
+    window.open(url)
 }
 
 function get_temp_data(){

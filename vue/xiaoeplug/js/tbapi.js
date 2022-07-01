@@ -359,7 +359,25 @@ return ret_form
             }
         });
 }
-
+ function mcomon_thread_sleep(time){
+    console.log("休眠"+time)
+    const startDate   = new Date().getTime()
+     while(new Date().getTime() - startDate<time){}
+ }
+ function Toast(msg,duration,elem){
+      duration=isNaN(duration)?3000:duration;
+      var m = document.createElement('div');
+      // m = elem
+      m.innerHTML = msg;
+      m.style.cssText="max-width:60%;min-width: 150px;padding:0 14px;height: 40px;color: rgb(255, 255, 255);line-height: 40px;text-align: center;border-radius: 4px;position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);z-index: 999999;background: rgba(0, 0, 0,.7);font-size: 16px;";
+      document.body.appendChild(m);
+      setTimeout(function() {
+        var d = 0.5;
+        m.style.webkitTransition = '-webkit-transform ' + d + 's ease-in, opacity ' + d + 's ease-in';
+        m.style.opacity = '0';
+        setTimeout(function() { document.body.removeChild(m) }, d * 1000);
+      }, duration);
+    }
 function tbapi_get_all_page_order_from_tb(){
     let order_list = []
     let order_page = null
@@ -383,6 +401,7 @@ function tbapi_get_all_page_order_from_tb(){
 
         console.log("page_numb",page_numb)
         console.log("page_counts",page_counts)
+         Toast(page_numb)
         order_page = tbapi_get_page_order_from_tb(page_numb+1,page_counts)
         if(order_page.is_success===false && order_page.message==="go_to_login_tb"){
             return {"is_success":false,"message":"go_to_login_tb" }
@@ -391,6 +410,7 @@ function tbapi_get_all_page_order_from_tb(){
         page_numb =order_page.page_number
         page_counts = order_page.page_counts
         order_list = order_list.concat(order_page.result)
+         mcomon_thread_sleep(1000)
      }
 
 
