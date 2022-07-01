@@ -15,12 +15,27 @@ base_url_bl = "http://speed.tkttt.com"
 bl_user_name = "海文"
 bl_password = "137637653"
 
+
+# 预支物流单号物流选择
+def is_allow_advanllce_logistics(logistics_number):
+    logistics_choise = {}
+    if base_url_bl == "http://speed.tkttt.com":
+        logistics_choise= {"圆通":"圆通" }
+    if  logistics_number!='' and logistics_choise[logistics_number] is not None:
+        return True
+    return False
+
+
+
+
 def get_bl_tuihuotuik_reson_type():
     if base_url_bl == "http://speed.tkttt.com":
         return {
             "非质量问题":2,
             "质量问题":1
         }
+
+
 def check_login(cookie):
     try:
         url = base_url_bl+"/User/Charge.aspx"
@@ -103,8 +118,13 @@ def start_delivery_order_blto17(cookie):
     parms['__EVENTTARGET'] = "ctl00$ContentPlaceHolder1$AspNetPager1"
     parms['ctl00$ContentPlaceHolder1$txtStart'] = start_time
     parms['ctl00$ContentPlaceHolder1$txtEnd'] = end_time
+    action_time = time.time()
     page_info = result['page_info']
     while (int(page_info['cur_page']) < int(page_info['page_counts'])) or (int(page_info['cur_page']) == int(page_info['page_counts'])):
+        cur_time = time.time()
+        if cur_time - action_time > 60 * 3:
+            # 大于三分钟停止 防止死循环
+            break
         parms['ctl00$ContentPlaceHolder1$txtPageSize'] = 10
         result2 = load_order_list(cookie,parms )
         my_site_utils.yinahuo_order_to17(result2['order_yinahuo_list'],{})
@@ -131,7 +151,7 @@ def init_order_page_parms(cookie):
     return  result
 
 
-# 申请退款 目前只支持
+# 申请退款 目前 多个商品的订单暂不支持申请
 def refund_tuikuan_bl(order_goods_item):
     try:
         ret={'code':"error",'message':''}
@@ -232,6 +252,77 @@ def refund_tuihuotuik_bl(order_goods_item):
         logger.info('%s bl 申请退款失败 ' % (traceback.format_exc()))
         ret['code'] = 'error'
         ret['message'] = '申请失败'
+    return ret
+
+
+#从 bl 网站预支单号
+def get_order_logistics_numbers_bl(order_number):
+    try:
+        ret={'code':"error",'message':''}
+        url = "/ajax/VipHuoQuDanHao.ashx?id="
+        jar = RequestsCookieJar()
+        login_result = login()
+        if login_result['code'] == "ok":
+            cookies = login_result.get("cookies")
+            result = get_order_info_by_order_number( cookies, order_number)
+            if result['code'] == 'ok':
+                order_info  = result['order_info']
+                logistics_name = order_info["logistics_name"]
+                is_logistics_allow = is_allow_advanllce_logistics(logistics_name)
+                if is_logistics_allow is False:
+                    ret['code'] = 'error'
+                    ret['message'] = '该快递暂不支持预支单号'
+                main_id = order_info['order_goods_list'][0]["mainid"]
+                request_url = base_url_bl + url + main_id
+                cookies_str = ""
+                for key, value in cookies.items():
+                    cookies_str = cookies_str + key + "=" + value + ";"
+                    jar.set(key, value)
+
+                header = {
+
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
+                }
+                response = requests.get(request_url, cookies=jar,  headers=header)
+                if response.text.find("运单号不为空") != -1:
+                    ret['code'] = 'error'
+                    ret['message'] = '该订单已有快递单号不能重复获取'
+                elif response.text.find("不是付款成功或者缺货的订单不能操作") !=-1:
+                    ret['code'] = 'error'
+                    ret['message'] = '该订单已有快递单号不能重复获取'
+                else:
+                    ret['code'] = 'ok'
+                    ret["logistics_number"] = response.text
+            else:
+                ret['code'] = 'error'
+                ret['message'] = ''
+    except:
+        print(traceback.format_exc())
+        logger.info('%s bl 获取单号失败 ' % (traceback.format_exc()))
+        ret['code'] = 'error'
+        ret['message'] = '申请失败'
+    return ret
+
+
+def get_order_info_by_order_number(cookies,order_number):
+    try:
+        # order_number = "202008171720272339608"
+        ret = {'code': "error", 'message': ''}
+        ret['order_info_list'] = []
+        page_parms = init_order_page_parms(cookies)
+        params = page_parms['parms']
+        params['ctl00$ContentPlaceHolder1$txtOrderNum'] = order_number
+        params['ctl00$ContentPlaceHolder1$btnSearch'] = '查 询'
+        params['ctl00$ContentPlaceHolder1$txtPageSize'] = '20'
+        order_res = load_order_list(cookies, params)
+        if order_res is not None:
+            order_info_list = order_res['order_info_list']
+            ret['code'] = "ok"
+            ret['order_info'] = order_info_list[0]
+        else:
+            ret['code'] = "error"
+    except:
+         raise Exception
     return ret
 
 
@@ -642,6 +733,80 @@ def get_list_str(list):
     for item in list:
         tem = tem + item
     return tem
+
+
+# 根据单号查询资金流水记录
+def get_account_record_by_order_number(cookie,parms):
+    return_obj = {"code": "error", "message": ""}
+    try:
+        request_type = "POST"
+        if parms['__VIEWSTATE'] == "":
+            request_type = "GET"
+            parms = {}
+
+
+        obj = {}
+        page_info = {}
+        url = base_url_bl + "/User/MyAccount.aspx"
+        jar = RequestsCookieJar()
+        cookies_str = ""
+        for key, value in cookie.items():
+            cookies_str = cookies_str + key + "=" + value + ";"
+            jar.set(key, value)
+
+        header = {
+
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
+        }
+        response = None
+        if request_type == "GET":
+            response = requests.get(url, cookies=jar, data=parms, headers=header)
+        else:
+            response = requests.post(url, cookies=jar, data=parms, headers=header)
+        if response.text.find("<script>top.location.href='/Login.aspx';</script>") != -1:
+            return_obj["message"] = "未登录"
+            return_obj["code"] = "error"
+            return return_obj
+        html = etree.HTML(response.text)
+
+        accout_record_list = []
+        tr_list = html.xpath('//*[@class="trlist"]')
+
+        # 按字符串序列化HTML文档
+        # result = etree.tostring(html)
+        # 遍历每个item
+        for tr_item in tr_list:
+            td_elems = tr_item.xpath('.//td')
+            operater = get_list_str(td_elems[0].xpath(".//text()")).strip()
+            type = get_list_str(td_elems[1].xpath(".//text()")).strip()
+            money = get_list_str(td_elems[2].xpath(".//text()")).strip()
+            remain_money = get_list_str(td_elems[3].xpath(".//text()")).strip()
+            order_number = get_list_str(td_elems[4].xpath(".//text()")).strip()
+            mark = get_list_str(td_elems[5].xpath(".//text()")).strip()
+            add_time = get_list_str(td_elems[6].xpath(".//text()")).strip()
+            tem_obj = {
+                "operater":operater,
+                "type":type,
+                "money":money,
+                "remain_money":remain_money,
+                "order_number":order_number,
+                "mark":mark,
+                "add_time":add_time,
+
+            }
+            accout_record_list.append(tem_obj)
+
+
+        obj = {
+            "accout_record_list": accout_record_list,
+
+        }
+
+    except:
+        print(traceback.format_exc())
+        logger.info('%s url ' % (traceback.format_exc()))
+        return None
+    return obj
 
 
 # 得到页面参数信息

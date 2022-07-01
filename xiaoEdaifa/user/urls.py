@@ -27,6 +27,7 @@ router.register(r'details', user_views.UserViewSet, base_name='details')
 # 订单
 router.register(r'orders', user_views.UserOrderViewSet, base_name='orders')
 router.register(r'nullOrders', user_views.UsernNullOrdersViewSet, base_name='nullOrders')
+# router.register(r'douYinGoods', user_views.DouYinGoodsViewSet, base_name='douYinGoods')
 # 添加多订单
 router.register(r'addOrders', user_views.UserMulOrderSaveViewSet, base_name='addOrders')
 router.register(r'addNullPackageOrder', user_views.AddNullPackageOrderViewSet, base_name='addNullPackageOrder')
@@ -48,6 +49,15 @@ router.register(r'getNullOrderByTBOrderNumberList', user_views.GetNullOrderByTBO
 #  获取用户被邀请用户信息
 
 router.register(r'inviteInfo', user_views.InviteInfoViewSet, base_name='inviteInfo')
+
+# 用户保存的商品
+router.register(r'userGoodsInfo', user_views.UserGoodsInfoViewSet, base_name='userGoodsInfo')
+
+# 用关注的抖音店铺
+router.register(r'userDouYinShopInfo', user_views.UserDouYinShopViewSet,base_name='userGoodsInfo')
+# 商品采集记录
+router.register(r'douYinGoodsCollectRecord', user_views.DouYinGoodsCollectRecordViewSet,base_name='douYinGoodsCollectRecord')
+router.register(r'userDouYinGoodsInfo', user_views.UserDouYinGoodsViewSet,base_name='userDouYinGoodsInfo')
 
 
 urlpatterns = [
@@ -86,9 +96,39 @@ urlpatterns = [
     url('addOrderToChuanMei/', user_views.AddOrderToChuanMeiView.as_view()),
 
     url('getPlugsVersion/', user_views.GetPlugsVersionView.as_view()),
+    #  访问网页内容 返回给客户端
+    url('getWebPageContent/', user_views.GetWebPageContentView.as_view()),
+
+    #  访问网页内容 返回给客户端
+    url('getWebPageContent2/', user_views.GetWebPageContentView2.as_view()),
+
+    # ***************************抖音**********************************
+    url('collectDouYinData/', user_views.CollectDouYinGoodsDataView.as_view()),
+    #  用户关注的抖音店铺
+    url('userDouYinShopAdd/', user_views.AddUserDouYinShopView.as_view()),
+
+    #  用户关注的抖音店铺删除
+    url('userDouYinShopDelete/', user_views.DeleteDouYinShopView.as_view()),
+
+    #  用户自己保存的修改
+    url('useDouYinShopEdit/', user_views.EditDouYinShopView.as_view()),
+
+    # 用户收藏的item修改
+    url('userDouYinFavShopInfoEdit/', user_views.EditUserDouYinFavShopInfoView.as_view()),
+    # ***************************抖音**********************************
+
+    #  用户自己保存的商品
+    url('userGoodsAdd/', user_views.AddUserGoodsView.as_view()),
+    #  用户自己保存的商品删除
+    url('userGoodsDelete/', user_views.DeleteUserGoodsView.as_view()),
+    #  用户自己保存的修改
+    url('userGoodsEdit/', user_views.EditUserGoodsView.as_view()),
 
 
 
+
+# 预支无酒单号
+    url('bl_get_order_logistics_number/', user_trade_views.BLGetOrderLogisticsInfo.as_view()),
 
 
 

@@ -4,6 +4,8 @@ from django.http.response import JsonResponse
 from django.http import HttpResponse
 from trade import models as trade_models
 from trade import trade_utils
+from utils import commom_utils
+from utils import my_site_utils
 from backstage import models as back_models
 from user import models as user_models
 from django.db.models import Q
@@ -31,6 +33,8 @@ import threading
 import logging
 import json
 import requests
+import random
+
 logger = logging.getLogger('stu')
 
 
@@ -236,27 +240,32 @@ class Temp(APIView):
 class AppClient(APIView):
     authentication_classes = []
     permission_classes = []
-    def get(self,request, *args, **kwargs):
-        try:
-            ret = {'code': "1000", 'message': ""}
-            print("tag print''''''''''''''")
-            print(request.data)
-
-            return Response(ret)
-        except:
-            traceback.print_exc()
-            ret['code'] = "1001"
-            ret['message'] = "查询异常"
-            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
-        return Response(ret)
 
     def post(self, request, *args, **kwargs):
         try:
             ret = {'code': "1000", 'message': ""}
+            # return Response(ret)
             print("tag print''''''''''''''")
             print(request.data)
+            req_data = request.data
+            alipay_trade_no = req_data.get("tradeNo")
+            trade_info = trade_models.TradeInfo.objects.filter(recharge_number=alipay_trade_no).first()
 
-            return Response(ret)
+            if trade_info is not None:
+                if Decimal(str(trade_info.trade_money)) == Decimal(str(req_data.get("money"))) and trade_info.is_pass is False:
+                    back_utils.recharge_pass(trade_info.trade_number)
+                    ret['code'] = "1000"
+                    ret['message'] = '提交成功'
+                    return Response(status=200, data=ret)
+                else:
+                    ret['code'] = "1001"
+                    ret['message'] = '提交失败'
+                    logger.info('%s url:%s method:%s' % ("数据库存在该订单 自动审核发现金额不一致或者已经审核通过", request.path, request.method))
+                    return Response(status=400, data=ret)
+            if self.save_pay_info(req_data):
+                return Response(ret)
+            else:
+                return Response(status=400, data=ret)
         except:
             traceback.print_exc()
             ret['code'] = "1001"
@@ -264,6 +273,51 @@ class AppClient(APIView):
             logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
         return Response(ret)
         # return JsonResponse(ret)
+
+# 保存Android客户端监听到的支付订单信息  监听自己生成的二维码付款信息
+    def save_pay_info(self,req_data):
+        try:
+            if req_data !={}:
+                pay_trade_no = req_data.get("tradeNo")
+                trade_info = trade_models.TradeInfo.objects.filter(recharge_number=pay_trade_no).first()
+                if trade_info is not None:
+                    return False
+
+                mark = req_data.get('mark')
+                if mark.endswith("_17pay"):
+                    user = None
+                    if mark is not None or mark != "":
+                        mark_array = mark.split("_")
+                        mark_msg = mark_array[0]
+                        mark_user_id = int(mark_array[1])
+                        user = user_models.User.objects.filter(id=mark_user_id).first()
+                        if user is None:
+                            return False
+                save_data = {}
+                save_data.update({'recharge_number':pay_trade_no})
+                save_data.update({'trade_money': req_data.get("money")})
+                save_data.update({'user': user.id})
+                ser = m_serializers.PayInfoSerializer(data=save_data, context={'request': self.request})
+                ser.is_valid(raise_exception=True)
+
+                ser.validated_data['trade_source'] = mcommon.trade_source_choices2.get("充值")
+                ser.validated_data['cash_in_out_type'] = mcommon.cash_in_out_type_choices2.get("收入")
+                ser.validated_data['trade_number'] = trade_utils.get_trade_number(self,user.id)
+                ser.validated_data['mark'] = mark_msg
+                ser.validated_data['user_balance'] = user.balance
+                ser.validated_data['add_time'] = time.time() * 1000
+                ser.validated_data['message'] = "充值 " + " 充值号：" + save_data.get( "recharge_number")  + "金额：" + save_data.get("trade_money")
+                ser.save()
+
+            else:
+                return False
+        except:
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), self.request.path, self.request.method))
+            raise Exception(traceback.format_exc())
+            return False
+        return True
+
 
 
 class AddOrderToChuanMeiView(APIView):
@@ -322,6 +376,48 @@ class AddOrderToChuanMeiView(APIView):
         return Response(ret)
 
 
+class SaveDouYinGoods(APIView):
+
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        try:
+            ret = {'code': "1000", 'message': ""}
+            print(request.data)
+            douyin_goods_list = request.data.get("douyin_goods_list")
+            shop_id = request.data.get("shop_id")
+            sql_user_shop = trade_models.UserFocusDouYinShop.objects.filter(shop_id=shop_id).first()
+            if sql_user_shop is None:
+                ret["code"] = "1001"
+                ret["message"] = "不存在该店铺"
+                return  Response(ret)
+            shop_update_time_old = sql_user_shop.update_time
+            cur_time = time.time() * 1000
+            # 更新时间不小于 1 小时
+            dur_time = cur_time - shop_update_time_old
+            one_hour = 60 * 60 * 1000
+            print("店铺更上次更新时间:" + mtime.stamp_to_time(shop_update_time_old / 1000, "%Y-%m-%d %H:%M:%S"))
+            if dur_time < one_hour:
+                ret = {'code': "1001", 'message': ""}
+                return Response(ret)
+
+            my_site_utils.save_dou_yin_goods_data_to_db(self, douyin_goods_list, shop_id)
+            sql_user_shop.update_time = cur_time
+            sql_user_shop.save()
+            ret = {'code': "1000", 'message': ""}
+
+
+
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "查询异常"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return Response(ret)
+        return Response(ret)
+
+
 class AddReturnPackages(APIView):
 
     authentication_classes = [BackStageAuthentication, BackStageNahuoAuthentication]
@@ -339,18 +435,28 @@ class AddReturnPackages(APIView):
                     pacakge_obj = trade_models.ReturnPackageInfo.objects.filter(return_logistics_number=returnPackage.get('return_logistics_number')).first()
                     if pacakge_obj is  None:
                         new_return_package_list.append(returnPackage)
+                        return_logistics_name = returnPackage.get('return_logistics_name')
+                        return_logistics_number = returnPackage.get('return_logistics_number')
+                        obj = trade_models.ReturnPackageInfo.objects.create( return_logistics_number=return_logistics_number,return_logistics_name=return_logistics_name, add_time=time.time() * 1000)
+                        if obj is not None:
+                            refund_apply = trade_models.RefundApply.objects.select_for_update().filter(
+                                return_logistics_number=return_logistics_number).first()
+                            if refund_apply is not None and refund_apply.refund_apply_progress == \
+                                    mcommon.refund_apply_progress_choices2['未处理']:
+                                refund_apply.refund_apply_progress = mcommon.refund_apply_progress_choices2['仓库已收到退件']
+                                refund_apply.save()
                     else:
                         exits_return_package_list.append(returnPackage)
 
-                for new_return_package in new_return_package_list:
-                    return_logistics_name = new_return_package.get('return_logistics_name')
-                    return_logistics_number = new_return_package.get('return_logistics_number')
-                    obj = trade_models.ReturnPackageInfo.objects.create(return_logistics_number=return_logistics_number,return_logistics_name=return_logistics_name,add_time=time.time()*1000)
-                    if obj is not None:
-                        refund_apply = trade_models.RefundApply.objects.select_for_update().filter(return_logistics_number=return_logistics_number).first()
-                        if refund_apply is not None and refund_apply.refund_apply_progress == mcommon.refund_apply_progress_choices2['未处理']:
-                            refund_apply.refund_apply_progress = mcommon.refund_apply_progress_choices2['仓库已收到退件']
-                            refund_apply.save()
+                # for new_return_package in new_return_package_list:
+                #     return_logistics_name = new_return_package.get('return_logistics_name')
+                #     return_logistics_number = new_return_package.get('return_logistics_number')
+                #     obj = trade_models.ReturnPackageInfo.objects.create(return_logistics_number=return_logistics_number,return_logistics_name=return_logistics_name,add_time=time.time()*1000)
+                #     if obj is not None:
+                #         refund_apply = trade_models.RefundApply.objects.select_for_update().filter(return_logistics_number=return_logistics_number).first()
+                #         if refund_apply is not None and refund_apply.refund_apply_progress == mcommon.refund_apply_progress_choices2['未处理']:
+                #             refund_apply.refund_apply_progress = mcommon.refund_apply_progress_choices2['仓库已收到退件']
+                #             refund_apply.save()
                 ret['exits_list'] = exits_return_package_list
         except:
             traceback.print_exc()
@@ -544,22 +650,22 @@ class TomorrowStatusResetView(APIView):
 
 # 自动扫描lb网站已拿货的订单
 class AutoScanYiNaHuoOrder(APIView):
-    authentication_classes = [BackStageAuthentication, ]
-    permission_classes = [Superpermission]
+    authentication_classes = []
+    permission_classes = []
     def post(self, request, *args, **kwargs):
 
         print(request.data)
         try:
-            with transaction.atomic():
-                ret = {'code': "1000", 'message': ""}
-                self.start_run_thread()
-                # *******************
-                # result = bl_site_utils.login("海文","137637653")
-                # if result.get("code") == 'ok':
-                #     # bl_site_utils.check_login(result.get('cookies'))
-                #     bl_site_utils.start_delivery_order_blto17(result.get('cookies'))
-                #     # bl_site_utils.load_order_list(result.get('cookies'),{"ss":55})
-                # *******************
+
+            ret = {'code': "1000", 'message': ""}
+            self.start_run_thread()
+            # *******************
+            # result = bl_site_utils.login("海文","137637653")
+            # if result.get("code") == 'ok':
+            #     # bl_site_utils.check_login(result.get('cookies'))
+            #     bl_site_utils.start_delivery_order_blto17(result.get('cookies'))
+            #     # bl_site_utils.load_order_list(result.get('cookies'),{"ss":55})
+            # *******************
 
         except:
             traceback.print_exc()
@@ -574,14 +680,21 @@ class AutoScanYiNaHuoOrder(APIView):
         if main_thread is None:
             return
         time_interval = main_thread.time_interval
+        main_last_time = main_thread.last_run_time
+        main_thread.last_run_time = time.time()
+        main_thread.save()
         if main_thread.is_run is True:
 
             query_set = back_models.ThreadTask.objects.filter()
             for item in query_set:
                 if item.task_name == 'load_order_yinahuo_yifahuo':
                     self.start_load_yinahuo_yifahuo_thread(item)
-            timer = threading.Timer(time_interval, self.start_run_thread)
-            timer.start()
+
+                elif item.task_name == 'collect_dou_yin_shop_goods_task':
+                    self.start_collect_douyin_goods_thread(item)
+
+            # timer = threading.Timer(time_interval, self.start_run_thread)
+            # timer.start()
 
         main_thread.last_run_time = time.time()
         last_time2 = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
@@ -589,11 +702,7 @@ class AutoScanYiNaHuoOrder(APIView):
         print(last_time2)
         main_thread.save()
 
-
-
-
-
-            # 已拿货已发货任务时间间隔 返回时间秒
+    # 已拿货已发货任务时间间隔 返回时间秒
     def get_load_order_yinahuo_yifahuo_task_interval_time(self,cur_hour):
         if (cur_hour>0 and cur_hour<12) or cur_hour == 12 or cur_hour == 0:
             return 2 * 60 * 60
@@ -608,6 +717,85 @@ class AutoScanYiNaHuoOrder(APIView):
             return 30 *60
         elif cur_hour > 19 and cur_hour < 24 :
             return 1 * 60 * 60
+
+    #   返回采集时间间隔秒
+    def get_collect_douyin_goods_task_interval_time(self, cur_hour):
+        if (cur_hour > 0 and cur_hour < 6) or cur_hour == 6  :
+            return 1 * 60 * 60
+
+        elif (cur_hour > 6 and cur_hour < 10) or cur_hour == 10:
+            return 10 * 60
+        elif (cur_hour > 10 and cur_hour < 13) or cur_hour == 13:
+            return 10 * 60
+        elif (cur_hour > 13 and cur_hour < 18) or cur_hour == 18:
+            return 10 * 60
+        elif (cur_hour > 18 and cur_hour < 24)or cur_hour == 0 :
+            return 10 * 60
+        return 1 * 60 * 60
+
+
+
+    def start_collect_douyin_goods_thread(self, task_item):
+        m_cookies = {"sessionid": "766aec287d506ce9913301792c713ba4"}
+        headers = {"User-Agent": "com.ss.android.ugc.aweme/200301 (Linux; U; Android 6.0.1; zh_CN; MI 5s; Build/V417IR;tt-ok/3.10.0.2)"}
+
+        # 最后 一次运行时间
+        last_time = task_item.last_run_time
+        is_run = task_item.is_run
+        # 运行时间间隔 单位 秒
+        time_interval = task_item.time_interval
+        cur_time = time.time()
+        if is_run is False:
+            return
+        #
+
+        m_time = cur_time - (last_time + time_interval)
+        task_item.last_run_time = time.time()
+        task_item.save()
+        if m_time > 0:
+            last_time2 = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(last_time))
+            cur_time_format = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(cur_time))
+            cur_hour = cur_time_format.split(" ")[1].split(":")[0]
+            order_by = ["update_time"]
+            query_set = trade_models.UserFocusDouYinShop.objects.filter(is_monitor=True).order_by(*order_by)[0:25]
+            print("即将采集店铺数："+str(len(query_set)))
+            for sql_shop_info in query_set:
+                is_monitor = sql_shop_info.is_monitor
+                if is_monitor is False:
+                    continue
+                update_time = sql_shop_info.update_time
+                monitor_url = sql_shop_info.monitor_url
+                url = monitor_url
+                mheader = headers
+                req_params = commom_utils.get_url_params(url)
+                if url.find("lianmengapi.snssdk.com") !=-1:
+                    shop_id = req_params['sec_shop_id']
+                    sql_user_shop = trade_models.UserFocusDouYinShop.objects.filter(shop_id=shop_id).first()
+                    if sql_user_shop is   None:
+                        continue
+                    shop_update_time_old = sql_user_shop.update_time
+                    m_cur_time = time.time()*1000
+                    # 更新时间不小于 1 小时
+                    one_hour = 60 * 60 * 1000
+                    dur_time = m_cur_time - shop_update_time_old
+
+
+                    print("店铺更上次更新时间:" + mtime.stamp_to_time(shop_update_time_old / 1000, "%Y-%m-%d %H:%M:%S"))
+                    if dur_time < one_hour:
+
+                        continue
+
+                    my_site_utils.get_dou_yin_goods_data2(self,url,m_cookies,mheader,req_params,sql_user_shop,req_params['sec_shop_id'])
+                    sql_user_shop.update_time = m_cur_time
+
+                    sql_user_shop.save()
+                random_num = random.randint(1,3)
+                print("随机数:"+str(random_num))
+                time.sleep(random_num)
+            interval_time = self.get_collect_douyin_goods_task_interval_time(int(cur_hour))
+            task_item.time_interval = interval_time
+            # task_item.last_run_time = time.time()
+            task_item.save()
 
     def start_load_yinahuo_yifahuo_thread(self, item):
         # 最后 一次运行时间
@@ -640,7 +828,6 @@ class AutoScanYiNaHuoOrder(APIView):
             item.time_interval = interval_time
             item.last_run_time = time.time()
             item.save()
-
 
 
 class ChangeAllOrderGoodsPurchasingStatusViews(APIView):
@@ -778,8 +965,6 @@ class ChangePurchasingStatus(APIView):
             if goods_number == req_order_goods_list[i].get("goods_number"):
                 return req_order_goods_list[i]
         return ""
-
-
 
 # 明日有货
 class TomorrowGoodsView(APIView):
@@ -932,8 +1117,8 @@ class DeliverNullOrderView(APIView):
                 req_order_id_list = []
                 # 异常状态订单
                 exception_order_list = []
-                for req_order_object in req_order_list:
-                    req_id = req_order_object.get("id")
+                for i in range(0,len(req_order_list)):
+                    req_id = req_order_list[i].get("id")
                     if req_id is not None and req_id != "":
                         if ip.find('172.17.1.38') != -1:
                             if req_id.startswith("r") is False:
@@ -942,7 +1127,7 @@ class DeliverNullOrderView(APIView):
                                 return JsonResponse(ret)
                             else:
                                 req_id = req_id.replace('r', '')
-                                req_order_list['id'] = req_id
+                                req_order_list[i]['id'] = req_id
                         req_order_id_list.append(req_id)
 
                 order_queryset = trade_models.NullPackageOrder.objects.select_for_update().filter(Q(id__in=req_order_id_list)).distinct()

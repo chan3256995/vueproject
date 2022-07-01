@@ -205,18 +205,21 @@ class TradeOrderGoodsSerializer(serializers.ModelSerializer):
     (6, '已退款'),
     (7, '缺货'),)
     """
+
+    image_url = serializers.CharField(required = False,allow_blank=True, max_length=240)
     # 订单状态选择
     status_choices = mcommon.status_choices
     goods_number = serializers.CharField(max_length=30,required=False,default='')
     shop_floor = serializers.CharField(allow_null=False)
     status = serializers.ChoiceField(choices=status_choices,default=1)
     shop_market_name = serializers.CharField(required=True,max_length=120)
+    tb_goods_id = serializers.CharField(required=False,allow_blank=True,max_length=120)
     shop_floor = serializers.CharField(required=True,max_length=30)
     shop_stalls_no = serializers.CharField(required=True,max_length=30)
     art_no = serializers.CharField(required=True,max_length=20)
     goods_price = serializers.FloatField(required=True)
-    goods_color = serializers.CharField(required=True,max_length=20)
-    goods_size = serializers.CharField(required=False,max_length=20)
+    goods_color = serializers.CharField(required=True,max_length=50)
+    goods_size = serializers.CharField(required=False,max_length=50)
     goods_count = serializers.IntegerField(min_value=1,default=1)
     customer_message = serializers.CharField(required = False,allow_blank=True, max_length=2048)
     add_time = serializers.IntegerField(default=time.time(), write_only=True)
@@ -254,7 +257,10 @@ class TradeOrderCreateSerializer(serializers.ModelSerializer):
     consignee_address = serializers.CharField( max_length=140)
     consignee_name = serializers.CharField(max_length=30)
     consignee_phone = serializers.IntegerField()
-
+    # 第三方平台名    淘宝 天猫  屁多多
+    shop_platform = serializers.CharField(max_length=30,allow_null=True)
+    wangwang_id = serializers.CharField(max_length=40,allow_null=True)
+    shop_name = serializers.CharField(max_length=100,allow_null=True)
     def get_order_owner(self, obj):
         if obj.order_owner:
             return obj.order_owner.user_name
@@ -263,7 +269,7 @@ class TradeOrderCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Order
         # fields = ['consignee_address',]
-        fields = ("consignee_address", "consignee_name", "consignee_phone")
+        fields = ("consignee_address", "consignee_name", "consignee_phone","shop_platform","wangwang_id","shop_name")
         # 查表深度  关联表（父表）的数据也会查处出来  深度值官方推荐 0-10
         depth = 0
 
@@ -292,8 +298,9 @@ class tTradeOrderQuerySerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Order
         fields = ["id","order_number","order_owner"
-                          ,"pay_no","consignee_address","consignee_name","consignee_phone","sender_address","sender_name","sender_phone","is_delete","quality_testing_name",
+                          ,"pay_no","consignee_address","consignee_name","consignee_phone","sender_address","sender_name","sender_phone","is_delete","quality_testing_name","shop_platform","wangwang_id","shop_name",
                            "quality_testing_fee","logistics_fee","agency_fee","logistics_name","logistics_number","weight","total_price","add_time","orderGoods","order_status","update_time", "tb_order_number","order_remarks","tag_type"]
+
         # fields = '__all__'
         # 查表深度  关联表（父表）的数据也会查处出来  深度值官方推荐 0-10
         depth = 2
@@ -309,6 +316,10 @@ class TradeAddOrdersSerializer(serializers.ModelSerializer):
     order_owner = serializers.HiddenField(
         default=serializers.CurrentUserDefault()
     )
+    # 第三方平台名    淘宝 天猫  屁多多
+    shop_platform = serializers.CharField(required=False,max_length=30,allow_null=True)
+    wangwang_id = serializers.CharField(required=False,max_length=40,allow_null=True)
+    shop_name = serializers.CharField(required=False,max_length=100,allow_null=True)
     # 订单号
     order_number = serializers.CharField(read_only=True,max_length=30,)
     # 付款单号
@@ -317,12 +328,12 @@ class TradeAddOrdersSerializer(serializers.ModelSerializer):
     # 收件人信息
     consignee_address = serializers.CharField(required=True, max_length=140)
     consignee_name = serializers.CharField(required=True, max_length=30)
-    consignee_phone = serializers.IntegerField(required=True)
+    consignee_phone = serializers.CharField(required=True)
 
     # 寄件人信息
     sender_address = serializers.CharField(max_length=140,default="广东省，广州市，天河区风刀霜剑法律的精神")
     sender_name = serializers.CharField(max_length=30,default="小刘")
-    sender_phone = serializers.IntegerField(default=17820158888)
+    sender_phone = serializers.CharField(default=17820158888)
     # 是否删除（逻辑删除）
     is_delete = serializers.BooleanField(default=False)
     # 运费
@@ -430,6 +441,70 @@ class TradeAddNullPackageOrdersSerializer(serializers.ModelSerializer):
         # fields = ['consignee_address',]
         fields = '__all__'
         # 查表深度  关联表（父表）的数据也会查处出来  深度值官方推荐 0-10
+        depth = 1
+
+
+# 用户自己保存的商品
+class UserGoodsSerializer(serializers.ModelSerializer):
+    """
+    用户自己保存的商品
+    """
+    class Meta:
+        model = models.UserGoods
+        fields = "__all__"
+
+
+# 用户关注的抖音店铺商品
+class UserDouYinGoodsSerializer(serializers.ModelSerializer):
+    """
+    用户自己保存的商品
+    """
+    class Meta:
+        model = models.DouYinGoods
+        fields = "__all__"
+        depth = 1
+
+
+# 用户收藏的抖音店铺
+class UserFavDouYinShopSerializer(serializers.ModelSerializer):
+    """
+    用户关注的抖音店铺
+    """
+
+
+    class Meta:
+        model = models.UserFavDouYinShopInfo
+        fields = (
+        "id","dou_yin_shop", "remarks", "is_monitor", "monitor_url", "type", "add_time")
+        depth = 1
+
+
+   # 用户收藏的抖音店铺
+class UserDouYinShopSerializer(serializers.ModelSerializer):
+    """
+    抖音店铺
+    """
+
+
+    class Meta:
+        model = models.UserFocusDouYinShop
+        fields ="_all__"
+        depth = 1
+        # 反向序列化  要在model.DouYinGoods 理的对应指向dou_yin_shop的字段 设置 related_name 为 ‘douYinGoods’
+
+    douYinGoods = UserDouYinGoodsSerializer(many=True, read_only=True)
+
+
+#
+class DouYinGoodsCollectRecordSerializer(serializers.ModelSerializer):
+    """
+    抖音商品采集记录
+    """
+
+
+    class Meta:
+        model = models.DouYinGoodsCollectRecord
+        fields = "__all__"
         depth = 1
 
 

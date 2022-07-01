@@ -4,6 +4,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelatio
 from django.contrib.contenttypes import models as con_models
 from django.db import models
 from user.models import User
+
 from utils import mcommon
 
 import time
@@ -12,9 +13,9 @@ import time
 # 保存在本地的商品
 class Goods(models.Model):
     # 货源网址soukw
-    origin_url = models.CharField(max_length=120, null=True)
+    origin_url = models.CharField(max_length=240, null=True)
     # 商品主图
-    image_url = models.CharField(max_length=120, null=True)
+    image_url = models.CharField(max_length=240, null=True)
     # 店铺市场名 女人街
     shop_market_name = models.CharField(max_length=120, null=False)
     # 店铺楼层 2楼
@@ -22,19 +23,134 @@ class Goods(models.Model):
     # 店铺地址 档口吗
     shop_stalls_no = models.CharField(max_length=120, null=False)
     # 货号
-    art_no = models.CharField(max_length=20, null=False)
+    art_no = models.CharField(max_length=50, null=False)
     goods_price = models.FloatField(null=False)
-    goods_color = models.CharField(max_length=10, null=False)
-    goods_size = models.CharField(max_length=10, null=False,default="")
+    goods_color = models.CharField(max_length=50, null=False)
+    goods_size = models.CharField(max_length=50, null=False,default="")
     add_time = models.BigIntegerField(null=False)
     # 是否删除（逻辑删除）
     is_delete = models.BooleanField(default=False, null=False)
     add_time = models.BigIntegerField(null=False)
 
 
+# 用户保存在本地的商品
+class UserGoods(models.Model):
+    goods_owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    # 货源网址soukw
+    origin_url = models.CharField(max_length=240, null=True)
+    # 商品主图
+    image_url = models.CharField(max_length=240, null=True)
+    # 用户自定义唯一标识
+    user_code = models.CharField(max_length=120, null=True)
+    # 替换字符规则  比如颜色字符替换  价格替换等
+    replace_string = models.CharField(max_length=120, null=True)
+    # 店铺市场名 女人街
+    shop_market_name = models.CharField(max_length=120, null=False)
+    # 店铺楼层 2楼
+    shop_floor = models.CharField(max_length=120, null=False)
+    # 店铺地址 档口吗
+    shop_stalls_no = models.CharField(max_length=120, null=False)
+    # 店铺档口名
+    shop_name = models.CharField(max_length=120, null=True)
+    # 货号
+    art_no = models.CharField(max_length=50, null=False)
+    goods_price = models.FloatField(null=False)
+    goods_color = models.CharField(max_length=50, null=False)
+    goods_size = models.CharField(max_length=50, null=False,default="")
+    goods_title = models.CharField(max_length=200, null=True)
+    # 备注
+    remarks = models.CharField(max_length=200, null=True)
+    add_time = models.BigIntegerField(null=False)
+    # 是否删除（逻辑删除）
+    is_delete = models.BooleanField(default=False, null=False)
+    # 是否默认
+    is_default = models.BooleanField(default=False, null=False)
+
+# ********************************抖音********************************
+
+
+
+# 用户添加的抖音店铺
+class UserFocusDouYinShop(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    # 字符ID
+    shop_id = models.CharField(null=False,max_length=40,unique=True)
+    # 要监控的地址
+    monitor_url = models.CharField(max_length=1024, null=True)
+    # 数字ID
+    shop_id2 = models.CharField(null=False,max_length=40,unique=True, blank=True)
+    # 店铺主图
+    image_url = models.CharField(max_length=240, null=True)
+
+    # 店铺名
+    shop_name = models.CharField(max_length=120, null=True)
+    # 备注
+    remarks = models.CharField(max_length=200, null=True)
+    # 是否监控
+    is_monitor = models.BooleanField(default=False, null=False)
+    update_time = models.BigIntegerField(null=False,default=0)
+    add_time = models.BigIntegerField(null=False)
+
+
+class UserFavDouYinShopInfo(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    dou_yin_shop = models.ForeignKey(UserFocusDouYinShop, on_delete=models.CASCADE)
+    # 备注
+    remarks = models.CharField(max_length=200, null=True)
+    # 是否监控
+    is_monitor = models.BooleanField(default=False, null=False)
+    # 要监控的地址
+    monitor_url = models.CharField(max_length=1024, null=True)
+
+    # 分组
+    type = models.SmallIntegerField(choices=mcommon.dou_yin_fav_shop_type_choices,default=1)
+    add_time = models.BigIntegerField(null=False)
+
+
+# 抖音商品
+class DouYinGoods(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    dou_yin_shop = models.ForeignKey(UserFocusDouYinShop,related_name="douYinGoods" ,on_delete=models.CASCADE)
+    #
+    image = models.CharField(max_length=240, null=True)
+    img = models.CharField(max_length=240, null=True)
+    discount_price = models.FloatField(null=False)
+    goods_price = models.FloatField(null=False)
+    market_price = models.FloatField(null=False)
+    show_price = models.FloatField(null=False)
+    goods_id = models.CharField(max_length=64,null=False,unique=True)
+    goods_name = models.CharField(max_length=160, null=True)
+    name = models.CharField(max_length=160, null=True)
+    shop_id = models.CharField(max_length=120, null=True)
+    product_id = models.CharField(max_length=120, null=True,unique=True)
+    sell_num = models.IntegerField(null=False,default=0)
+    today_sell_num =  models.IntegerField(null=True,default=0)
+    add_time = models.BigIntegerField(null=False)
+    update_time = models.BigIntegerField(null=False)
+
+
+# 抖音商品采集记录
+class DouYinGoodsCollectRecord(models.Model):
+    dou_yin_goods = models.ForeignKey(DouYinGoods, on_delete=models.CASCADE)
+    discount_price = models.FloatField(null=False)
+    goods_price = models.FloatField(null=False)
+    market_price = models.FloatField(null=False)
+    show_price = models.FloatField(null=False)
+    goods_id = models.CharField(max_length=64,null=False)
+    goods_name = models.CharField(max_length=160, null=True)
+    name = models.CharField(max_length=160, null=True)
+    product_id = models.CharField(max_length=120, null=True)
+    sell_num = models.IntegerField(null=False,default=0)
+    add_time = models.BigIntegerField(null=False)
+
+
+
+# ********************************抖音********************************
+
+
 class TradeInfo(models.Model):
     # 所属用户
-    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    user = models.ForeignKey(User,on_delete=models.CASCADE,null=True)
     # 交易流水号
     trade_number = models.CharField(max_length=30, null=False, unique=True)
     # 用户当前剩下金额
@@ -77,7 +193,11 @@ class Order(models.Model):
     # 订单跟进人
     order_follower = models.ForeignKey(User,null=True,default=None,on_delete=models.SET_NULL, related_name="orderFollower")
     order_remarks = models.ForeignKey("OrderRemarks",null=True,default=None,on_delete=models.SET_NULL ,related_name="orderRemarks")
-
+    # 第三方平台名    淘宝 天猫  屁多多
+    shop_platform = models.CharField(max_length=30,null=True)
+    # 卖家旺旺id
+    wangwang_id = models.CharField(max_length=40,null=True)
+    shop_name = models.CharField(max_length=100,null=True)
     # 订单号
     order_number = models.CharField(max_length=30, null=False ,unique=True)
     # 淘宝订单号
@@ -139,6 +259,8 @@ class NullPackageOrder(models.Model):
     order_number = models.CharField(max_length=30, null=False ,unique=True)
     # 淘宝订单号
     tb_order_number = models.CharField(max_length=30, null=True ,unique=True)
+    # 卖家旺旺ID
+    tb_seller_wangwang_id = models.CharField(max_length=50, null=True ,unique=False)
 
     # 收件人信息
     consignee_address = models.CharField(null=False,max_length=140)
@@ -177,6 +299,8 @@ class NullPackageTemp(models.Model):
     order_owner = models.ForeignKey(User, on_delete=models.CASCADE)
     # 淘宝订单号
     tb_order_number = models.CharField(max_length=30, null=True ,unique=True)
+    # 卖家旺旺ID
+    tb_seller_wangwang_id = models.CharField(max_length=50, null=True)
     # 收件人信息
     consignee_address = models.CharField(null=False,max_length=140)
     consignee_name = models.CharField(max_length=30,null=False)
@@ -192,7 +316,8 @@ class NullPackageLogistics(models.Model):
 
 # 订单商品
 class OrderGoods(models.Model):
-
+    # 商品主图
+    image_url = models.CharField(max_length=240, null=True)
     # 商品状态选择
     status_choices = mcommon.status_choices
     # 退款状态
@@ -227,9 +352,10 @@ class OrderGoods(models.Model):
     # 货号
     art_no = models.CharField(max_length=20, null=False)
     goods_price = models.FloatField(null=False)
-    goods_color = models.CharField(max_length=30, null=False)
-    goods_size = models.CharField(max_length=30, null=False)
+    goods_color = models.CharField(max_length=50, null=False)
+    goods_size = models.CharField(max_length=50, null=False)
     goods_count = models.IntegerField(default=1)
+    tb_goods_id = models.CharField(null=True,  max_length=120)
     add_time = models.BigIntegerField(null=False)
     return_logistics_name = models.CharField(null=True,max_length=30)
     # 退货物流单号

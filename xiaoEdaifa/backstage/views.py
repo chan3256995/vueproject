@@ -28,14 +28,99 @@ from trade import trade_utils
 from backstage import bserializers
 from _decimal import Decimal
 from utils import mtime
+from contextlib import closing
 import time
 from utils import String
-
+import requests
 import xlwt
 import traceback
 import logging
 import json
 logger = logging.getLogger('stu')
+
+
+class GetZhaoYaoJingImage(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        ret = {"code": "1000", "message": ""}
+        data = request.data
+        referer = data.get("referer")
+        image_list = json.loads(data.get("image_list"))
+        return_image_url_list = []
+        try:
+            headers = {
+                # cookie 这里就不贴出来了 ![(☆_☆)/~~]
+                #  "Cookie": "JSESSIONID=3A2EFB775241DD7BFACA1E75D99624AF-n1",
+                # 'content-type': 'charset=gbk',
+                # 'Content-Type': 'application/x-www-form-urlencoded',
+                # 'Connection': 'keep-alive',
+                # 'Accept-Encoding': 'gzip, deflate',
+                # 'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+                # 'host':',
+                # # 'origin': '',
+                'Referer': referer,
+                # "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36",
+                "User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36",
+
+            }
+
+            today = datetime.today()
+
+            # today_date = mtime.stamp_to_time(time.time(), "%Y-%m-%d %H-%M-%S")
+
+
+
+            # zhaoyaojing_pic2 = str(today_date) + 'zhaoyaojing_pic2.png'
+            # zhaoyaojing_pic1 = 'zhaoyaojing_pic1.png'
+            # zhaoyaojing_pic2 = 'zhaoyaojing_pic2.png'
+
+            # 需要导出保存的订单
+            new_order_list = []
+            # 文件保存地址
+            zhaoyaojing_pic_path = settings.TEMP_FILE_DIRS + "/bk2/"
+            # 文件远程访问地址
+
+
+
+
+
+            # url1 = "http://192.168.1.102:8009/back/static/temp/bk2/zhaoyaojing_pic1.png"
+            # url1 = "http://i.cy1788.cn/data/m/20211102/e5c439cc9a8f40979a0765f9780e3597.png"
+
+            for i in range(len(image_list)):
+                today_date = int(time.time() * 1000)
+                zhaoyaojing_pic = str(today_date) + 'zhaoyaojing_pic.png'
+                zhaoyaojing_pic_url = mglobal.STATIC_URL_BK + "/back" + settings.STATIC_URL + "temp/bk2/" + zhaoyaojing_pic
+                with closing(requests.get(image_list[i], headers=headers, stream=True)) as response:
+                    with open(zhaoyaojing_pic_path + zhaoyaojing_pic, "wb") as file:
+                        for data in response.iter_content(128):
+                            file.write(data)
+                return_image_url_list.append(zhaoyaojing_pic_url)
+
+
+
+                # 保存之前把之前生成的文件都删除了 以免时间长了存留太多文件
+            file_list = mfile_utils.get_file_list(settings.TEMP_FILE_DIRS + "/bk2/")
+            for file in file_list:
+                print("文件名：" + file)
+                m_time = int(file[0:13])
+                curr_time= int(time.time() * 1000 )
+                tt = curr_time - m_time
+                expire_time =  30 * 60 *1000
+                if tt > expire_time:
+                    mfile_utils.delete_file(settings.TEMP_FILE_DIRS + "/bk2/" + file)
+
+            # wbk.save(excel_path + zhaoyaojing_pic2)
+            ret['image_list'] = return_image_url_list
+        except:
+            print(traceback.print_exc())
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "获取失败"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+        return Response(ret)
 
 
 # 导出标签打印状态的订单
@@ -335,6 +420,7 @@ class OutPutOrdersView(APIView):
         try:
             with transaction.atomic():
                 ip = mIP_utils.get_windows_local_ip()
+
                 # 实例化一个Workbook()对象(即excel文件)
                 wbk = xlwt.Workbook()
                 # 新建一个名为Sheet1的excel sheet。此处的cell_overwrite_ok =True是为了能对同一个单元格重复操作。
@@ -429,17 +515,19 @@ class OutPutOrdersView(APIView):
 
                         floor = order_goods.shop_floor
                         stall_no = order_goods.shop_stalls_no
+                        print("floor_befor:",floor)
                         while floor.find("楼") !=-1:
                             floor = floor.replace("楼","F")
 
-                        while floor.find("区") !=-1:
-                            floor = floor.replace("区","")
+                        # while floor.find("区") !=-1:
+                        #     floor = floor.replace("区","")
                         while floor.find("f") != -1:
                             floor = floor.replace("f", "F")
-                        floor = floor[0:floor.find('F')+1]
+                        # floor = floor[0:floor.find('F')+1]
                         import re
                         reg_ = '^[0-9]F'
                         result = re.match(reg_, stall_no)
+                        print("floor_after:", floor)
                         if result is not  None:
                             stall_no = stall_no.replace(result[0],"")
                         sheet.write(cur_row, 2, floor)
@@ -448,10 +536,12 @@ class OutPutOrdersView(APIView):
                         sheet.write(cur_row, 5, order_goods.goods_color)
                         sheet.write(cur_row, 6, order_goods.goods_count)
                         sheet.write(cur_row, 7, order_goods.goods_price)
-                        sheet.write(cur_row, 8, "")
+                        sheet.write(cur_row, 8, order_goods.image_url)
 
                         sheet.write(cur_row, 9, order_goods.customer_message)
                         id_ = order_goods.id
+
+
                         if ip.find('172.17.1.38') != -1:
                             id_ = "r"+str(order.id)+"-"+str(order_goods.id)
 
@@ -460,6 +550,7 @@ class OutPutOrdersView(APIView):
 
                         sheet.write(cur_row, 10, id_)
                         sheet.write(cur_row, 11, consignee_address)
+                        sheet.write(cur_row, 12, order_goods.tb_goods_id)
                         # 合并第1行到第2行的第0列到第3列。
                         sheet.write_merge(cur_order_row, cur_row, 11, 11, order.consignee_name + "，" + str(order.consignee_phone) + "，" + consignee_address)
 
@@ -472,10 +563,14 @@ class OutPutOrdersView(APIView):
                         new_order_goods['goods_color'] = order_goods.goods_color
                         new_order_goods['goods_count'] = order_goods.goods_count
                         new_order_goods['goods_price'] = order_goods.goods_price
+                        new_order_goods['image_url'] = order_goods.image_url
                         new_order_goods['customer_message'] = order_goods.customer_message
+
                         new_order_goods['id'] = id_
+                        new_order_goods['tb_goods_id'] = order_goods.tb_goods_id
                         new_order_goods_list.append(new_order_goods)
                         new_order["order_goods"] = new_order_goods_list
+                        print("last:", new_order_goods['shop_floor'])
                         # ---------------------
                     order.tag_type = 1
                     order.save()
@@ -492,6 +587,7 @@ class OutPutOrdersView(APIView):
                 mfile_utils.write_file(settings.TEMP_FILE_DIRS + "/bk/"+json_file_name,json.dumps(new_order_list))
                 ret['excel_url'] = excel_url
                 ret['json_str'] = json.dumps(new_order_list)
+                print("out_putdata:",json.dumps(new_order_list))
         except:
             traceback.print_exc()
             ret['code'] = "1001"
@@ -837,15 +933,22 @@ class OrderViewSet(mixins.ListModelMixin,mixins.UpdateModelMixin, GenericViewSet
 
         def get_queryset(self):
             print(self.request.query_params)
+            order_by = ["-add_time"]
             default_query_keys = self.request.query_params.get("q")
             status_filter = self.request.query_params.get("status")
             user_name_query = self.request.query_params.get("user_name")
             during_time = self.request.query_params.get("during_time")
             order_follower_user_name = self.request.query_params.get("order_follower_user_name")
             market_full = self.request.query_params.get("market_full")
+            order_by_params = self.request.query_params.get("order_by")
             print("query_keys")
-            print(default_query_keys)
+            print(order_by_params)
             args = Q()
+            if order_by_params is not None:
+                if order_by_params == "update_time" :
+                    order_by = ["-update_time","-add_time"]
+                elif order_by_params == "goods":
+                    order_by = ["orderGoods__tb_goods_id", "-add_time"]
             if during_time is not None:
                 if during_time.find('/') != -1:
                     time_arr = during_time.split('/')
@@ -886,11 +989,12 @@ class OrderViewSet(mixins.ListModelMixin,mixins.UpdateModelMixin, GenericViewSet
                 shop_floor = market_full.get('shop_floor')
                 shop_stalls_no = market_full.get('shop_stalls_no')
                 art_no = market_full.get('art_no')
-                args = args & Q(orderGoods__shop_market_name__contains=shop_market_name) & Q(orderGoods__shop_floor__contains=shop_floor) & Q(orderGoods__shop_stalls_no__contains=shop_stalls_no) & Q(orderGoods__art_no__contains=art_no)
+                tb_goods_id = market_full.get('tb_goods_id')
+                args = args & Q(orderGoods__shop_market_name__contains=shop_market_name) & Q(orderGoods__shop_floor__contains=shop_floor) & Q(orderGoods__shop_stalls_no__contains=shop_stalls_no) & Q(orderGoods__art_no__contains=art_no)& Q(orderGoods__tb_goods_id__contains=tb_goods_id)
                 # return trade_models.Order.objects.filter(args).distinct().order_by( "-add_time")
 
 
-            return trade_models.Order.objects.filter(args).distinct().order_by("-add_time")
+            return trade_models.Order.objects.filter(args).distinct().order_by(*order_by)
 
 
         def update(self, request, *args, **kwargs):
@@ -961,6 +1065,7 @@ class NullOrderViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, GenericVi
         status_filter = self.request.query_params.get("status")
         user_name_query = self.request.query_params.get("user_name")
         during_time = self.request.query_params.get("during_time")
+        seller_wangwang_id = self.request.query_params.get("seller_wangwang_id")
         status_filter_list_str = self.request.query_params.get("status_list")
 
         print("query_keys")
@@ -971,8 +1076,6 @@ class NullOrderViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, GenericVi
                 time_arr = during_time.split('/')
                 start_time_str = time_arr[0].strip()
                 end_time_str = time_arr[1].strip()
-                print(start_time_str)
-                print(end_time_str)
 
                 start_stamp = mtime.get_time_stamp13(start_time_str + " 00:00:00.000")
                 end_stamp = mtime.get_time_stamp13(end_time_str + " 00:00:00.000") + 24 * 60 * 60 * 1000  # 下一天 毫秒级时间戳
@@ -982,6 +1085,8 @@ class NullOrderViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, GenericVi
                 end_stamp = mtime.get_time_stamp13(
                     during_time.strip() + " 00:00:00.000") + 24 * 60 * 60 * 1000  # 下一天 毫秒级时间戳
                 args = args & Q(add_time__gte=start_stamp) & Q(add_time__lt=end_stamp)
+        if seller_wangwang_id is not None:
+            args = args & Q(tb_seller_wangwang_id=seller_wangwang_id)
         if default_query_keys is not None:
 
             query_keys_args = Q(order_number=default_query_keys) | Q(consignee_name__contains=default_query_keys) | Q(
@@ -1629,5 +1734,5 @@ class OrderGoodsRefundViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, G
             args = args & query_keys_args
 
         # args = args & args_2
-        return trade_models.Order.objects.filter( args).order_by("-orderGoods__refund_apply__add_time")
+        return trade_models.Order.objects.filter( args).distinct().order_by("-orderGoods__refund_apply__add_time")
 

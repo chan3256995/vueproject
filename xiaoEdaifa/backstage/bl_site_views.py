@@ -4,11 +4,15 @@ from utils.permission import Superpermission,NahuoUserpermission
 from trade import models as trade_models
 from rest_framework.response import Response
 from django.db import transaction
+from utils import mcommon
 from utils import bl_site_utils
+from utils.auth import UserAuthtication
+from utils.permission import UserPermission
 import json
 import traceback
 import logging
 logger = logging.getLogger('stu')
+
 
 # // 申请退货退款
 class BLTuihuotuikApply(APIView):
@@ -55,6 +59,7 @@ class BLTuihuotuikApply(APIView):
         return Response(ret)
 
 
+
 class BLGetOrderInfo(APIView):
 
     authentication_classes = [BackStageAuthentication, BackStageNahuoAuthentication]
@@ -87,6 +92,50 @@ class BLGetOrderInfo(APIView):
                                 ret['message'] = ""
                                 ret['order_info_list'] = order_info_list
                                 return Response(ret)
+
+        except:
+            print(traceback.print_exc())
+            ret['code'] = "1001"
+            ret['message'] = "查询异常"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return Response(ret)
+        return Response(ret)
+
+
+# 获取账户记录
+class BLGetAccountRecordByOrderNumber(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                ret = {'code': "1000", 'message': ""}
+                print(request.data)
+                order_number = request.data.get("order_number")
+
+                od_number = str(order_number).replace("os", "")
+                if od_number is not None and od_number != '':
+                    login_result = bl_site_utils.login()
+                    if login_result.get("code") == 'ok':
+                        url ="/User/MyAccount.aspx"
+                        params = bl_site_utils.get_page_params(url,login_result.get("cookies"))
+
+                        params['ctl00$ContentPlaceHolder1$txtStart'] = ''
+                        params['ctl00$ContentPlaceHolder1$txtEnd'] = ''
+                        params['ctl00$ContentPlaceHolder1$txtOrderNumber'] = od_number
+                        params['ctl00$ContentPlaceHolder1$txtOperateuser'] = ''
+                        params['ctl00$ContentPlaceHolder1$dllType'] = ''
+                        params['ctl00$ContentPlaceHolder1$txtRemark'] = ''
+                        params['ctl00$ContentPlaceHolder1$btnSearch'] = '查询'
+
+                        order_res = bl_site_utils.get_account_record_by_order_number(login_result.get("cookies"), params)
+                        if order_res is not None:
+                            accout_record_list = order_res['accout_record_list']
+                            ret['code'] = "1000"
+                            ret['message'] = ""
+                            ret['accout_record_list'] = accout_record_list
+                            return Response(ret)
 
         except:
             print(traceback.print_exc())

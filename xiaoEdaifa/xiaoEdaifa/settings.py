@@ -181,7 +181,7 @@ REST_FRAMEWORK = {
     #
     "DEFAULT_THROTTLE_RATES": {
     # 每分钟60次频率
-        'vister': '60/m',
+        'vister': '600/m',
     },
    # "DEFAULT_PARSER_CLASSES": ['rest_framework.parsers.JSONParser', 'rest_framework.parsers.FormParser'],
 }

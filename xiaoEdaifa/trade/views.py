@@ -77,11 +77,12 @@ class PayInfoView(APIView):
         try:
             ret = {'code': "1000", 'message': ""}
             d = request.data
-            items = d.dict()
-            req_data = {}
-            for key in items.keys():
-                req_data = eval(key)
-                break
+            # items = d.dict()
+            # req_data = {}
+            req_data = d
+            # for key in items.keys():
+            #     req_data = eval(key)
+            #     break
             # req_data = {"pay":"Ali","uid":"2088012229532543","mark":"1574483704625_12_最初_17pay","money":"50.00","tradeNo":"201909182000400111005400396189"}
             trade_info = trade_models.TradeInfo.objects.filter(recharge_number=req_data.get("tradeNo")).first()
             # 如果该支付订单存在则自动审核
@@ -123,6 +124,8 @@ class PayInfoView(APIView):
             ret['message'] = '提交失败'
             return Response(status=400, data=ret)
         return Response(status=200,data=ret)
+
+    # def customize_code(self,request,req_data):
 
 
 # 保存Android客户端监听到的支付订单信息

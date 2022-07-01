@@ -14,12 +14,17 @@ logger = logging.getLogger('stu')
 from utils import encryptions
 
 back_null_package_logistic_choices = {
-    '圆通洗衣粉': "圆通实包",
+    '圆通洗衣粉': "圆通洗衣粉",
+    '圆通纸板': "圆通纸板",
+    '圆通纸巾': "圆通纸巾",
     '圆通实包': "圆通实包",
     '圆通信封': "圆通空包",
     '韵达信封': "韵达空包",
     '韵达空包': "韵达空包",
     '韵达实包': "韵达实包",
+    '韵达纸巾': "韵达纸巾",
+    '韵达纸板': "韵达纸板",
+    '中通空包': "中通空包",
 
 
 
@@ -34,6 +39,9 @@ def recharge_pass(trade_number):
                 user = user_models.User.objects.select_for_update().filter(id=trade_info.user.id).first()
 
                 user.balance = float(Decimal(str(user.balance)) + Decimal(str(trade_info.trade_money)))
+                print(float(Decimal(str(user.balance))))
+                print( Decimal(str(trade_info.trade_money)))
+                print(float(Decimal(str(user.balance)) + Decimal(str(trade_info.trade_money))))
                 trade_info.user_balance = user.balance
                 trade_info.is_pass = True
                 user.save()

@@ -8,6 +8,7 @@ from utils import mcommon
 from django.db import transaction
 from utils.auth import UserAuthtication
 from utils.permission import UserPermission
+from utils import bl_site_utils
 logger = logging.getLogger('stu')
 from rest_framework import mixins
 from rest_framework.viewsets import GenericViewSet
@@ -352,4 +353,58 @@ class NullOrdersPayView(APIView):
             ret['code'] = "1001"
             ret['message'] = "支付失败"
             logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+        return JsonResponse(ret)
+
+
+# 获取单号
+class BLGetOrderLogisticsInfo(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                ret = {'code': "1000", 'message': ""}
+                # order_number_list =  json.loads(request.data.get("order_number_list"))
+                order_number_list = request.data.get("order_number_list")
+                exception_order_list = []
+                success_order_list = []
+                for order_number in order_number_list:
+                    order_sql = trade_models.Order.objects.select_for_update().filter(order_number=order_number).first()
+                    if order_sql.order_owner != request.user:
+                        ret["code"] = "1001"
+                        ret["message"] = "订单无效 非法访问"
+                        return JsonResponse(ret)
+                    order_goods_query = trade_models.OrderGoods.objects.filter(order=order_sql)
+
+                    is_ok = True
+                    for order_goods in order_goods_query:
+                        if order_goods.status != mcommon.status_choices2['已拿货'] and order_goods.status != mcommon.status_choices2['已退款']:
+                            is_ok = False
+                    if is_ok:
+                        od_number = order_number.replace("os", "")
+                        # od_number = "202008201317352331600"
+                        advance_logistics_result = bl_site_utils.get_order_logistics_numbers_bl(od_number)
+                        # advance_logistics_result = {}
+                        # advance_logistics_result['code'] = "ok"
+                        # advance_logistics_result['logistics_number']="666333f"
+                        print(advance_logistics_result)
+                        if advance_logistics_result['code'] == "ok":
+                            success_item = {"order_number":order_number,"advance_logistics_number":advance_logistics_result['logistics_number']}
+                            success_order_list.append(success_item)
+                            order_sql.logistics_number = advance_logistics_result['logistics_number']
+                            order_sql.save()
+                        else:
+                            exception_order_list.append({"order_number":order_number,"message":advance_logistics_result['message']})
+                    else:
+                        exception_order_list.append({"order_number":order_number,"message":"状态异常"})
+
+        except:
+            print(traceback.print_exc())
+            ret['code'] = "1001"
+            ret['message'] = "查询异常"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return JsonResponse(ret)
+        ret["exception_list"] = exception_order_list
+        ret["success_list"] = success_order_list
         return JsonResponse(ret)

@@ -2,13 +2,14 @@
 from user import user_utils
 
 from utils import mcommon
+from utils import mtime
 from rest_framework.views import APIView
 from user import models
-import traceback
+from utils import my_site_utils
 from utils.String import REGEX_MOBILE
 from django.forms.models import model_to_dict
 from trade import models as trade_models
-
+from django.db.models import Max,Min
 from rest_framework.pagination import PageNumberPagination
 from utils import m_serializers
 
@@ -30,6 +31,7 @@ from trade import models as trmodels
 from django.db.models import Q
 from user import trade_views
 from trade import trade_utils
+
 from utils import commom_utils
 from xiaoEdaifa import settings
 from utils import mglobal
@@ -159,7 +161,7 @@ class UserMulOrderSaveViewSet(CreateModelMixin,GenericViewSet):
                 except:
 
                     exception_order_list.append(order)
-                    if json.dumps(serializer.errors).find("order with this tb order number already exists"):
+                    if json.dumps(serializer.errors).find("order with this tb order number already exists") !=-1:
                         order['return_message'] = "淘宝订单号已存在"
                         ret['message'] = '淘宝订单号已存在'
                         continue
@@ -213,6 +215,25 @@ class UserMulOrderSaveViewSet(CreateModelMixin,GenericViewSet):
                         raise Exception
 
                     for orderGoods in orderGoodsList:
+                        # ---------------------- 传来用户编码就进行地替换商品--------------------------------
+                        user_code = orderGoods.get('user_code')
+                        print("user_code:" + user_code)
+                        if user_code is not None:
+                            try:
+                                user_code_goods_query = trade_models.UserGoods.objects.filter(user_code=user_code)
+                                for user_code_goods in user_code_goods_query:
+                                    if user_code == user_code_goods.user_code and user_code_goods.is_default is True:
+                                        orderGoods['shop_market_name'] = user_code_goods.shop_market_name
+                                        orderGoods['shop_floor'] = user_code_goods.shop_floor
+                                        orderGoods['shop_stalls_no'] = user_code_goods.shop_stalls_no
+                                        orderGoods['art_no'] = user_code_goods.art_no
+                                        orderGoods['goods_price'] = user_code_goods.goods_price
+                                        break
+                            except:
+                                traceback.print_exc()
+
+                                logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+                        # ---------------------- 传来用户编码就进行地替换商品--------------------------------
                         # raise DatabaseError  # 报出错误，检测事务是否能捕捉错误
                         goods_count = Decimal(str((orderGoods.get('goods_count'))))
                         goods_price = Decimal(str((orderGoods.get('goods_price'))))
@@ -513,25 +534,41 @@ class UserOrderViewSet(ListModelMixin,DestroyModelMixin, GenericViewSet):
                 status_filter_list_str = self.request.query_params.get("status_list")
                 refund_apply_status = self.request.query_params.get("refund_apply_status")
                 req_order_by = self.request.query_params.get("order_by")
+                seller_wangwang_id = self.request.query_params.get("seller_wangwang_id")
+                # 不筛选临时款号
+                not_art_no = self.request.query_params.get("not_art_no")
                 order_by = ["-add_time"]
                 args = Q()
                 if req_order_by is not None:
                     if req_order_by == "update_time":
                         order_by = ["-update_time",'-add_time']
+                    if req_order_by == "goods":
+                        order_by = [ "-orderGoods__tb_goods_id"]
+
+
                 if order_remarks_filter is not None:
                     remarks = mcommon.remarks_type_choices2[order_remarks_filter]
                     if remarks is not None:
                         args = Q(order_remarks__remarks_type=remarks)
+                if not_art_no is not None:
+                    args = args & (~Q(orderGoods__art_no =not_art_no))
+                if seller_wangwang_id is not None:
+                    args = args & Q(wangwang_id=seller_wangwang_id)
                 if query_keys is not None:
-                    args = Q(order_number=query_keys) | Q(consignee_name__contains=query_keys) | Q(logistics_number=query_keys)| Q(tb_order_number=query_keys)
+                    args = Q(order_number=query_keys) | Q(consignee_name__contains=query_keys) | Q(logistics_number=query_keys)| Q(tb_order_number=query_keys)| Q(orderGoods__tb_goods_id=query_keys)
                     # 手机字段为数字 用字符查询会报错
                     if query_keys.isdigit():
                         args = args | Q(consignee_phone=query_keys)
-                    return trade_models.Order.objects.filter(Q(order_owner=self.request.user) & args).order_by(*order_by)
+                    return trade_models.Order.objects.filter(Q(order_owner=self.request.user) & args).distinct().order_by(*order_by)
                 elif status_filter is not None:
                     args = args & Q(orderGoods__status=status_filter) & Q(order_owner=self.request.user)
-                    qy = trade_models.Order.objects.filter(args).distinct().order_by(*order_by)
-                    return qy
+
+                    if req_order_by =="goods":
+                        raw_sql = 'select   oo.*, gg.id   from  trade_order oo join  trade_ordergoods gg on  oo.id = gg.order_id where oo.order_owner_id = '+str(self.request.user.id)+' and gg.status= '+str(status_filter)+' group by oo.id order by   gg.tb_goods_id  desc,gg.add_time asc '
+                        print(raw_sql)
+                        return trade_models.Order.objects.raw(raw_sql)
+                    else:
+                        return trade_models.Order.objects.filter(args).distinct().order_by(*order_by)
                 elif status_filter_list_str is not None:
                     status_filter_list = status_filter_list_str.split(',')
                     args_t = Q()
@@ -551,6 +588,7 @@ class UserOrderViewSet(ListModelMixin,DestroyModelMixin, GenericViewSet):
                         return qy
                 else:
                     return trade_models.Order.objects.filter(order_owner=self.request.user).order_by(*order_by)
+
             except:
                 traceback.print_exc()
 
@@ -568,6 +606,142 @@ class UserOrderViewSet(ListModelMixin,DestroyModelMixin, GenericViewSet):
 
         def get_object(self):
             return self.request.user
+
+
+# # 查询抖音商品
+# class DouYinGoodsViewSet(ListModelMixin,DestroyModelMixin, GenericViewSet):
+#     class DouYinGoodsQuerySerializer(serializers.ModelSerializer):
+#         order_owner = serializers.HiddenField(
+#             default=serializers.CurrentUserDefault()
+#         )
+#
+#
+#         class Meta:
+#             model = trade_models.DouYinGoods
+#
+#             fields = '__all__'
+#             # 查表深度  关联表（父表）的数据也会查处出来  深度值官方推荐 0-10
+#             depth = 2
+#
+#     authentication_classes = [UserAuthtication]
+#     permission_classes = [UserPermission]
+#     serializer_class = DouYinGoodsQuerySerializer
+#     # 设置分页的class
+#     pagination_class = UsersPagination
+#     # def create(self, request, *args, **kwargs):
+#     #     # 得请求数据然后得到序列化对象  得到的是上面serializer_class对象模型
+#     #     serializer = self.get_serializer(data=request.data)
+#     #     # 进行数据校验
+#     #     serializer.is_valid(raise_exception=True)
+#     #     order = self.perform_create(serializer)
+#     #     ret_dict = serializer.data
+#     #     headers = self.get_success_headers(serializer.data)
+#     #     return Response(ret_dict, status=status.HTTP_201_CREATED, headers=headers)
+#
+#     def list(self, request, *args, **kwargs):
+#         print(request.data)
+#
+#         # trade_models.OrderGoods.filter()
+#         ret = {"code": "1000", "message": ""}
+#         try:
+#             queryset = self.filter_queryset(self.get_queryset())
+#
+#             page = self.paginate_queryset(queryset)
+#             if page is not None:
+#                 serializer = self.get_serializer(page, many=True)
+#                 return self.get_paginated_response(serializer.data)
+#
+#             serializer = self.get_serializer(queryset, many=True)
+#             return Response(serializer.data)
+#         except:
+#             traceback.print_exc()
+#             logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+#             ret['code'] = "1001"
+#             ret['message'] = " 查询异常"
+#             return Response(ret)
+#
+#     def destroy(self, request, *args, **kwargs):
+#
+#         ret = {"code": "1000", "message": ""}
+#         try:
+#             order_number = kwargs.get("pk")
+#             order = trade_models.NullPackageOrder.objects.filter(order_number=order_number).first()
+#             if order.order_owner != request.user:
+#                 #
+#                 ret['code'] = "1001"
+#                 ret['message'] = "删除失败！非法订单"
+#                 return Response(ret)
+#             else:
+#
+#                 if order.order_status != mcommon.null_package_order_status_choices2.get("未付款"):
+#                     ret['code'] = "1001"
+#                     ret['message'] = "只能删除未付款订单"
+#                     return Response(ret)
+#
+#                 order.delete()
+#         except:
+#             traceback.print_exc()
+#             logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+#             ret['code'] = "1001"
+#             ret['message'] = "删除异常"
+#             return Response(ret)
+#
+#         ret['code'] = "1000"
+#         ret['message'] = "删除成功！"
+#         return Response(ret)
+#
+#     def get_queryset(self):
+#         try:
+#             print(self.request.query_params)
+#             query_keys = self.request.query_params.get("q")
+#             status_filter = self.request.query_params.get("status")
+#             status_filter_list_str = self.request.query_params.get("status_list")
+#             refund_apply_status = self.request.query_params.get("refund_apply_status")
+#             req_order_by = self.request.query_params.get("order_by")
+#             order_by = ["-add_time"]
+#             if req_order_by is not None:
+#                 if req_order_by == "update_time":
+#                     order_by = ["-update_time",'-add_time']
+#             if query_keys is not None:
+#                 args = Q(order_number=query_keys) | Q(consignee_name__contains=query_keys) | Q(logistics_number=query_keys)
+#                 # 手机字段为数字 用字符查询会报错
+#                 if query_keys.isdigit():
+#                     args = args | Q(consignee_phone=query_keys)
+#                 return trade_models.NullPackageOrder.objects.filter(Q(order_owner=self.request.user) & args).order_by(*order_by)
+#             elif status_filter is not None:
+#                 qy = trade_models.NullPackageOrder.objects.filter(order_owner=self.request.user,order_status = status_filter).distinct().order_by(*order_by)
+#                 return qy
+#             elif status_filter_list_str is not None:
+#                 status_filter_list = status_filter_list_str.split(',')
+#                 args = Q()
+#                 for status2 in status_filter_list:
+#                     args = args | Q(order_status=status2)
+#                 qy = trade_models.NullPackageOrder.objects.filter(Q(order_owner=self.request.user) & args).distinct().order_by(*order_by)
+#
+#                 return qy
+#             elif refund_apply_status is not None :
+#                 if refund_apply_status == "退款订单":
+#                     qy = trade_models.NullPackageOrder.objects.filter(Q(order_owner=self.request.user) & (Q(order_status = mcommon.null_package_order_status_choices2.get("已退款")))).distinct().order_by(*order_by)
+#                     return qy
+#             else:
+#                 return trade_models.NullPackageOrder.objects.filter(order_owner=self.request.user).order_by(*order_by)
+#         except:
+#             traceback.print_exc()
+#
+#     def get_serializer_class(self):
+#         if self.action == "retrieve":
+#             return self.NullPackageOrderQuerySerializer
+#         elif self.action == "create":
+#             return self.NullPackageOrderQuerySerializer
+#         elif self.action == "update":
+#             return self.NullPackageOrderQuerySerializer
+#         elif self.action == "delete":
+#             return self.NullPackageOrderQuerySerializer
+#
+#         return self.NullPackageOrderQuerySerializer
+#
+#     def get_object(self):
+#         return self.request.user
 
 
 class UsernNullOrdersViewSet(ListModelMixin,DestroyModelMixin, GenericViewSet):
@@ -1167,7 +1341,8 @@ class UserNullOrderRefundView(APIView):
             return Response(ret)
 
         return Response(ret) 
-    
+
+
     # 给订单添加备注
 class AddOrderRemarksView(APIView):
     authentication_classes = [UserAuthtication]
@@ -1241,6 +1416,7 @@ class MoveOrderToNullOrderTemView(APIView):
                         data = {
                             "order_owner":order.order_owner,
                              "tb_order_number":order.tb_order_number,
+                             "tb_seller_wangwang_id":order.wangwang_id,
                              "consignee_address":order.consignee_address,
                              "consignee_name":order.consignee_name,
                              "consignee_phone":order.consignee_phone,
@@ -1477,6 +1653,791 @@ class GetPlugsVersionView(APIView):
             return Response(ret)
 
 
+# 采集抖音店铺商品数据保存到数据库
+class CollectDouYinGoodsDataView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def get_dou_yin_goods_data1(self,url):
+        header = {
+            'Content-Type': 'application/json',
+            'Origin': 'https://haohuo.jinritemai.com',
+            # 'Referer': 'https://haohuo.jinritemai.com/views/shop/index?id=RIiZTPaL&origin_type=3002002002&origin_id=3166235318031159_3548181884968257845&new_source_type=47&new_source_id=0&source_type=47&source_id=0&entrance_info=%7B%22product_source_page%22%3A%22product_detail_tab%22%2C%22carrier_source%22%3A%22store_page%22%2C%22source_method%22%3A%22products%22%2C%22tab_label%22%3A%22%22%2C%22category_id%22%3A%22%22%2C%22tab_type%22%3A%22%22%2C%22page_version%22%3A%22%22%2C%22page_name%22%3A%22store_page%22%2C%22follow_status%22%3A%220%22%2C%22temp_id%22%3A%226950484201175138567-7038768393167601928-0%22%2C%22store_type%22%3A%22shop%22%2C%22request_id%22%3A%22202205152348300101501541011F0B22C6%22%2C%22store_source_page%22%3A%22store_page%22%2C%22store_source_method%22%3A%22list_card%22%2C%22store_group_type%22%3A%22video%22%2C%22pre_product_id%22%3A%22%22%2C%22pre_room_id%22%3A%22%22%2C%22pre_group_id%22%3A%22%22%2C%22ecom_scene_id%22%3A%221003%22%2C%22is_product_info%22%3A%221%22%2C%22is_price_info%22%3A%220%22%2C%22is_recommend_info%22%3A%220%22%2C%22content_form%22%3A%22%22%2C%22content_source%22%3A%22shop%22%2C%22ecom_group_type%22%3A%22video%22%2C%22search_params%22%3A%22%22%2C%22card_status%22%3A%22%22%2C%22anchor_id%22%3A%223166235318031159%22%7D',
+            # "Host": "",
+            # 'origin': '',
+            # 'Cookie': '__COOKID=sdqy7wkajopkf; PHPSESSID=09gm73bda964inso5n5jl9ujj4; area=think%3A%7B%22areaid%22%3A%221%22%2C%22areaname%22%3A%22%25E6%25B2%2599%25E6%25B2%25B3%25E4%25BB%25A3%25E5%258F%2591%22%2C%22areacode%22%3A%22440100%22%7D',
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36",
+
+        }
+
+        response = requests.get(url, headers=header)
+        print(response.text)
+        response_data = json.loads(response.text)["data"]
+        if response_data is not None:
+            douyin_goods_list = response_data['list']
+            if douyin_goods_list is not None and len(douyin_goods_list) > 0:
+                raw_goods_list = []
+                for goods_item in douyin_goods_list:
+                    m_goods_obj = {}
+                    if goods_item['shop_id'] is not None:
+                        m_goods_obj['shop_id'] = goods_item['shop_id']
+                    if goods_item['image'] is not None:
+                        m_goods_obj['image'] = goods_item['image']
+                    if goods_item['img'] is not None:
+                        m_goods_obj['img'] = goods_item['img']
+                    if goods_item['discount_price'] is not None:
+                        m_goods_obj['discount_price'] = goods_item['discount_price']
+                    if goods_item['goods_price'] is not None:
+                        m_goods_obj['goods_price'] = goods_item['goods_price']
+                    if goods_item['market_price'] is not None:
+                        m_goods_obj['market_price'] = goods_item['market_price']
+                    if goods_item['show_price'] is not None:
+                        m_goods_obj['show_price'] = goods_item['show_price']
+                    if goods_item['goods_id'] is not None:
+                        m_goods_obj['goods_id'] = goods_item['goods_id']
+                    if goods_item['goods_name'] is not None:
+                        m_goods_obj['goods_name'] = goods_item['goods_name']
+                    if goods_item['name'] is not None:
+                        m_goods_obj['name'] = goods_item['name']
+                    if goods_item['market_price'] is not None:
+                        m_goods_obj['market_price'] = goods_item['market_price']
+                    if goods_item['product_id'] is not None:
+                        m_goods_obj['product_id'] = goods_item['product_id']
+                    if goods_item['sell_num'] is not None:
+                        m_goods_obj['sell_num'] = goods_item['sell_num'].replace("+", "")
+                        if m_goods_obj['sell_num'].find("万") != -1:
+                            m_goods_obj['sell_num'] = m_goods_obj['sell_num'].replace("万", "").strip()
+
+                            m_goods_obj['sell_num'] = float(m_goods_obj['sell_num']) * 10000
+                    raw_goods_list.append(m_goods_obj)
+                for raw_goods in raw_goods_list:
+                    shop_id = raw_goods['shop_id']
+                    if shop_id is not None and shop_id != "":
+                        sql_user_shop = trade_models.UserFocusDouYinShop.objects.filter(shop_id2=shop_id).first()
+                        if sql_user_shop is not None:
+
+                            raw_goods['dou_yin_shop'] = sql_user_shop
+
+                            raw_goods['update_time'] = time.time() * 1000
+                            tem_goods = trade_models.DouYinGoods.objects.filter(goods_id=raw_goods['goods_id']).first()
+
+                            dou_yin_goods_records_data = {}
+
+                            dou_yin_goods_records_data['discount_price'] = raw_goods['discount_price']
+                            dou_yin_goods_records_data['goods_price'] = raw_goods['goods_price']
+                            dou_yin_goods_records_data['market_price'] = raw_goods['market_price']
+                            dou_yin_goods_records_data['show_price'] = raw_goods['show_price']
+                            dou_yin_goods_records_data['goods_id'] = raw_goods['goods_id']
+                            dou_yin_goods_records_data['goods_name'] = raw_goods['goods_name']
+                            dou_yin_goods_records_data['name'] = raw_goods['name']
+                            dou_yin_goods_records_data['product_id'] = raw_goods['product_id']
+                            dou_yin_goods_records_data['sell_num'] = raw_goods['sell_num']
+                            if tem_goods is None:
+                                raw_goods['add_time'] = time.time() * 1000
+                                raw_goods['owner'] = self.request.user
+                                new_goods = trade_models.DouYinGoods.objects.create(**raw_goods)
+                                dou_yin_goods_records_data['dou_yin_goods'] = new_goods
+
+                                new_goods.save()
+
+                            else:
+                                trade_models.DouYinGoods.objects.filter(goods_id=raw_goods['goods_id']).update( **raw_goods)
+                                dou_yin_goods_records_data['dou_yin_goods'] = tem_goods
+
+                            dou_yin_goods_records_data['add_time'] = time.time() * 1000
+                            new_goods_record = trade_models.DouYinGoodsCollectRecord.objects.create(**dou_yin_goods_records_data)
+                            new_goods_record.save()
+
+    def get_dou_yin_goods_data2(self,url, m_cookies,mheader,req_params):
+        # req_params = {
+        #     "sec_shop_id" :"uuRYaTIP",
+        #              "goods_type": "1" ,
+        #     "sort_type": "2",
+        # "sort" : "0" ,
+        # "cursor" : "0",
+        # "size" : "20",
+        # "iid" : "3364954170996542",
+        # "device_id" : "2995518243341992",
+        # "channel" : "juyouliang_douyin_and15",
+        # "aid" : "1128" ,
+        # "app_name" : "aweme",
+        # "version_code" : "200300" ,
+        # "version_name" : "20.3.0" ,
+        # "device_platform" : "android" ,
+        # "os" : "android" ,
+        # "device_type" : "MI + 6s" ,
+        # "device_brand" : "Xiaomi",
+        # "os_api" : "23" ,
+        # "os_version" :" 6.0.1",
+        #
+        # }
+        from requests.cookies import RequestsCookieJar
+        jar = RequestsCookieJar()
+
+        if m_cookies is not None:
+            for key in m_cookies:
+                jar.set(key, m_cookies[key])
+        # url = "https://lianmengapi.snssdk.com/aweme/v1/store/product/list/?sec_shop_id=uuRYaTIP&goods_type=1&sort_type=2&sort=0&cursor=0&size=20&iid=3364954170996542&device_id=2995518243341992&channel=juyouliang_douyin_and15&aid=1128&app_name=aweme&version_code=200300&version_name=20.3.0&device_platform=android&os=android&device_type=MI+6s&device_brand=Xiaomi&os_api=23&os_version=6.0.1"
+        shop_id = req_params['sec_shop_id']
+        sql_user_shop = trade_models.UserFocusDouYinShop.objects.filter(shop_id=shop_id).first()
+        cur_time = time.time() * 1000
+        if sql_user_shop is not None:
+            shop_update_time_old = sql_user_shop.update_time
+
+            # 更新时间不小于 1 小时
+            dur_time = cur_time - shop_update_time_old
+            next_updata_time = 60 * 60 * 1000
+            print(dur_time)
+            print(next_updata_time)
+
+            if dur_time < next_updata_time:
+                return
+        else:
+            # 数据库没有该店铺数据
+            return
+        response = requests.get(url,cookies=jar,headers=mheader)
+        print(response.text)
+        response_data = json.loads(response.text)["products"]
+        if response_data is not None:
+            douyin_goods_list =response_data
+            if douyin_goods_list is not None and len(douyin_goods_list) > 0:
+                raw_goods_list = []
+                print("共有"+str(len(douyin_goods_list))+"条商品")
+                my_site_utils.save_dou_yin_goods_data_to_db(self,douyin_goods_list,shop_id)
+                # --------------------------------------
+                # for goods_item in douyin_goods_list:
+                #     m_goods_obj = {}
+                #
+                #     m_goods_obj['shop_id'] = shop_id
+                #     if goods_item['img_url_list'] is not None:
+                #         m_goods_obj['image'] = goods_item['img_url_list'][0]
+                #         m_goods_obj['img'] = goods_item['img_url_list'][0]
+                #
+                #     if goods_item['price'] is not None:
+                #         m_goods_obj['discount_price'] = goods_item['price']
+                #         m_goods_obj['goods_price'] = goods_item['price']
+                #         m_goods_obj['show_price'] = goods_item['price']
+                #     if goods_item['market_price'] is not None:
+                #         m_goods_obj['market_price'] = goods_item['market_price']
+                #
+                #     if goods_item['product_id'] is not None:
+                #         m_goods_obj['goods_id'] = goods_item['product_id']
+                #         m_goods_obj['product_id'] = goods_item['product_id']
+                #     if goods_item['name'] is not None:
+                #         m_goods_obj['goods_name'] = goods_item['name']
+                #         m_goods_obj['name'] = goods_item['name']
+                #
+                #     if goods_item['sell_num'] is not None:
+                #         m_goods_obj['sell_num'] = str(goods_item['sell_num']).replace("+", "")
+                #         if m_goods_obj['sell_num'].find("万") != -1:
+                #             m_goods_obj['sell_num'] = m_goods_obj['sell_num'].replace("万", "").strip()
+                #
+                #             m_goods_obj['sell_num'] = float(m_goods_obj['sell_num']) * 10000
+                #     raw_goods_list.append(m_goods_obj)
+                # for raw_goods in raw_goods_list:
+                #     shop_id = raw_goods['shop_id']
+                #     if shop_id is not None and shop_id != "":
+                #         sql_user_shop.update_time = cur_time
+                #         raw_goods['dou_yin_shop'] = sql_user_shop
+                #         raw_goods['update_time'] = cur_time
+                #         tem_goods = trade_models.DouYinGoods.objects.filter(goods_id=raw_goods['goods_id']).first()
+                #         sql_user_shop.save()
+                #         dou_yin_goods_records_data = {}
+                #
+                #         dou_yin_goods_records_data['discount_price']    = raw_goods['discount_price']
+                #         dou_yin_goods_records_data['goods_price'] =  raw_goods['goods_price']
+                #         dou_yin_goods_records_data['market_price'] =  raw_goods['market_price']
+                #         dou_yin_goods_records_data['show_price'] =  raw_goods['show_price']
+                #         dou_yin_goods_records_data['goods_id'] =  raw_goods['goods_id']
+                #         dou_yin_goods_records_data['goods_name'] =  raw_goods['goods_name']
+                #         dou_yin_goods_records_data['name'] =  raw_goods['name']
+                #         dou_yin_goods_records_data['product_id'] =  raw_goods['product_id']
+                #         dou_yin_goods_records_data['sell_num'] =  raw_goods['sell_num']
+                #
+                #         if tem_goods is None:
+                #             raw_goods['add_time'] = time.time() * 1000
+                #             raw_goods['owner'] = self.request.user
+                #             new_goods = trade_models.DouYinGoods.objects.create(**raw_goods)
+                #             dou_yin_goods_records_data['dou_yin_goods'] = new_goods
+                #             new_goods.save()
+                #
+                #         else:
+                #             trade_models.DouYinGoods.objects.filter(goods_id=raw_goods['goods_id']).update(**raw_goods)
+                #             dou_yin_goods_records_data['dou_yin_goods'] = tem_goods
+                #
+                #
+                #         dou_yin_goods_records_data['add_time'] = time.time()*1000
+                #         new_goods_record = trade_models.DouYinGoodsCollectRecord.objects.create(**dou_yin_goods_records_data)
+                #         new_goods_record.save()
+                # --------------------------------------
+    def post(self, request, *args, **kwargs):
+        try:
+            ret = {'code': "1000", 'message': ""}
+            print(request.data)
+            req_data = request.data
+            collect_target_list =  req_data.get("target_list")
+
+            header = {
+                'Content-Type': 'application/json',
+                'Origin': 'https://haohuo.jinritemai.com',
+                # 'Referer': 'https://haohuo.jinritemai.com/views/shop/index?id=RIiZTPaL&origin_type=3002002002&origin_id=3166235318031159_3548181884968257845&new_source_type=47&new_source_id=0&source_type=47&source_id=0&entrance_info=%7B%22product_source_page%22%3A%22product_detail_tab%22%2C%22carrier_source%22%3A%22store_page%22%2C%22source_method%22%3A%22products%22%2C%22tab_label%22%3A%22%22%2C%22category_id%22%3A%22%22%2C%22tab_type%22%3A%22%22%2C%22page_version%22%3A%22%22%2C%22page_name%22%3A%22store_page%22%2C%22follow_status%22%3A%220%22%2C%22temp_id%22%3A%226950484201175138567-7038768393167601928-0%22%2C%22store_type%22%3A%22shop%22%2C%22request_id%22%3A%22202205152348300101501541011F0B22C6%22%2C%22store_source_page%22%3A%22store_page%22%2C%22store_source_method%22%3A%22list_card%22%2C%22store_group_type%22%3A%22video%22%2C%22pre_product_id%22%3A%22%22%2C%22pre_room_id%22%3A%22%22%2C%22pre_group_id%22%3A%22%22%2C%22ecom_scene_id%22%3A%221003%22%2C%22is_product_info%22%3A%221%22%2C%22is_price_info%22%3A%220%22%2C%22is_recommend_info%22%3A%220%22%2C%22content_form%22%3A%22%22%2C%22content_source%22%3A%22shop%22%2C%22ecom_group_type%22%3A%22video%22%2C%22search_params%22%3A%22%22%2C%22card_status%22%3A%22%22%2C%22anchor_id%22%3A%223166235318031159%22%7D',
+                # "Host": "",
+                # 'origin': '',
+                # 'Cookie': '__COOKID=sdqy7wkajopkf; PHPSESSID=09gm73bda964inso5n5jl9ujj4; area=think%3A%7B%22areaid%22%3A%221%22%2C%22areaname%22%3A%22%25E6%25B2%2599%25E6%25B2%25B3%25E4%25BB%25A3%25E5%258F%2591%22%2C%22areacode%22%3A%22440100%22%7D',
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36",
+
+            }
+
+            if len(collect_target_list)>15:
+                ret['code'] = "1001"
+                ret['message'] = "数量过多"
+                return Response(ret)
+            for collect_info in collect_target_list:
+                url = collect_info['collect_url']
+                if url.find("https://lianmengapi.snssdk.com/aweme/v1/store/product/list") != -1:
+                    cur_time = time.time()*1000
+                    m_cookies = collect_info['cookies']
+                    headers = collect_info['headers']
+                    params = collect_info['params']
+                    shop_id = params['sec_shop_id']
+                    sql_user_shop = trade_models.UserFocusDouYinShop.objects.filter(shop_id=shop_id).first()
+                    if sql_user_shop is None:
+                        continue
+                    shop_update_time_old = sql_user_shop.update_time
+
+                    # 更新时间不小于 1 小时
+                    dur_time = cur_time - shop_update_time_old
+                    one_hour = 60 * 60 * 1000
+                    print("店铺更上次更新时间:" + mtime.stamp_to_time(shop_update_time_old / 1000, "%Y-%m-%d %H:%M:%S"))
+                    if dur_time < one_hour:
+
+
+                        continue
+                    time.sleep(0.4)
+                    my_site_utils.get_dou_yin_goods_data2(self,url,m_cookies,headers,params,sql_user_shop,params['sec_shop_id'])
+                    sql_user_shop.update_time = cur_time
+                    sql_user_shop.save()
+                    # self.get_dou_yin_goods_data2(url,m_cookies,headers,params)
+                else:
+                    self.get_dou_yin_goods_data1(url)
+        except:
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            ret['code'] = "1001"
+            ret['message'] = " 查询异常"+'%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method)
+            return Response(ret)
+        ret['message'] = " 采集完成"
+        return Response(ret)
+
+
+class GetWebPageContentView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        try:
+            print(request.data)
+            from requests.cookies import RequestsCookieJar
+            jar = RequestsCookieJar()
+            parms = None
+            method = "POST"
+            ret = {'code': "1000", 'message': ""}
+
+            data = request.data
+            req_parms = json.loads(data.get("req_parms"))
+            url =req_parms.get("url")
+            header = req_parms.get("header")
+            m_cookies = req_parms.get("cookies")
+            m_parms =  req_parms.get("parms")
+            m_method =req_parms.get("method")
+
+            if m_cookies is not None :
+                for key in m_cookies:
+                    jar.set(key, m_cookies[key])
+
+            if m_method is not None and m_method == "GET":
+
+                response = requests.get(url, cookies=jar, headers=header)
+                ret['code'] = "1000"
+                ret['message'] = " "
+                ret['data'] = response.text
+                return Response(ret)
+            elif m_method is not None and m_method == "POST":
+                parms = m_parms
+                response = requests.post(url, data=parms, cookies=jar,headers=header)
+                ret['code'] = "1000"
+                ret['message'] = " "
+                ret['data'] = response.text
+                return Response(ret)
+        except:
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            ret['code'] = "1001"
+            ret['message'] = " 查询异常"
+            return Response(ret)
+    # 给订单添加备注
+
+class GetWebPageContentView2(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+
+    def post(self, request, *args, **kwargs):
+        try:
+            print(request.data)
+            from requests.cookies import RequestsCookieJar
+            jar = RequestsCookieJar()
+            # area=; __COOKID=s63alko43uder; PHPSESSID=v9oguu5vsd6g7tbmvismajdho3
+            m_cookies = {
+                "__COOKID":"s63alko43uder",
+                "PHPSESSID":"v9oguu5vsd6g7tbmvismajdho3",
+                "area":"think%3A%7B%22areaid%22%3A%221%22%2C%22areaname%22%3A%22%25E6%25B2%2599%25E6%25B2%25B3%25E4%25BB%25A3%25E5%258F%2591%22%2C%22areacode%22%3A%22440100%22%7D",
+
+            }
+            if m_cookies is not None :
+                for key in m_cookies:
+                    jar.set(key, m_cookies[key])
+
+            header = {
+                # cookie 这里就不贴出来了 ![(☆_☆)/~~]
+                #  "Cookie": "JSESSIONID=3A2EFB775241DD7BFACA1E75D99624AF-n1",
+
+                'Content-Type': 'application/json',
+                # "Host": "",
+                # 'origin': '',
+                "x-requested-with": "XMLHttpRequest",
+                'referer': 'http://www.315df.com/',
+                # 'Cookie': '__COOKID=sdqy7wkajopkf; PHPSESSID=09gm73bda964inso5n5jl9ujj4; area=think%3A%7B%22areaid%22%3A%221%22%2C%22areaname%22%3A%22%25E6%25B2%2599%25E6%25B2%25B3%25E4%25BB%25A3%25E5%258F%2591%22%2C%22areacode%22%3A%22440100%22%7D',
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36",
+
+            }
+            url = "https://www.315df.com/ajax/kuaidi?kdid=19&area=%E4%B8%8A%E6%B5%B7&adr=%E4%B8%8A%E6%B5%B7%2C%E4%B8%8A%E6%B5%B7%E5%B8%82%2C%E6%9D%BE%E6%B1%9F%E5%8C%BA%E9%94%A6%E7%BB%A3%E6%96%B0%E5%9F%8E23%E6%A0%8B"
+            # url_315_order_check = "https://www.315df.com/user/order/daifa?search_field=goods_sn&q=8055&status=&do=&reserdate="
+            response = requests.get(url,cookies=jar,headers=header)
+            print(response)
+            return
+
+
+
+
+            from requests.cookies import RequestsCookieJar
+            jar = RequestsCookieJar()
+            parms = None
+            method = "POST"
+            ret = {'code': "1000", 'message': ""}
+
+            data = request.data
+            req_parms = json.loads(data.get("req_parms"))
+            url =req_parms['url']
+            header = req_parms['header']
+            m_cookies = req_parms["cookies"]
+            m_parms =  req_parms["parms"]
+            m_method =req_parms["method"]
+            # m_referer = data.get("referer")
+            # m_origin = data.get("origin")
+            # m_content_type = data.get("content_type")
+            # m_user_agent = data.get("user_agent")
+            # m_host = data.get("host")
+            # m_cookies = json.loads("cookies")
+            # m_parms = json.loads("parms")
+            # m_method = data.get("method")
+            # header = {
+            #     # cookie 这里就不贴出来了 ![(☆_☆)/~~]
+            #     #  "Cookie": "JSESSIONID=3A2EFB775241DD7BFACA1E75D99624AF-n1",
+            #     # 'content-type': 'charset=gbk',
+            #     'Content-Type': 'application/x-www-form-urlencoded',
+            #     "Host": "",
+            #     'origin': '',
+            #     'referer': '',
+            #     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36",
+            #
+            # }
+            # if m_user_agent is not None and m_user_agent != "":
+            #     header["User-Agent"] = m_user_agent
+            # if m_referer is not None and m_referer != "":
+            #     header["referer"] = m_referer
+            # if m_origin is not None and m_origin != "":
+            #     header["origin"] = m_origin
+            # if m_host is not None and m_host != "":
+            #     header["Host"] = m_host
+            # if m_host is not None and m_host != "":
+            #     header["Content-Type"] = m_content_type
+            if m_cookies is not None :
+                for key in m_cookies:
+                    jar.set(key, m_cookies[key])
+
+            if m_method is not None and m_method == "GET":
+
+                response = requests.post(url, cookies=jar, headers=header)
+                ret['code'] = "1000"
+                ret['message'] = " "
+                ret['data'] = response.text
+            elif m_method is not None and m_method == "POST":
+                parms = m_parms
+                response = requests.post(url, data=parms, cookies=jar,headers=header)
+                ret['code'] = "1000"
+                ret['message'] = " "
+                ret['data'] = response.text
+                return Response(ret)
+        except:
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            ret['code'] = "1001"
+            ret['message'] = " 查询异常"
+            return Response(ret)
+    # 给订单添加备注
+
+
+# 添加用户关注的抖音店铺
+class AddUserDouYinShopView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            ret = {'code': "1000", 'message': ""}
+            post_obj = request.data
+            print(post_obj)
+
+            with transaction.atomic():
+                data = {
+                    "owner": request.user,
+                    "shop_id": post_obj['shop_id'],
+                    "monitor_url": post_obj['monitor_url'],
+                    "shop_id2": post_obj['shop_id2'],
+                    "image_url": post_obj['image_url'],
+                    "shop_name": post_obj['shop_name'],
+                    "remarks": post_obj['remarks'],
+                    "update_time": time.time() * 1000,
+                    "add_time": time.time() * 1000,
+                }
+                user_focus_shop = trade_models.UserFocusDouYinShop.objects.filter(shop_id=data['shop_id']).first()
+                if user_focus_shop is None:
+                    data['update_time'] = 0
+                    user_focus_shop = trade_models.UserFocusDouYinShop.objects.create(**data)
+                    user_focus_shop.save()
+                raw_data = {
+                    "owner": request.user,
+                    "dou_yin_shop": user_focus_shop,
+                    "monitor_url": user_focus_shop.monitor_url,
+                    "add_time": time.time() * 1000,
+                    "type": 1,
+                }
+                sql_fav = trade_models.UserFavDouYinShopInfo.objects.filter(owner=request.user,dou_yin_shop=user_focus_shop).first()
+                if sql_fav is None:
+                    new_fav = trade_models.UserFavDouYinShopInfo.objects.create(**raw_data)
+                    new_fav.save()
+
+
+
+
+        except:
+            logger.info('%s userid->%s ,  url:%s method:%s' % (
+            "提交异常" + traceback.format_exc(), self.request.user.id, self.request.path, self.request.method))
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = '添加异常，,'+traceback.format_exc()
+            return Response(ret)
+
+        return Response(ret)
+
+
+# 添加用户商品
+class AddUserGoodsView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            ret = {'code': "1000", 'message': ""}
+            post_obj = request.data
+            print(post_obj)
+            user_code = post_obj.get("user_code")
+
+            with transaction.atomic():
+                data = {
+                    "goods_owner": request.user,
+                    "origin_url": post_obj['origin_url'],
+                    "image_url": post_obj['image_url'],
+                    "user_code": post_obj['user_code'],
+                    "replace_string": post_obj['replace_string'],
+                    "art_no": post_obj['art_no'],
+                    "shop_market_name": post_obj['shop_market_name'],
+                    "shop_floor": post_obj['shop_floor'],
+                    "shop_stalls_no": post_obj['shop_stalls_no'],
+                    "shop_name": post_obj['shop_name'],
+                    "goods_price": post_obj['goods_price'],
+                    "goods_color": post_obj['goods_color'],
+                    "goods_size": post_obj['goods_size'],
+                    "remarks": post_obj['remarks'],
+                    "add_time": time.time() * 1000,
+                }
+                user_goods = trade_models.UserGoods.objects.create(**data)
+                user_goods.save()
+
+
+        except:
+            logger.info('%s userid->%s ,  url:%s method:%s' % (
+            "提交异常" + traceback.format_exc(), self.request.user.id, self.request.path, self.request.method))
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = '添加异常，,'+traceback.format_exc()
+            return Response(ret)
+
+        return Response(ret)
+
+
+# 删除用户关注的抖音店铺
+class DeleteDouYinShopView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def post(self,request, *args, **kwargs):
+        try:
+            ret = {'code': "1000", 'message': ""}
+            data = request.data
+            print(data)
+            id_list = data.get("id_list")
+
+            with transaction.atomic():
+                trade_models.UserFocusDouYinShop.objects.filter(owner = request.user,id__in= id_list).delete()
+
+
+
+        except:
+            logger.info('%s userid->%s ,  url:%s method:%s' % ("提交异常" + traceback.format_exc(), self.request.user.id, self.request.path, self.request.method))
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = '查询异常'
+            ret['message2'] = '查询异常,'+traceback.format_exc()
+            return Response(ret)
+
+        return Response(ret)
+
+
+# 删除用户商品
+class DeleteUserGoodsView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def post(self,request, *args, **kwargs):
+        try:
+            ret = {'code': "1000", 'message': ""}
+            data = request.data
+            print(data)
+            id_list = data.get("id_list")
+
+            with transaction.atomic():
+                trade_models.UserGoods.objects.filter(goods_owner = request.user,id__in= id_list).delete()
+
+
+
+        except:
+            logger.info('%s userid->%s ,  url:%s method:%s' % ("提交异常" + traceback.format_exc(), self.request.user.id, self.request.path, self.request.method))
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = '查询异常'
+            ret['message2'] = '查询异常,'+traceback.format_exc()
+            return Response(ret)
+
+        return Response(ret)
+
+
+class EditDouYinShopView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def post(self, request, *args, **kwargs):
+        ret = {"code": "1000", "message": ""}
+        try:
+            data = request.data
+            req_user_shop = data.get("user_dou_yin_shop_data")
+            print(req_user_shop)
+
+            # 判断非游客用户
+            if isinstance(request.user, models.User):
+                with transaction.atomic():
+
+                    sql_user_shop = trade_models.UserFocusDouYinShop.objects.filter(id=req_user_shop.get('id')).first()
+
+                    if sql_user_shop is not None:
+                        # if sql_user_shop.owner != request.user:
+                        #     ret['code'] = "1001"
+                        #     ret['message'] = '非法查询'
+                        #     return JsonResponse(ret)
+
+                        if req_user_shop.get('shop_id') is not None:
+                            sql_user_shop.shop_id = req_user_shop.get('shop_id')
+                        if req_user_shop.get('shop_id2') is not None:
+                            sql_user_shop.shop_id2 = req_user_shop.get('shop_id2')
+                        if req_user_shop.get('image_url') is not None:
+                            sql_user_shop.image_url = req_user_shop.get('image_url')
+                        if req_user_shop.get('shop_name') is not None:
+                            sql_user_shop.shop_name = req_user_shop.get('shop_name')
+                        if req_user_shop.get('remarks') is not None:
+                            sql_user_shop.remarks = req_user_shop.get('remarks')
+                        if req_user_shop.get('monitor_url') is not None:
+                            sql_user_shop.monitor_url = req_user_shop.get('monitor_url')
+                        if req_user_shop.get('is_monitor') is not None:
+                            sql_user_shop.is_monitor = req_user_shop.get('is_monitor')
+                        sql_user_shop.save()
+
+                    else:
+                        ret['code'] = "1001"
+                        ret['message'] = "不存在"
+                        return Response(ret)
+            else:
+                ret['code'] = "1001"
+                ret['message'] = '无效用户'
+                return JsonResponse(ret)
+        except:
+
+            ret['code'] = "1001"
+            ret['message'] = '查询异常'
+            ret['message2'] = '查询异常'+traceback.format_exc()
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return JsonResponse(ret)
+        return JsonResponse(ret)
+
+
+class EditUserDouYinFavShopInfoView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def post(self, request, *args, **kwargs):
+        ret = {"code": "1000", "message": ""}
+        try:
+            data = request.data
+            req_user_shop = data.get("user_dou_yin_fav_shop_data")
+            print(req_user_shop)
+
+            # 判断非游客用户
+            if isinstance(request.user, models.User):
+                with transaction.atomic():
+
+                    sql_user_shop = trade_models.UserFavDouYinShopInfo.objects.filter(id=req_user_shop.get('id')).first()
+
+                    if sql_user_shop is not None:
+                        if sql_user_shop.owner != request.user:
+                            ret['code'] = "1001"
+                            ret['message'] = '非法查询'
+                            return JsonResponse(ret)
+
+                        if req_user_shop.get('remarks') is not None:
+                            sql_user_shop.remarks = req_user_shop.get('remarks')
+                        if req_user_shop.get('monitor_url') is not None:
+                            sql_user_shop.monitor_url = req_user_shop.get('monitor_url')
+                        if req_user_shop.get('is_monitor') is not None:
+                            sql_user_shop.is_monitor = req_user_shop.get('is_monitor')
+                        sql_user_shop.save()
+
+                    else:
+                        ret['code'] = "1001"
+                        ret['message'] = "不存在"
+                        return Response(ret)
+            else:
+                ret['code'] = "1001"
+                ret['message'] = '无效用户'
+                return JsonResponse(ret)
+        except:
+
+            ret['code'] = "1001"
+            ret['message'] = '查询异常'
+            ret['message2'] = '查询异常'+traceback.format_exc()
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return JsonResponse(ret)
+        return JsonResponse(ret)
+
+class EditUserGoodsView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def post(self, request, *args, **kwargs):
+        ret = {"code": "1000", "message": ""}
+        try:
+            data = request.data
+            req_user_goods = data.get("user_goods_data")
+            print(req_user_goods)
+
+            # 判断非游客用户
+            if isinstance(request.user, models.User):
+                with transaction.atomic():
+
+                    sql_user_goods = trade_models.UserGoods.objects.filter(id=req_user_goods.get('id')).first()
+
+                    if sql_user_goods is not None:
+                        if sql_user_goods.goods_owner != request.user:
+                            ret['code'] = "1001"
+                            ret['message'] = '非法查询'
+                            return JsonResponse(ret)
+
+                        if req_user_goods.get('origin_url') is not None:
+                            sql_user_goods.origin_url = req_user_goods.get('origin_url')
+                        if req_user_goods.get('image_url') is not None:
+                            sql_user_goods.image_url = req_user_goods.get('image_url')
+                        if req_user_goods.get('user_code') is not None:
+                            sql_user_goods.user_code = req_user_goods.get('user_code')
+                        if req_user_goods.get('replace_string') is not None:
+                            sql_user_goods.replace_string = req_user_goods.get('replace_string')
+                        if req_user_goods.get('shop_market_name') is not None:
+                            sql_user_goods.shop_market_name = req_user_goods.get('shop_market_name')
+                        if req_user_goods.get('shop_floor') is not None:
+                            sql_user_goods.shop_floor = req_user_goods.get('shop_floor')
+                        if req_user_goods.get('shop_stalls_no') is not None:
+                            sql_user_goods.shop_stalls_no = req_user_goods.get('shop_stalls_no')
+                        if req_user_goods.get('shop_name') is not None:
+                            sql_user_goods.shop_name = req_user_goods.get('shop_name')
+                        if req_user_goods.get('art_no') is not None:
+                            sql_user_goods.art_no = req_user_goods.get('art_no')
+                        if req_user_goods.get('goods_price') is not None:
+                            sql_user_goods.goods_price = req_user_goods.get('goods_price')
+                        if req_user_goods.get('goods_color') is not None:
+                            sql_user_goods.goods_color = req_user_goods.get('goods_color')
+                        if req_user_goods.get('goods_size') is not None:
+                            sql_user_goods.goods_size = req_user_goods.get('goods_size')
+                        if req_user_goods.get('goods_title') is not None:
+                            sql_user_goods.goods_title = req_user_goods.get('goods_title')
+                        if req_user_goods.get('remarks') is not None:
+                            sql_user_goods.remarks = req_user_goods.get('remarks')
+                        if req_user_goods.get('is_default') is not None and req_user_goods.get('is_default') is True:
+                            # 设置默认 要去除其他编码一直的默认选项
+
+                            user_code_goods_list_query = trade_models.UserGoods.objects.filter(user_code= req_user_goods.get('user_code'))
+                            for user_code_goods in user_code_goods_list_query:
+                                if user_code_goods.is_default is True:
+                                    user_code_goods.is_default = False
+                                    user_code_goods.save()
+                            sql_user_goods.is_default = req_user_goods.get('is_default')
+                        elif req_user_goods.get('is_default') is not None and req_user_goods.get('is_default') is False:
+                            sql_user_goods.is_default = req_user_goods.get('is_default')
+                        sql_user_goods.save()
+                    else:
+                        ret['code'] = "1001"
+                        ret['message'] = "不存在该商品"
+                        return Response(ret)
+            else:
+                ret['code'] = "1001"
+                ret['message'] = '无效用户'
+                return JsonResponse(ret)
+        except:
+
+            ret['code'] = "1001"
+            ret['message'] = '查询异常'
+            ret['message2'] = '查询异常'+traceback.format_exc()
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return JsonResponse(ret)
+        return JsonResponse(ret)
+
+
+
+
+
+
+
+
 class GetOrderByTBOrderNumberListViewSet(ListModelMixin, GenericViewSet):
         class MPagination(PageNumberPagination):
             # 指定每一页的个数
@@ -1631,6 +2592,223 @@ class InviteInfoViewSet(ListModelMixin, GenericViewSet):
                 return self.get_paginated_response(serializer.data)
 
             serializer = self.get_serializer(invite_register_info_query_set, many=True)
+
+            ret['code'] = "1000"
+            ret['result'] = serializer.data
+            return JsonResponse(ret)
+            # ser = self.QueryInviteRegisterInfoSerializer(instance=invite_register_info_query_set, many=True)
+            # ret['results'] = ser.data
+        except:
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            ret['code'] = "1001"
+            ret['message'] = '查询失败'
+        return Response(ret)
+
+
+# 采集商品记录
+class DouYinGoodsCollectRecordViewSet(ListModelMixin, GenericViewSet):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+    # 设置分页的class
+    pagination_class = UsersPagination
+
+    serializer_class = m_serializers.DouYinGoodsCollectRecordSerializer
+
+    def get_queryset(self):
+        try:
+            print(self.request.query_params)
+            id = self.request.query_params.get("id")
+            order_by = ["-add_time"]
+            if id is not None:
+
+                sql_goods =  trade_models.DouYinGoods.objects.filter(id=id).first()
+                return trade_models.DouYinGoodsCollectRecord.objects.filter(dou_yin_goods=sql_goods).order_by(*order_by)
+
+
+
+        except:
+            traceback.print_exc()
+
+    def list(self,request, *args, **kwargs):
+        ret = {'code': "1000", 'message': ""}
+        try:
+            dou_yin_shop_info_query_set = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(dou_yin_shop_info_query_set)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+
+                return self.get_paginated_response(serializer.data)
+
+            serializer = self.get_serializer(dou_yin_shop_info_query_set, many=True)
+            ret['code'] = "1000"
+            ret['result'] = serializer.data
+            return JsonResponse(ret)
+            # ser = self.QueryInviteRegisterInfoSerializer(instance=invite_register_info_query_set, many=True)
+            # ret['results'] = ser.data
+        except:
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            ret['code'] = "1001"
+            ret['message'] = '查询失败'
+        return Response(ret)
+
+
+# 用户收藏的抖音店铺列表
+class UserDouYinShopViewSet(ListModelMixin, GenericViewSet):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+    # 设置分页的class
+    pagination_class = UsersPagination
+
+    serializer_class = m_serializers.UserFavDouYinShopSerializer
+
+    def get_queryset(self):
+        try:
+
+
+
+            print(self.request.query_params)
+            query_keys = self.request.query_params.get("keys")
+            not_new_goods_time = self.request.query_params.get("no_new_goods_shop")
+            order_by = ["dou_yin_shop__update_time"]
+            if not_new_goods_time is not None :
+                not_new_goods_time =  int(not_new_goods_time)
+                ten_day = not_new_goods_time * 24 * 60 * 60 * 1000
+                curr_ = time.time() * 1000
+                taget_time = curr_ - ten_day
+
+                min_time_goods_query = trade_models.UserFavDouYinShopInfo.objects.annotate(mintime=Max("dou_yin_shop__douYinGoods__add_time")).filter(mintime__lt=taget_time).order_by(*order_by)
+                return min_time_goods_query
+            elif query_keys is not None:
+                args = Q(remarks__contains=query_keys) | Q(dou_yin_shop__shop_id=query_keys) | Q(dou_yin_shop__shop_id2=query_keys)| Q(dou_yin_shop__shop_name__contains=query_keys)
+                return trade_models.UserFavDouYinShopInfo.objects.filter(Q(owner=self.request.user) & args).order_by(*order_by)
+            else:
+                return trade_models.UserFavDouYinShopInfo.objects.filter(owner=self.request.user).order_by(*order_by)
+        except:
+            traceback.print_exc()
+
+    def list(self,request, *args, **kwargs):
+        ret = {'code': "1000", 'message': ""}
+        try:
+            dou_yin_shop_info_query_set = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(dou_yin_shop_info_query_set)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+
+                return self.get_paginated_response(serializer.data)
+
+            serializer = self.get_serializer(dou_yin_shop_info_query_set, many=True)
+            ret['code'] = "1000"
+            ret['result'] = serializer.data
+            return JsonResponse(ret)
+            # ser = self.QueryInviteRegisterInfoSerializer(instance=invite_register_info_query_set, many=True)
+            # ret['results'] = ser.data
+        except:
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            ret['code'] = "1001"
+            ret['message'] = '查询失败'
+        return Response(ret)
+
+
+# 用户保存的抖音商品列表
+class UserDouYinGoodsViewSet(ListModelMixin, GenericViewSet):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+    # 设置分页的class
+    pagination_class = UsersPagination
+
+    serializer_class = m_serializers.UserDouYinGoodsSerializer
+
+    def get_queryset(self):
+        try:
+            print(self.request.query_params)
+            order_by = ['-add_time',"-sell_num"]
+            search_condition = self.request.query_params.get("search_condition")
+
+
+            args = Q()
+            if search_condition is not None:
+                search_sell_num = 0
+                search_condition = json.loads(search_condition)
+                if search_condition.get("is_user_fav_shop_data") is not None and search_condition.get("is_user_fav_shop_data") is True:
+                    my_fav_shop_query = trade_models.UserFavDouYinShopInfo.objects.filter(owner=self.request.user).values('dou_yin_shop')
+                    args = args & Q(dou_yin_shop__in=my_fav_shop_query)
+                if search_condition.get("is_order_by_today_sell_num") is not None and search_condition.get("is_order_by_today_sell_num") is True:
+                    zero_clock_time_stamp=mcommon.get_time_0clock_of_today()*1000
+                    args = args & Q(update_time__gte=zero_clock_time_stamp)
+                    order_by = ["-today_sell_num",'-add_time']
+
+                if search_condition.get("search_sell_num") is not None and search_condition.get("search_sell_num")!="":
+                    search_sell_num = int(search_condition.get('search_sell_num'))
+                    args = args & Q(sell_num__gte=search_sell_num)
+                if search_condition.get("search_shop_name") is not None and search_condition.get("search_shop_name")!="":
+                    search_shop_name =  search_condition.get('search_shop_name')
+                    args = args & Q(dou_yin_shop__shop_name__contains=search_shop_name)
+                
+                
+            return trade_models.DouYinGoods.objects.filter(args).order_by(*order_by)
+        except:
+            traceback.print_exc()
+
+    def list(self,request, *args, **kwargs):
+        ret = {'code': "1000", 'message': ""}
+        try:
+            dou_yin_goods_info_query_set = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(dou_yin_goods_info_query_set)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+
+                return self.get_paginated_response(serializer.data)
+
+            serializer = self.get_serializer(dou_yin_goods_info_query_set, many=True)
+            ret['code'] = "1000"
+            ret['result'] = serializer.data
+            return JsonResponse(ret)
+            # ser = self.QueryInviteRegisterInfoSerializer(instance=invite_register_info_query_set, many=True)
+            # ret['results'] = ser.data
+        except:
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            ret['code'] = "1001"
+            ret['message'] = '查询失败'
+        return Response(ret)
+
+
+# 用户保存的商品
+class UserGoodsInfoViewSet(ListModelMixin, GenericViewSet):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+    # 设置分页的class
+    pagination_class = UsersPagination
+
+    serializer_class = m_serializers.UserGoodsSerializer
+
+    def get_queryset(self):
+        try:
+            print(self.request.query_params)
+            query_keys = self.request.query_params.get("keys")
+            order_by = ["-add_time"]
+            if query_keys is not None:
+                args = Q(user_code=query_keys) | Q(art_no=query_keys)
+                return trade_models.UserGoods.objects.filter(Q(goods_owner=self.request.user) & args).order_by(*order_by)
+            else:
+                return trade_models.UserGoods.objects.filter(goods_owner=self.request.user).order_by(*order_by)
+        except:
+            traceback.print_exc()
+
+    def list(self,request, *args, **kwargs):
+        ret = {'code': "1000", 'message': ""}
+        try:
+            user_goods_info_query_set = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(user_goods_info_query_set)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+
+                return self.get_paginated_response(serializer.data)
+
+            serializer = self.get_serializer(user_goods_info_query_set, many=True)
             ret['code'] = "1000"
             ret['result'] = serializer.data
             return JsonResponse(ret)

@@ -43,7 +43,7 @@ urlpatterns = [
     url(r'static/(?P<path>.*)', serve, {'document_root': settings.STATIC_ROOT}),
     # 导出标签打印状态订单
     url('outputExcel/', views.OutPutOrdersView.as_view()),
-
+    url('getZhaoYaoJingImage/', views.GetZhaoYaoJingImage.as_view()),
     # 导出付款状态的订单 （同时修改状态为快递打印【tag_type字段为1】）(tag_type 默认为null ， 0 为失败  ，1为进行中状态)
     url('outputNullOrder/', views.OutPutNullOrderView.as_view()),
     # 导出付款状态的订单 （同时修改状态为快递打印【tag_type字段为1】）下单到第三方失败要调用这个接口修改恢复订单状态为付款状态 tag_type 为0
@@ -93,7 +93,9 @@ urlpatterns = [
 
     # 明日有货 重新修改为 付款状态 定时器开关
     url('timeSwitch/', trade_views.TimeSwitchView.as_view()),
+    # 发货到淘宝 temp
     url('temp/', trade_views.Temp.as_view()),
+    # 监听收款码付款
     url('appclient/', trade_views.AppClient.as_view()),
     url('addOrderToChuanMei/', trade_views.AddOrderToChuanMeiView.as_view()),
     # 退包入库
@@ -104,6 +106,12 @@ urlpatterns = [
     # *****************************bl********************
     url('bl_tuihuotuikuan_apply/', bl_site_views.BLTuihuotuikApply.as_view()),
     url('bl_get_order_info/', bl_site_views.BLGetOrderInfo.as_view()),
+    url('bl_get_account_record_by_order_number/', bl_site_views.BLGetAccountRecordByOrderNumber.as_view()),
+
     # *****************************bl********************
+    url('addDouYinGoods/', trade_views.SaveDouYinGoods.as_view()),
+    # *************************************抖音**************************************
+
+    # *************************************抖音**************************************
     url(r'', include(router.urls))
 ]
