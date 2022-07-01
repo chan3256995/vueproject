@@ -203,7 +203,7 @@
              </tr>
               <tr >
                 <td> 姓名：<input class="global_input_default_style defalut_input " :class="{'input_tip':item.address.name===''}"  v-model="item.address.name" /></td>
-               <td>电话：<input class="global_input_default_style defalut_input " :class="{'input_tip':item.address.phone===''}"  type="number" oninput="if(value.length>11) value=value.slice(0,11)"    v-model="item.address.phone"/></td>
+               <td>电话：<input class="global_input_default_style defalut_input " :class="{'input_tip':item.address.phone===''}"      v-model="item.address.phone"/></td>
 
                  <td>省份：<input  class="global_input_default_style defalut_input " :class="{'input_tip':item.address.province===''}"  v-model="item.address.province" /></td>
                  <td>城市：<input class="global_input_default_style defalut_input " :class="{'input_tip':item.address.city.trim()===''}"  v-model="item.address.city"/></td>
@@ -264,7 +264,7 @@
 
              Promise.all([p1, p2, p3]).then((res) => {
                let my_tb_wait_send_order_cache =    window.localStorage.getItem("my_tb_wait_send_order_cache")
-               console.log("等待发货的淘宝订单缓存：",my_tb_wait_send_order_cache)
+               console.log("windows拿到缓存订单数据：",my_tb_wait_send_order_cache)
            //     if(typeof(this.$route.query.plug_order_data) !== 'undefined'){
            //        this.analysis_tb_plug_order_data(this.$route.query.plug_order_data)
            //
@@ -393,16 +393,17 @@
          //解析淘宝插件传 过来的数据
        analysis_tb_plug_order_data(tb_plug_order_data){
                      // tb_plug_order_data = "[{\"tb_order_number\":\"795556705506266015\",\"phone\":\"13123940906\",\"name\":\"水影\",\"address\":\"安徽省阜阳市临泉县 陈集镇   安徽省阜阳市临泉县陈集镇农村淘宝服务站\",\"order_goods_list\":[{\"code\":\"金富丽 3F 3F030-52#9323\",\"img\":\"//img.alicdn.com/bao/uploaded/i3/467630318/O1CN01VlxsyO1EDgWOFxIt8_!!467630318.jpg_sum.jpg\",\"size\":\"4XL(140-160斤)\",\"color\":\"黑色\",\"count\":\"1\"}]}]"
-               console.log(tb_plug_order_data)
+               console.log("plug_order_data==================1--->",tb_plug_order_data)
                 let plug_order_data = JSON.parse(tb_plug_order_data )
-                console.log("plug_order_data==================--->",plug_order_data)
+                console.log("plug_order_data==================2--->",plug_order_data)
                for(let i = 0;i<plug_order_data.length;i++){
 
                   let address_str = plug_order_data[i]['name']+","+ plug_order_data[i]['phone']+ ","+plug_order_data[i].address
                   let tb_order_number = plug_order_data[i]['tb_order_number']
                   let wangwang_id = plug_order_data[i]['wangwang_id']
 
-                  let addressObj = mStringUtils.getAddressInfo(address_str,plug_order_data[i]['name'],plug_order_data[i]['phone']);
+                  let addressObj = mStringUtils.getAddressInfo(address_str,plug_order_data[i]['name'],plug_order_data[i]['phone'],plug_order_data[i]['province'],plug_order_data[i]['city'],plug_order_data[i]['area'],plug_order_data[i]['address_details']);
+                  console.log("解析后的地址对象：",addressObj)
                   let order_goods_list = []
 
 
@@ -423,11 +424,15 @@
                     if(return_list.length === 1){
                       let goods_img = plug_order_data[i].order_goods_list[g].img
                       let tb_goods_id = plug_order_data[i].order_goods_list[g].tb_goods_id
+                      let user_code = plug_order_data[i].order_goods_list[g].user_code
                       if(goods_img!==undefined && goods_img !== ""){
                          return_list[0]["image_url"] = "https:"+goods_img.replace("https:","")
                       }
                       if(tb_goods_id!==undefined && tb_goods_id !== ""){
                          return_list[0]["tb_goods_id"] = tb_goods_id
+                      }
+                      if(user_code!==undefined && user_code !== ""){
+                         return_list[0]["user_code"] = user_code
                       }
 
                     }
@@ -499,18 +504,7 @@
             const url  = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/trade/logistics/"
            //设为true 就会带cookies 访问
             axios.defaults.withCredentials=true
-            // axios.get(url,).then((res)=>{
-            //  if("1000" === res.data.code){
-            //      console.log(res.data)
-            //       this.logistics_options = this.analysis_logistics(res.data.data)
-            //       this.selected_logistics =  this.logistics_options[0]
-            //
-            //  }else{
-            //
-            //  }
-            //   }).catch(error => {
-            //     console.log(error) ;
-            //   })
+
 
            let p1 = new Promise((resolve, reject) => {
            axios.get(url).then(res=>{

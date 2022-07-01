@@ -7,63 +7,36 @@
       <svg class="icon" aria-hidden="true" @click="cancel">
         <use xlink:href="#icon-delete"></use>
       </svg>
-      <div><label style="color: red">{{ skw_goods_info_obj.goods_color }}</label> <label style="color: red">{{ skw_goods_info_obj.goods_size }}</label></div>
-
 
       <h3 class="title">{{ title }}</h3>
       <p class="content">{{ content }}</p>
       <div  >
         <table class="market_table1">
+          <tr><img v-bind:src="shop_obj.image_url" style="width: 4em;height: 4em"/></tr>
           <tr  >
-            <td  >市场</td>
-            <td  >楼层</td>
-            <td  >档口号</td>
-            <td >货号</td>
+            <td  ><input v-model="shop_obj.image_url"  placeholder="店铺图片" /></td>
+            <td  ><input v-model="shop_obj.monitor_url" placeholder="监控地址" /></td>
+            <td  ><input v-model="shop_obj.shop_name" placeholder="店铺名字" /></td>
+            <td><input v-model="shop_obj.shop_id" placeholder="店铺字符ID"   /></td>
+            <td><input v-model="shop_obj.shop_id2" placeholder="店铺数字ID"   /></td>
           </tr>
-          <tr  >
-            <td  ><input v-model="orderGoodsBackUp.shop_market_name"/></td>
-            <td  ><input v-model="orderGoodsBackUp.shop_floor" /></td>
-            <td  ><input v-model="orderGoodsBackUp.shop_stalls_no"  /></td>
-            <td  ><input v-model="orderGoodsBackUp.art_no"  /></td>
-          </tr>
-          <tr></tr>
+
+
         </table>
 
         <table class="market_table1">
-          <tr>
-            <td>颜色/尺码</td>
-            <td>单价</td>
-            <td>数量</td>
+
+          <tr> <td><input v-model="shop_obj.remarks"  placeholder="备注"     /></td>
 
           </tr>
           <tr>
-            <td><input v-model="orderGoodsBackUp.goods_color"  /></td>
-            <td><input type="number" v-model="orderGoodsBackUp.goods_price" /></td>
-            <td><input type="number" v-model="orderGoodsBackUp.goods_count"     /></td>
-
-          </tr>
-          <tr>
-            <td><input  v-model="skw_url" placeholder="抓取的搜款网地址" /></td>
-            <td> <button class="btn-default" @click="get_skw_goods_details(skw_url)"   >开始抓取</button></td>
-
+            <td><input  v-model="taget_url" placeholder="抖音店铺地址"    /></td>
+            <td><button class="btn-primary btn-confirm"  @click="get_dou_yin_shop_info(taget_url)"   >抓取信息</button></td>
           </tr>
         </table>
 
       </div>
-      <div v-if="orderGoodsBackUp.status !== mGlobal.GOODS_STATUS2['未付款']">
-        <div>
-        <label>应付金额：</label><label style="color: red"> {{pay_moneys}}</label><label>元</label><label style="color: red">（负数为应退金额，正数为应付金额）</label>
-      </div>
-      <table style="text-align: center">
-        <tr>
-          <td> <label style="float: left">支付密码：</label></td>
-          <td> <input style="width:15em;" type="password" v-model="inputValue" v-if="isShowInput" ref="input" @keyup.enter="confirm"></td>
-        </tr>
 
-
-      </table>
-
-      </div>
 
       <div class="btn-group">
 
@@ -75,21 +48,22 @@
 </template>
 
 <script>
-   import mGlobal from '../../utils/mGlobal';
-   import mcommon_function from '../../utils/mcommon_function';
+   import mGlobal from '../mGlobal';
+    import mcommon_function from '../mcommon_function';
+   import $ from 'jquery'
   export default {
-    // 复用模块组件
+     // 复用模块组件
     mixins:[mcommon_function],
     props: {
-      orderGoods:{},
-      orderGoodsBackUp:{},
+      myGoods:{},
+
       title: {
         type: String,
         default: '标题'
       },
       content: {
         type: String,
-        default: '这是弹框内容'
+        default: ''
       },
       isShowInput: false,
       inputValue: '',
@@ -113,14 +87,25 @@
     data () {
       return {
         mGlobal:mGlobal,
-        skw_url:"",
-        skw_goods_info_obj:"",
-        pay_moneys:0,
+
         isShowMessageBox: false,
         resolve: '',
         reject: '',
         promise: '', // 保存promise对象
         submit_btn_disable :false,
+        taget_url :"",
+
+        shop_obj:{
+          shop_id:"",
+          shop_id2:"",
+          image_url:"",
+          shop_name:"",
+          remarks:"",
+          monitor_url:"",
+
+
+
+        },
       };
     },
     created(){
@@ -134,72 +119,88 @@
 
 
     methods: {
-      // 获取搜款网信息
-      get_skw_goods_details(url){
-        console.log("获取搜款网信息:"+url)
-        if(url === undefined || url === ""){
-          this.$toast("地址不能为空！");
-          return
-        }
+
+      //抓取信息
+      get_dou_yin_shop_info: function(url){
+          let ser_url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/getWebPageContent/"
+          let  result = this.mcommon_return_url_params(url)
+          let return_data = {}
+          console.log("result:",result)
+          let shop_str_id = result["id"]
+
+          let dou_yinshop_url = "https://ec.snssdk.com/shop/getInfo?id="+shop_str_id+"&b_type_new=0&device_id=0&is_outside=1"
+          let params_obj = {
+            "method":"GET",
+            "url":dou_yinshop_url,
+            "header":{
+              "user-agent":"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36",
+            },
+          }
+          this.$axios.post(ser_url,{
+
+                        "req_parms": JSON.stringify(params_obj),
 
 
-        let  result = this.mcommon_get_skw_goods_details(url)
-        this.skw_goods_info_obj = this.mcommon_get_skw_goods_details(url)
+       }).then((res)=>{
+        console.log("res",res)
+         if(res.data.code === "1000"){
 
-        this.orderGoodsBackUp.shop_market_name =result['market_name']
-        this.orderGoodsBackUp.shop_floor = result['floor']
-        this.orderGoodsBackUp.shop_stalls_no = result['shop_stalls_no']
-        this.orderGoodsBackUp.goods_price = result['goods_price']
-        this.orderGoodsBackUp.art_no = result['art_no']
+            this.$toast("抓取成功")
+           console.log("res.data.data",res.data.data)
+            let data = JSON.parse(res.data.data)
+           console.log("return_data0",return_data)
+           return_data = data.data
+           console.log("return_data1",return_data)
+           this.shop_obj.shop_id = return_data['id']
+           this.shop_obj.shop_name = return_data['shop_name']
+           this.shop_obj.image_url = return_data['shop_logo']
+           this.shop_obj.shop_id2  = return_data['report_id__for_event']
+
+           this.shop_obj.monitor_url = "https://lianmengapi.snssdk.com/aweme/v1/store/product/list/?sec_shop_id="+this.shop_obj.shop_id+"&goods_type=1&sort_type=2&sort=0&cursor=0&size=20&iid=3364954170996542&device_id=2995518243341992&channel=juyouliang_douyin_and15&aid=1128&app_name=aweme&version_code=200300&version_name=20.3.0&device_platform=android&os=android&device_type=MI+6s&device_brand=Xiaomi&os_api=23&os_version=6.0.1"
 
 
+         }
+          this.submit_btn_disable = false;
+          }).catch(error => {
+            alert("访问错误")
 
-      },
+          })
 
-      // 计算差价
-      calc_price(){
-        this.pay_moneys  = (this.orderGoodsBackUp.goods_price * this.orderGoodsBackUp.goods_count) - (this.orderGoods.goods_price * this.orderGoods.goods_count)
-        console.log('pay_moneys',this.pay_moneys)
       },
 
       // 确定,将promise断定为resolve状态
       confirm: function () {
         console.log(this.inputValue)
-        if(this.orderGoodsBackUp.status  !== mGlobal.GOODS_STATUS2['未付款']){
-           if(this.inputValue === "" || this.inputValue === undefined){
-          alert("支付密码不能为空")
-          return
-        }
-        }
-
-        if(isNaN(this.orderGoodsBackUp.goods_price) ||  this.orderGoodsBackUp.goods_price === 0 ){
-          alert("价格必须大于 0 ")
-          return
-        }
 
 
-         if(isNaN(this.orderGoodsBackUp.goods_count) ||  this.orderGoodsBackUp.goods_count < 1   ){
-          alert("数量必须大于 0 的整数")
-          return
-        }
+
+
+
         this.submit_btn_disable = true;
-        let url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/alterOrderGoodsDetails/"
+        let url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDouYinShopAdd/"
+
 
         console.log(url)
         this.$axios.post(url,{
-           'new_order_goods':this.orderGoodsBackUp,
-           'pay_pwd':this.inputValue
+
+                        "shop_id": this.shop_obj.shop_id,
+
+                        "shop_id2": this.shop_obj.shop_id2,
+                        "image_url": this.shop_obj.image_url,
+
+                        "shop_name": this.shop_obj.shop_name,
+                        "remarks": this.shop_obj.remarks,
+                        "monitor_url": this.shop_obj.monitor_url,
+
 
        }).then((res)=>{
 
          if(res.data.code === "1000"){
-             alert("修改成功")
-            this.orderGoods.goods_price = this.orderGoodsBackUp.goods_price
-           this.$delete(this.orderGoods,'goods_price')
-           this.$set(this.orderGoods,'goods_price', this.orderGoodsBackUp.goods_price)
+
+            this.$toast("添加成功")
             this.isShowMessageBox = false;
-             this.resolve('confirm');
-             this.remove();
+            this.resolve('confirm');
+            this.remove();
          }else{
             alert("修改失败:"+res.data.message)
          }
@@ -240,16 +241,8 @@
     },
         watch: {
 
-         'orderGoodsBackUp.goods_price': function(newVal,oldVal) {
 
-            this.calc_price()
 
-         },
-          'orderGoodsBackUp.goods_count':function(newVal,oldVal){
-           console.log('goods_count',newVal, oldVal)
-
-             this.calc_price()
-          }
       },
   };
 </script>

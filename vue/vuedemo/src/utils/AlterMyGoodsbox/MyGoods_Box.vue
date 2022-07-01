@@ -7,63 +7,46 @@
       <svg class="icon" aria-hidden="true" @click="cancel">
         <use xlink:href="#icon-delete"></use>
       </svg>
-      <div><label style="color: red">{{ skw_goods_info_obj.goods_color }}</label> <label style="color: red">{{ skw_goods_info_obj.goods_size }}</label></div>
-
 
       <h3 class="title">{{ title }}</h3>
       <p class="content">{{ content }}</p>
       <div  >
         <table class="market_table1">
+          <tr><img v-bind:src="goods_obj.main_img" style="width: 4em;height: 4em"/></tr>
           <tr  >
-            <td  >市场</td>
-            <td  >楼层</td>
-            <td  >档口号</td>
-            <td >货号</td>
+            <td  ><input v-model="goods_obj.main_img"  placeholder="商品图片" /></td>
+            <td  ><input v-model="goods_obj.shop_name" placeholder="档口名" /></td>
+            <td><input v-model="goods_obj.user_code" placeholder="用户编码"   /></td>
           </tr>
-          <tr  >
-            <td  ><input v-model="orderGoodsBackUp.shop_market_name"/></td>
-            <td  ><input v-model="orderGoodsBackUp.shop_floor" /></td>
-            <td  ><input v-model="orderGoodsBackUp.shop_stalls_no"  /></td>
-            <td  ><input v-model="orderGoodsBackUp.art_no"  /></td>
-          </tr>
+          <tr>
+            <td  ><input v-model="goods_obj.market_name"  placeholder="市场" /></td>
+            <td  ><input v-model="goods_obj.floor"  placeholder="楼层" /></td>
+            <td  ><input v-model="goods_obj.shop_stalls_no"  placeholder="档口号" /></td>
+            <td  ><input v-model="goods_obj.art_no"  placeholder="货号" /></td></tr>
           <tr></tr>
         </table>
 
         <table class="market_table1">
+
           <tr>
-            <td>颜色/尺码</td>
-            <td>单价</td>
-            <td>数量</td>
+
+            <td><input placeholder="颜色"  v-model="goods_obj.goods_color"  /></td>
+            <td><input placeholder="尺码"  v-model="goods_obj.goods_size" /></td>
+            <td><input placeholder="单价"  type="number" v-model="goods_obj.goods_price" /></td>
+
 
           </tr>
-          <tr>
-            <td><input v-model="orderGoodsBackUp.goods_color"  /></td>
-            <td><input type="number" v-model="orderGoodsBackUp.goods_price" /></td>
-            <td><input type="number" v-model="orderGoodsBackUp.goods_count"     /></td>
-
+          <tr> <td><input v-model="goods_obj.remark"  placeholder="备注"     /></td>
+            <td><input v-model="goods_obj.goods_url" placeholder="商品源地址"     /></td>
           </tr>
           <tr>
-            <td><input  v-model="skw_url" placeholder="抓取的搜款网地址" /></td>
-            <td> <button class="btn-default" @click="get_skw_goods_details(skw_url)"   >开始抓取</button></td>
-
+            <td><input  v-model="taget_url" placeholder="搜款网商品地址"    /></td>
+            <td><button class="btn-primary btn-confirm"  @click="get_skw_goods_details(taget_url)"   >抓取信息</button></td>
           </tr>
         </table>
 
       </div>
-      <div v-if="orderGoodsBackUp.status !== mGlobal.GOODS_STATUS2['未付款']">
-        <div>
-        <label>应付金额：</label><label style="color: red"> {{pay_moneys}}</label><label>元</label><label style="color: red">（负数为应退金额，正数为应付金额）</label>
-      </div>
-      <table style="text-align: center">
-        <tr>
-          <td> <label style="float: left">支付密码：</label></td>
-          <td> <input style="width:15em;" type="password" v-model="inputValue" v-if="isShowInput" ref="input" @keyup.enter="confirm"></td>
-        </tr>
 
-
-      </table>
-
-      </div>
 
       <div class="btn-group">
 
@@ -76,20 +59,21 @@
 
 <script>
    import mGlobal from '../../utils/mGlobal';
-   import mcommon_function from '../../utils/mcommon_function';
+    import mcommon_function from '../../utils/mcommon_function';
+   import $ from 'jquery'
   export default {
-    // 复用模块组件
+     // 复用模块组件
     mixins:[mcommon_function],
     props: {
-      orderGoods:{},
-      orderGoodsBackUp:{},
+      myGoods:{},
+
       title: {
         type: String,
         default: '标题'
       },
       content: {
         type: String,
-        default: '这是弹框内容'
+        default: ''
       },
       isShowInput: false,
       inputValue: '',
@@ -113,14 +97,31 @@
     data () {
       return {
         mGlobal:mGlobal,
-        skw_url:"",
-        skw_goods_info_obj:"",
         pay_moneys:0,
         isShowMessageBox: false,
         resolve: '',
         reject: '',
         promise: '', // 保存promise对象
         submit_btn_disable :false,
+        // 抓取的目标地址
+        taget_url:"",
+        goods_obj:{
+          user_code:"",
+          goods_url:"",
+          shop_name:"",
+          market_name:"",
+          floor:"",
+          shop_stalls_no:"",
+          main_img:"",
+          goods_color:"",
+          goods_size:"",
+          goods_price:0,
+          art_no:'',
+          remark:"",
+
+
+
+        },
       };
     },
     created(){
@@ -134,72 +135,59 @@
 
 
     methods: {
-      // 获取搜款网信息
+       //抓取信息
       get_skw_goods_details(url){
-        console.log("获取搜款网信息:"+url)
-        if(url === undefined || url === ""){
-          this.$toast("地址不能为空！");
-          return
-        }
+          let  result = this.mcommon_get_skw_goods_details(url)
 
-
-        let  result = this.mcommon_get_skw_goods_details(url)
-        this.skw_goods_info_obj = this.mcommon_get_skw_goods_details(url)
-
-        this.orderGoodsBackUp.shop_market_name =result['market_name']
-        this.orderGoodsBackUp.shop_floor = result['floor']
-        this.orderGoodsBackUp.shop_stalls_no = result['shop_stalls_no']
-        this.orderGoodsBackUp.goods_price = result['goods_price']
-        this.orderGoodsBackUp.art_no = result['art_no']
-
-
+          this.goods_obj['goods_url'] = result['goods_url']
+          this.goods_obj['shop_name'] = result['shop_name']
+          this.goods_obj['market_name'] = result['market_name']
+          this.goods_obj['floor'] = result['floor']
+          this.goods_obj['shop_stalls_no'] =  result['shop_stalls_no']
+          this.goods_obj['art_no'] = result['art_no']
+          this.goods_obj['main_img'] = result['main_img']
+          this.goods_obj['goods_color'] = result['goods_color']
+          this.goods_obj['goods_size'] = result['goods_size']
+          this.goods_obj['goods_price'] = result['goods_price']
 
       },
 
-      // 计算差价
-      calc_price(){
-        this.pay_moneys  = (this.orderGoodsBackUp.goods_price * this.orderGoodsBackUp.goods_count) - (this.orderGoods.goods_price * this.orderGoods.goods_count)
-        console.log('pay_moneys',this.pay_moneys)
-      },
 
       // 确定,将promise断定为resolve状态
       confirm: function () {
         console.log(this.inputValue)
-        if(this.orderGoodsBackUp.status  !== mGlobal.GOODS_STATUS2['未付款']){
-           if(this.inputValue === "" || this.inputValue === undefined){
-          alert("支付密码不能为空")
-          return
-        }
-        }
-
-        if(isNaN(this.orderGoodsBackUp.goods_price) ||  this.orderGoodsBackUp.goods_price === 0 ){
-          alert("价格必须大于 0 ")
-          return
-        }
 
 
-         if(isNaN(this.orderGoodsBackUp.goods_count) ||  this.orderGoodsBackUp.goods_count < 1   ){
-          alert("数量必须大于 0 的整数")
-          return
-        }
+
+
+
         this.submit_btn_disable = true;
-        let url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/alterOrderGoodsDetails/"
+        let url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userGoodsAdd/"
 
         console.log(url)
         this.$axios.post(url,{
-           'new_order_goods':this.orderGoodsBackUp,
-           'pay_pwd':this.inputValue
+                      "origin_url": this.goods_obj.goods_url,
+                        "image_url": this.goods_obj.main_img,
+                        "user_code":  this.goods_obj.user_code,
+                        "shop_market_name": this.goods_obj.market_name,
+                        "replace_string": '',
+                        "shop_floor": this.goods_obj.floor,
+                        "shop_stalls_no": this.goods_obj.shop_stalls_no,
+                        "shop_name": this.goods_obj.shop_name,
+                        "goods_price": this.goods_obj.goods_price,
+                        "goods_color": this.goods_obj.goods_color,
+                        "goods_size": this.goods_obj.goods_size,
+                        "remarks": this.goods_obj.remark,
+                        "art_no": this.goods_obj.art_no,
 
        }).then((res)=>{
 
          if(res.data.code === "1000"){
-             alert("修改成功")
-            this.orderGoods.goods_price = this.orderGoodsBackUp.goods_price
-           this.$delete(this.orderGoods,'goods_price')
-           this.$set(this.orderGoods,'goods_price', this.orderGoodsBackUp.goods_price)
+
+            this.$toast("添加成功")
             this.isShowMessageBox = false;
-             this.resolve('confirm');
-             this.remove();
+            this.resolve('confirm');
+            this.remove();
          }else{
             alert("修改失败:"+res.data.message)
          }
@@ -240,16 +228,8 @@
     },
         watch: {
 
-         'orderGoodsBackUp.goods_price': function(newVal,oldVal) {
 
-            this.calc_price()
 
-         },
-          'orderGoodsBackUp.goods_count':function(newVal,oldVal){
-           console.log('goods_count',newVal, oldVal)
-
-             this.calc_price()
-          }
       },
   };
 </script>

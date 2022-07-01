@@ -3814,18 +3814,30 @@ export default {
          },
   
   
-     getAddressInfo(address,name,phone){
+     getAddressInfo(address,name,phone,province,city,area,address_detail){
         let info = this.getAddressInfo1(address);
-        console.log('info',info)
+        console.log('info1',info)
         if(info.province === "" || info.city ===""){
           info = this.getAddressInfo2(address)
         }
-
+        console.log('info2',info)
         if(name!==undefined){
           info['name'] = name
         }
         if(phone!==undefined){
           info['phone'] = phone
+        }
+        if(province!==undefined){
+          info['province'] = province
+        }
+        if(city!==undefined){
+          info['city'] = city
+        }
+        if(area!==undefined){
+          info['area'] = area
+        }
+        if(address_detail!==undefined){
+          info['address_detail'] = address_detail
         }
         return info
      },
@@ -3840,7 +3852,7 @@ export default {
        name = name_phone.name;
        phone = name_phone.phone
 
-       if(phone!==null && phone!==""){
+       if(phone!==undefined && phone!==""){
          let phone_index  = address.indexOf(phone);
          console.log("phone_index",phone_index)
          let temAddress = address.substring(phone_index+phone.length,address.length);

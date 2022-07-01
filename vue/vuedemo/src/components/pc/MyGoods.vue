@@ -11,7 +11,7 @@
 
     </div>
     <div style="padding-left: 5em">
-        <input v-model="query_q" style="width: 85%;height: 2em;max-width: 40em; " placeholder="订单号 ，收货人名，手机号，快递单号"/><button @click='on_orders_query(query_q)' style="margin-left: 0.5em">查询</button>
+        <input v-model="query_q" style="width: 85%;height: 2em;max-width: 40em; " placeholder="用户编码，货号"/><button @click='on_orders_query(query_q)' style="margin-left: 0.5em">查询</button><button @click="add_goods()"  style="margin-left: 0.5em">添加商品</button>
         <!--<label>时间选择</label><input @click="calendar_show = !calendar_show" v-model="during_str">-->
     </div>
 
@@ -22,60 +22,49 @@
 
           <div  class="global_background" style=" width:98% ">
             <table   style=" width:98% " >
-             <tr>
-                <td  >全选</td>
-                <td>操作</td>
-                <td>图片</td>
 
-                <td>商家编号</td>
-                <td>档口名</td>
-                <td>市场</td>
-                <td>楼层</td>
-                <td>档口</td>
-                <td>货号</td>
-                <td>替换规则</td>
-                <td>商品地址</td>
-                <td>默认</td>
 
-              </tr>
-              <tr style="background: gainsboro" v-for="(goods,index2) in goods_list">
+              <tr style="background: white" v-for="(goods,index2) in goods_list">
 
                 <td ><input type="checkbox"  ></td>
-                 <td> <button style="width: 4em;padding-left: 0;padding-right: 0px">编辑</button> <button style="width: 6em;margin-top:0.2em;display: inline">确定修改</button></td>
-                <td><input style="width: 5em" v-model="goods.image_url"></td>
+                 <td style="width: 5em"><button @click="delete_my_goods({'id_list':[goods.id]})" style="width: 4em;padding-left: 0;padding-right: 0px">删除</button> <button @click="alter_goods(goods)" style="width: 6em;margin-top:0.2em;display: inline">确定修改</button></td>
+                <td><img v-bind:src="goods.image_url"style="width: 3em;height: 3em"/></td>
+                <td>
 
-                <td><input  v-model="goods.user_code"></td>
-                <td><input style="width: 5em" v-model="goods.shop_name"></td>
-                <td><input style="width: 5em" v-model="goods.shop_market_name"></td>
-                <td><input style="width: 5em"  v-model="goods.shop_floor"></td>
-                <td><input v-model="goods.shop_stalls_no"></td>
-                <td><input style="width: 5em" v-model="goods.art_no"></td>
-                <td><input v-model="goods.replace_string"></td>
-                <td><input style="width: 5em" v-model="goods.origin_url"></td>
-                <td ><input type="checkbox"  v-model="goods.is_default" ></td>
+                  <div style="border: grey solid 1px;margin-bottom: 2px"><label style="float: left">商品图片</label><input style="width: 5em" v-model="goods.image_url"></div>
+                  <div style="border: grey solid 1px;"><label style="float: left">用户编码</label><input  v-model="goods.user_code"></div>
+                </td>
+
+                <td>
+                  <div style="border: grey solid 1px;margin-bottom: 2px"><label style="float: left">档口名</label><input style="width: 5em" v-model="goods.shop_name"></div>
+                  <div style="border: grey solid 1px;margin-bottom: 2px"><label style="float: left">市场</label><input style="width: 5em" v-model="goods.shop_market_name"></div>
+                </td>
+                 <td>
+                  <div style="border: grey solid 1px;margin-bottom: 2px"><label style="float: left">楼层</label><input style="width: 5em" v-model="goods.shop_floor"></div>
+                  <div style="border: grey solid 1px;margin-bottom: 2px"><label style="float: left">档口号</label><input style="width: 5em" v-model="goods.shop_stalls_no"></div>
+                </td>
+                <td>
+                  <div style="border: grey solid 1px;margin-bottom: 2px"><label style="float: left">款号</label><input style="width: 5em" v-model="goods.art_no"></div>
+                  <div style="border: grey solid 1px;margin-bottom: 2px"><label style="float: left">价格</label><input style="width: 5em" v-model="goods.goods_price"></div>
+                  <!--<div style="border: grey solid 1px;margin-bottom: 2px"><label style="float: left">替换规则</label><input style="width: 5em" v-model="goods.replace_string"></div>-->
+                </td>
+                <td>
+                  <div style="border: grey solid 1px;margin-bottom: 2px"><label style="float: left">商品源地址</label><input style="width: 5em" v-model="goods.origin_url"></div>
+                  <div style="border: grey solid 1px;margin-bottom: 2px"><label style="float: left">备注</label><input style="width: 5em" v-model="goods.remarks"></div>
+                </td>
+                 <td>
+                  <div style="border: grey solid 1px;margin-bottom: 2px"><label style="float: left">颜色</label><input style="width: 5em" v-model="goods.goods_color"></div>
+                  <div style="border: grey solid 1px;margin-bottom: 2px"><label style="float: left">尺码</label><input style="width: 5em" v-model="goods.goods_size"></div>
+                </td>
+                <td>
+                  <div style="border: grey solid 1px;margin-bottom: 2px"><label style="float: left">锁定</label><input type="checkbox"  v-model="goods.is_default" ></div>
+
+                </td>
 
 
               </tr>
             </table>
-            <div style="background: gainsboro;padding-bottom: 0.5em">
-              <li>
-                <div style="padding-left: 1em;">
-                  <input type="checkbox"/>
-                  <label>[买]：</label><label>向日葵200815</label><label> [卖]：</label><label>moonight539</label><label> 订单编号：</label> <label>2386640667784697520</label><label> 地址：</label><label>黄鹏 15997807627 湖北省,十堰市,丹江口市, 蒿坪镇 湖北省丹江口市蒿坪镇,</label>
-                </div>
-                <div  >
-                  <div style="background: white;padding-left: 0.5em">
-                    <img style="width: 3em;height: 3em" v-bind:src="tem_img_urm" />
-                    <label>颜色尺码：</label><label>白色XL</label><label style="margin-left: 1em">98.00</label><label>x</label><label>1</label>
-                  </div>
-                  <div style="background: white;padding-left: 0.5em">
 
-                    <img style="width: 3em;height: 3em" v-bind:src="tem_img_urm"/>
-                    <label>颜色尺码：</label><label>白色XL</label><label style="margin-left: 1em">98.00</label><label>x</label><label>1</label>
-                  </div>
-                </div>
-              </li>
-            </div>
 
           </div>
 
@@ -113,12 +102,6 @@
             // 加载数据后是否滚动到顶端
             is_scroll_top:true,
 
-
-
-
-
-
-
             prePageShow:true,
             nextPageShow:true,
             goods_list:[],
@@ -151,21 +134,77 @@
             return mtime.formatDateStrFromTimeSt(stmp)
           },
           // 修改商品信息
-          alter_goods(order_goods){
-            this.$orderGoodsBox.showMsgBox({
-                  title: '修改商品信息',
-                  content: '',
-                  isShowInput: true,
-                  orderGoods:order_goods,
-                  orderGoodsBackUp:Object.assign({},order_goods),
+          alter_goods(goods){
+              if(!confirm("确定修改订单吗？")) {
+                return ;
+              }
+              const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userGoodsEdit/";
+              let post_goods = {
+     	          "user_goods_data":{
+     	   	      "id":goods.id,
+     	   	      "origin_url": goods.origin_url,
+                        "image_url": goods.image_url,
+                        "user_code":  goods.user_code,
+                        "replace_string": goods.replace_string,
+                        "shop_market_name": goods.shop_market_name,
+                        "shop_floor": goods.shop_floor,
+                        "shop_stalls_no": goods.shop_stalls_no,
+                        "art_no": goods.art_no,
+                        "shop_name": goods.shop_name,
+                        "goods_price": goods.goods_price,
+                        "goods_color": goods.goods_color,
+                        "goods_size": goods.goods_size,
+                        "remarks": goods.remarks,
+                        "is_default": goods.is_default,
+     	          }
+     }
+               axios.post(url,post_goods).then((res)=>{
+              if(res.data.code ==="1000"){
+                console.log(res.data)
+                this.$toast("提交成功！")
+              }else{
+                this.$toast("修改密码失败！"+res.data.message)
+              }
+
+            }).catch(error=>{
+                console.log("提交失败")
+                this.$toast("请求错误")
+            })
+      },
+          // 添加商品
+          add_goods(){
+            this.$myGoodsBox2.showMsgBox({
+                  title: '添加商品',
+                  isShowInput: false,
+
               }).then(async (val) => {
-                  this.refresh_cur_page();
+                   if(val === "confirm"){
+                     this.refresh_cur_page();
+                   }
 
 
               }).catch(() => {
                   // ...
               });
-      },
+          },
+                  // 删除订单(未付款订单)
+          delete_my_goods(goods_id_list){
+                  if(!confirm("确定删除吗？删除后不可恢复。")) {
+                    return ;
+                  }
+                const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userGoodsDelete/";
+                axios.post(url,goods_id_list).then((res)=>{
+                 if(res.data.code === "1000"){
+                   alert("删除订单成功")
+
+                    this.refresh_cur_page();
+                 }else if(res.data.code === "1001"){
+                    alert("删除订单失败")
+                 }
+            }).catch(error => {
+                 alert("访问错误")
+            })
+          },
 
 
 
@@ -198,13 +237,13 @@
            on_orders_query(query_keys){
 
              console.log(query_keys)
-            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/nullOrders/";
-            let query_data = {"q":query_keys.trim()};
+            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userGoodsInfo/";
+            let query_data = {"keys":query_keys.trim()};
             this.loadOrderPage(url,query_data)
           },
 
         //刷新当前页面
-        refresh_cur_page(null_order_status){
+        refresh_cur_page(){
               let cur_page_url = "";
               let cur_page_num ;
 
@@ -224,7 +263,7 @@
                let  cur_page_num = parseInt(pre_page_num)-1;
                cur_page_url = base_url+"page="+cur_page_num;
             }else{
-                cur_page_url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/nullOrders/";
+                cur_page_url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userGoodsInfo/";
             }
 
             let query_data =""
@@ -321,6 +360,9 @@
 
           const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userGoodsInfo/"
           this.loadOrderPage(url);
+
+
+
       },
       mount(){
 

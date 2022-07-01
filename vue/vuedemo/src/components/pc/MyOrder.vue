@@ -24,21 +24,31 @@
 
 
       <li>
-             <label   style="color: gray ; "    >▼</label>
+
             <select style="font-size: 1.1em" v-model="remarks_type_selected">
               <option :value="option" v-for="(option,index) in remarks_type_options" :key="index">{{option}}</option>-->
             </select>
       </li>
-      <li style="padding-left: 1em"><input style=" width: 1.3em;height:1.5em; color:red; background: #3bb4f2" type="checkbox" v-model="is_order_by_update_time"> </li>
-      <li><label style=" font-size: 1.2em;">拿/发货时间排序</label> </li>
+
+      <li>
+
+         <select  style="margin-left:0.5em;width: 5em"  v-model="order_by_selected">
+          <option :value="option" v-for="(option,index) in order_by_options" :key="index">{{option.text}}</option>
+         </select>
+         <select  style="margin-left:0.5em;width: 5em"  v-model="seller_wangwang_selected">
+          <option :value="option" v-for="(option,index) in seller_wangwang_options" :key="index">{{option.text}}</option>
+         </select>
+         <label @click="on_not_temp_art_no_click()" :class="{status_select:is_not_temp_art_no===true}" >不显示临时款号订单</label>
+      </li>
     </ul>
 
-    <div style="padding-left: 3em" v-show="cur_order_status_filter==='未付款'">
+    <div style="padding-left: 3em">
       <button @click="select_all_unpay_orders(is_all_unpay_order_selected)">全选</button>
       <button @click="orders_pay(go_pay_order_list)" v-if="cur_order_status_filter==='未付款'">合并付款</button>
 
       <label style="color: red"> 总计: {{go_pay_money_totals}} 元</label>
       <button @click="move_order_to_null_package(go_pay_order_list)" v-if="cur_order_status_filter==='未付款'">转至空包订单</button>
+      <button @click="send_order_to_taobao(order_list)" v-if="cur_order_status_filter==='已发货'">选中的到淘宝发货</button>
       <!--<button  v-bind:value = "aselect_order_item_cache" id = "move_order_to_chuanmei" v-show="cur_order_status_filter==='未付款'">转至传美打印</button>-->
     </div>
     <div  class = "items_ul">
@@ -48,7 +58,7 @@
               <tr>
                 <td style="width:80%">
                   <div style="float: left">
-                    <input style="width: 1.2em;height: 1.2em" @change="check_box_change(item)" type="checkbox" v-model="item.is_order_selected" v-if="cur_order_status_filter==='未付款'"/>
+                    <input style="width: 1.2em;height: 1.2em" @change="check_box_change(item)" type="checkbox" v-model="item.is_order_selected" />
                   </div>
 
 
@@ -77,16 +87,16 @@
                 </td>
               </tr>
             </table>
-
           </div>
-
               <div class="item_goods"  v-for="(goods,index2) in item.orderGoods">
 
                 <img style="width: 3.5em; height: 3.5em;float: left" v-bind:src="goods.image_url"/>
                 <div style="" >
                   <div style="   margin-bottom: 1em;">
 
-                    <label >商品:{{index2+1}}
+                     <label style="color:red"  >{{goods.tb_goods_id}} </label>
+                    <label :class="{yellow_background_color:goods.art_no==='临时款号'}" >商品:{{index2+1}}
+
                       {{goods.shop_market_name}}_{{goods.shop_floor}}_{{goods.shop_stalls_no}}_{{goods.art_no}}_{{goods.goods_price}}元_{{goods.goods_color}}_{{goods.goods_count}}件
                    </label>
                     <!--<button @click="test(goods)">修改商品</button>-->
@@ -156,22 +166,26 @@
 
 <script>
   import mtime from '../../utils/mtime.js';
+   import mcommon_function from '../../utils/mcommon_function';
   import mGlobal from '../../utils/mGlobal';
   import  axios  from 'axios'
 
      //设为ttrue 就会带cookies 访问
     axios.defaults.withCredentials=true;
     export default {
-        name: "MyOrder",
+      mixins:[mcommon_function],
+      name: "MyOrder",
       data(){
           return{
+            //是否筛选临时款号商品定案
+            is_not_temp_art_no:false,
             calendar_show:false,
             defaultDate:[],
             disabledDate:[],
             during_str:"",
             // 选中订单数据缓存
             aselect_order_item_cache : [],
-            is_order_by_update_time :false,
+
             // 加载数据后是否滚动到顶端
             is_scroll_top:true,
             un_pay_counts: "",
@@ -188,7 +202,20 @@
             go_pay_order_list:[],
             query_q :"",
             selected_op :"",
+            order_by_selected :  {value:"",text:"请选择"},
+            seller_wangwang_selected :  {value:"",text:"请选择"},
+            order_by_options:[
+              {value:"",text:"请选择"},
+              {value:"update_time",text:"发货时间排序"},
+              {value:"goods",text:"商品排序 "},
 
+            ],
+            seller_wangwang_options:[
+              {value:"",text:"请选择"},
+              {value:"moonlight539",text:"moonlight539"},
+              {value:"chenqling3",text:"chenqling3 "},
+
+            ],
             options: [
             { text: '请选择', value: '' },
             { text: '退货退款', value: '1' },
@@ -223,6 +250,9 @@
       },
 
       methods:{
+          on_not_temp_art_no_click(){
+            this.is_not_temp_art_no = !this.is_not_temp_art_no
+          },
           on_calendar_change(date) {
             this.during_str = ""
             for(let i = 0;i<date.length;i++){
@@ -344,22 +374,22 @@
         select_all_unpay_orders(is_selected){
             //选中准备付款的订单
             this.go_pay_order_list = []
-            if(this.cur_order_status_filter !== "未付款"){
-              return
-            }
+
              for(let i = 0;i< this.order_list.length;i++){
               let is_continue = true
               for(let g = 0 ; g< this.order_list[i].orderGoods.length;g++){
-                  if(this.order_list[i].orderGoods[g].status !== mGlobal.GOODS_STATUS2['未付款']){
-                    // 不是未付款的 跳过
-                    is_continue = false
-                  }else{
-
                     this.$delete(this.order_list[i], 'is_order_selected');
                     this.$set(this.order_list[i], 'is_order_selected', is_selected);
-
-
-                  }
+                  // if(this.order_list[i].orderGoods[g].status !== mGlobal.GOODS_STATUS2['未付款']){
+                  //   // 不是未付款的 跳过
+                  //   is_continue = false
+                  // }else{
+                  //
+                  //   this.$delete(this.order_list[i], 'is_order_selected');
+                  //   this.$set(this.order_list[i], 'is_order_selected', is_selected);
+                  //
+                  //
+                  // }
                 }
             }
             this.is_all_unpay_order_selected = !is_selected;
@@ -367,6 +397,16 @@
             this.go_pay_order_list = this.get_unpay_order_list()
             this.go_pay_money_totals = this.calc_unpay_order_moneys(this.go_pay_order_list)
         },
+         go_tb_send_order_page(order_list,logistics_name){
+    let tb_order_number = ""
+    for (let i = 0 ;i<order_list.length;i++){
+        tb_order_number = tb_order_number + order_list[i].tb_order_number+","
+    }
+    let url = "https://wuliu.taobao.com/user/batch_consign.htm?trade_ids="+tb_order_number
+           // url = url+"2717022096459639556,"
+           console.log("准备跳转的url:",url)
+    window.open(url)
+},
         // 统计当前已选的未付款订单
         get_unpay_order_list(){
             let go_pay_order_list= []
@@ -429,6 +469,48 @@
             }).catch(error=>{
                 console.log("请求错误")
             })
+
+
+
+          },
+          send_order_to_taobao(send_order_list){
+
+            let go_send_order_list = []
+
+            let order_number_list_str = ""
+            for(let i=0;i<send_order_list.length;i++){
+              if(send_order_list[i].tb_order_number!==undefined && send_order_list[i].tb_order_number!==null  && send_order_list[i].tb_order_number !== "" && send_order_list[i].is_order_selected === true){
+                go_send_order_list.push(send_order_list[i])
+
+              }
+
+            }
+            let new_order_list = []
+                           // 根据物流分类储存
+            let order_list_sort_object = {}
+            for(let g = 0 ;g<go_send_order_list.length;g++){
+                  if (go_send_order_list[g].logistics_number !==null && go_send_order_list[g].logistics_number !==''){
+                          new_order_list.push(go_send_order_list[g])
+                          if(order_list_sort_object[go_send_order_list[g].logistics_name] === undefined ){
+                               let new_list =  [];
+                              new_list.push(go_send_order_list[g])
+                              order_list_sort_object[go_send_order_list[g].logistics_name] = new_list
+                          }else{
+                               order_list_sort_object[go_send_order_list[g].logistics_name].push(go_send_order_list[g])
+                          }
+                     }
+                 }
+                console.log("order_list_sort_object------->",order_list_sort_object)
+
+            for(let key in order_list_sort_object){
+                   let order_list = order_list_sort_object[key]
+                   let logistics_name = key
+                  console.log("sendMessage-------order_list>",order_list)
+                   this.go_tb_send_order_page(order_list,logistics_name)
+
+
+               }
+
 
 
 
@@ -532,7 +614,7 @@
               'address_detail' : address_detail
             }
             this.$orderAddressBox.showMsgBox({
-                  title: '修改商品信息',
+                  title: '修改地址信息',
                   isShowInput: false,
                   order:order,
                   orderBackUp:orderBackUp
@@ -561,7 +643,7 @@
 
 
             this.$orderRemarksBox.showMsgBox({
-                  title: '修改商品信息',
+                  title: '修改备注信息',
                   isShowInput: false,
 
                   item:item,
@@ -597,10 +679,18 @@
              // let query_data ;
             console.log(query_data)
             console.log("btn_tag",btn_tag)
-            if(btn_tag === "全部订单" ||  btn_tag==="已发货" ){
-              if (this.is_order_by_update_time){
-                Object.assign(query_data,{'order_by':'update_time'})
-              }
+
+              if (this.order_by_selected.text !=="请选择"){
+                Object.assign(query_data,{'order_by':this.order_by_selected.value})
+
+            }
+             if (this.seller_wangwang_selected.text !=="请选择"){
+                Object.assign(query_data,{'seller_wangwang_id':this.seller_wangwang_selected.value})
+
+            }
+             if (this.is_not_temp_art_no === true){
+                Object.assign(query_data,{'not_art_no':"临时款号"})
+
             }
 
             this.cur_order_status_filter = btn_tag
@@ -653,51 +743,77 @@
         //刷新当前页面
         refresh_cur_page(goods_status){
               let cur_page_url = "";
-              let cur_page_num ;
 
               this.is_scroll_top = false;
               console.log("this.nextPageUrl",this.nextPageUrl)
               console.log("this.prePageUrl",this.prePageUrl)
+             let url_params = {}
+              let base_url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/orders/"
             if(this.nextPageUrl !== null && this.nextPageUrl !==""){
-              let next_page_num_arr= this.nextPageUrl.match(/page=\d+/);
-              let next_page_num = next_page_num_arr[0].split("=")[1]
-              let base_url = this.nextPageUrl.substring(0,this.nextPageUrl.indexOf("?"));
-              let cur_page_num = parseInt(next_page_num)-1;
-              cur_page_url = base_url+"?page="+cur_page_num;
-              console.log("next_page_num_arr",next_page_num_arr)
+             base_url = this.nextPageUrl.substring(0,this.nextPageUrl.indexOf("?"));
+
+              // let next_page_num_arr= this.nextPageUrl.match(/page=\d+/);
+              // let next_page_num = next_page_num_arr[0].split("=")[1]
+              //
+              // let cur_page_num = parseInt(next_page_num)-1;
+              // cur_page_url = base_url+"?page="+cur_page_num;
+              //********************************************************
+              url_params = this.mcommon_return_url_params(this.nextPageUrl)
+              console.log("下一页获取的参数： ",url_params)
+              if(url_params["page"]===undefined){
+                url_params["page"] = 1
+              }
+              url_params["page"] = parseInt(url_params["page"])-1;
+              //********************************************************
+
             }else if(this.prePageUrl !== null && this.prePageUrl !==""){
-               let pre_page_num_arr= this.prePageUrl.match(/page=\d+/);
-                let pre_page_num = 1
-               if(pre_page_num_arr === null){
-                 //第二页的时候上一页没有页码
-                 pre_page_num  = 1
-               }else{
-                 pre_page_num = pre_page_num_arr[0].split("=")[1];
-               }
+              base_url = this.prePageUrl.substring(0,this.prePageUrl.indexOf("?"));
+               // let pre_page_num_arr= this.prePageUrl.match(/page=\d+/);
+               //  let pre_page_num = 1
+               // if(pre_page_num_arr === null){
+               //   //第二页的时候上一页没有页码
+               //   pre_page_num  = 1
+               // }else{
+               //   pre_page_num = pre_page_num_arr[0].split("=")[1];
+               // }
+               //
+               //
+               //
+               // let  cur_page_num = parseInt(pre_page_num)+1;
+               // cur_page_url = base_url+"?page="+cur_page_num;
 
 
-               let base_url = this.prePageUrl.substring(0,this.prePageUrl.indexOf("?"));
-               let  cur_page_num = parseInt(pre_page_num)+1;
-               cur_page_url = base_url+"?page="+cur_page_num;
-            }else{
-                cur_page_url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/orders/";
+              //********************************************************
+              url_params = this.mcommon_return_url_params(this.prePageUrl)
+              console.log("上一页 一页获取的参数： ",url_params)
+              if(url_params["page"]===undefined){
+                url_params["page"] = 1
+              }
+              url_params["page"] = parseInt(url_params["page"])+1;
+              //********************************************************
+
             }
             console.log("cur_page_url",cur_page_url)
             let query_data =""
-            if(this.cur_order_status_filter!==""){
-                if(this.cur_order_status_filter ==="未付款"){
-
-                  query_data = {"status":this.goods_status2["未付款"]}
-                }else if(this.cur_order_status_filter ==="已发货"){
-                  query_data = {"status":this.goods_status2["已发货"]}
-                }else if(this.cur_order_status_filter ==="已付款"){
-                  query_data = {"status":this.goods_status2["已付款"]}
-                }else if(this.cur_order_status_filter ==="全部订单"){
-
-                }
+            // if(this.cur_order_status_filter!==""){
+            //     if(this.cur_order_status_filter ==="未付款"){
+            //
+            //       query_data = {"status":this.goods_status2["未付款"]}
+            //     }else if(this.cur_order_status_filter ==="已发货"){
+            //       query_data = {"status":this.goods_status2["已发货"]}
+            //     }else if(this.cur_order_status_filter ==="已付款"){
+            //       query_data = {"status":this.goods_status2["已付款"]}
+            //     }else if(this.cur_order_status_filter ==="全部订单"){
+            //
+            //     }
+            // }
+            cur_page_url = base_url+"?"
+            for(let key in url_params){
+              cur_page_url = cur_page_url+key+"="+url_params[key]+"&"
             }
-
-             this.loadOrderPage(cur_page_url,query_data);
+            cur_page_url = cur_page_url.substring(0,cur_page_url.length-1)
+            console.log("即将刷新当前页面地址为："+cur_page_url)
+             this.loadOrderPage(cur_page_url);
         },
         goto_place_order_page(data){
 
@@ -838,6 +954,7 @@
       display: block;
       height: 1.5em;
   }
+
   .status_select{
     background: #f0f0f0 ;
     color: #3bb4f2;
@@ -856,6 +973,7 @@
       display: block;
       height: 1.5em;
   }
+
   .condition_select{
     background: #f0f0f0 ;
     color: #3bb4f2;
@@ -873,6 +991,9 @@
   }
   .red_color{
     color: red;
+  }
+  .yellow_background_color{
+    background: yellow;
   }
   .item_order{
     margin-top: 3em;

@@ -23,7 +23,7 @@ OrderRemarksBox.install = function (Vue, options) {
     document.body.appendChild(msgBoxEl);
 
   };
-  // 在Vue的原型上添加实例方法，以全局调用
+  // 在Vue的原型上添加实例方法，以全局调用 需要在main.js 上配置
   Vue.prototype.$orderRemarksBox = {
     showMsgBox (options) {
       if (!currentMsg) {

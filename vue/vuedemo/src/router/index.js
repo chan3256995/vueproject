@@ -7,9 +7,13 @@ import pForgetPassword from '../components/pc/ForgotPassword'
 import pResetPassword from '../components/pc/ResetPassword'
 import pHome from '../components/pc/Home.vue'
 import pNullPackageHome from '../components/pc/NullPackageHome.vue'
+import pDouYinHome from '../components/pc/DouYinHome.vue'
 import pPlugsInfo from '../components/pc/PlugsInfos.vue'
 import pMyGoods from '../components/pc/MyGoods.vue'
+
 import pNullOrder from '../components/pc/PlaceNullOrder.vue'
+import pMyFocusDouYinShop from '../components/pc/MyFocusDouYinShop.vue'
+import pMyDouYinGoods from '../components/pc/MyDouYinGoods.vue'
 import pMyNullOrder from '../components/pc/MyNullOrder.vue'
 import ppOrder from '../components/pc/PlaceOrder.vue'
 import pMyOrder from '../components/pc/MyOrder.vue'
@@ -133,7 +137,7 @@ export default new VueRouter({
          },
       ]
     },
-      {
+     {
       path: '/pc/nullPackageHome',
       name: 'pNullPackageHome',
       component: pNullPackageHome,
@@ -152,7 +156,40 @@ export default new VueRouter({
 
     },
 
+
+
+     {
+      path: '/pc/douYinHome',
+      name: 'pDouYinHome',
+      component: pDouYinHome,
+        children: [
+           {
+            path:'/pc/douYinHome/pMyDouYinGoods',
+            name:'pMyDouYinGoods',
+            component:pMyDouYinGoods
+         },
+            {
+            path:'/pc/douYinHome/pMyFocusDouYinShop',
+            name:'pMyFocusDouYinShop',
+            component:pMyFocusDouYinShop
+         },
+        ]
+
+    },
+
+
     {
+      path: '/pc/pMyFocusDouYinShop',
+      name: 'pMyFocusDouYinShop',
+      component: pMyFocusDouYinShop,
+    },
+
+     {
+      path: '/pc/pMyDouYinGoods',
+      name: 'pMyDouYinGoods',
+      component: pMyDouYinGoods,
+    },
+      {
       path: '/pc/pMyGoods',
       name: 'pMyGoods',
       component: pMyGoods,

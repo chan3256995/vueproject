@@ -3,6 +3,7 @@
 import Vue from 'vue'
 import App from './App'
  import router from './router'
+ import jquery from 'jquery'
  import '../config/axios'
 import m_global from './utils/mGlobal'
  import "babel-polyfill" //这个插件是用来把es6语法转为es5  为了兼容ie等问题
@@ -12,6 +13,12 @@ import MessageBox from './utils/messagebox/messagbox';
 Vue.use(MessageBox);
 import MessageBox2 from './utils/qrbox/qrbox';
 Vue.use(MessageBox2);
+import AlterAddDouYinShopbox from './utils/AlterAddDouYinShopbox/AddDouYinShop'
+ Vue.use(AlterAddDouYinShopbox);
+
+import DouYinGoodsCollectLogBox from './utils/DouYinGoodsCollectLogbox/DouYinGoodsCollectLogBox'
+ Vue.use(DouYinGoodsCollectLogBox);
+
 
 import AlterGoodsBox from './utils/AlterOrderGoodsbox/OrderGoodsBox'
  Vue.use(AlterGoodsBox);
@@ -21,6 +28,9 @@ import AlterOrderAddress from './utils/AlterOrderAddressbox/OrderAddressBox'
 
 import AlterOrderRemarks from './utils/AlterOrderRemarksBox/OrderRemarksBox'
  Vue.use(AlterOrderRemarks);
+
+import AlterMyGoods from './utils/AlterMyGoodsbox/MyGoodsBox'
+ Vue.use(AlterMyGoods);
 
 import VueJsonp from 'vue-jsonp'
  Vue.use(VueJsonp)
@@ -75,6 +85,8 @@ Vue.prototype.getLocalValue = function (name) {
         return '';
     }
 };
+
+Vue.prototype.$ = jquery
 
 // Vue.http.interceptors.push((request, next)  =>{
 //

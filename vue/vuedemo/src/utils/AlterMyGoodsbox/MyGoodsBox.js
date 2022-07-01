@@ -1,9 +1,9 @@
-import msgboxVue from './OrderAddress_Box';
+import msgboxVue from './MyGoods_Box';
 
 // 定义插件对象
-const OrderAddressBox = {};
+const MyGoodsBox = {};
 // vue的install方法，用于定义vue插件
-OrderAddressBox.install = function (Vue, options) {
+MyGoodsBox.install = function (Vue, options) {
 
   const MessageBoxInstance = Vue.extend(msgboxVue,options);
   let currentMsg;
@@ -24,7 +24,7 @@ OrderAddressBox.install = function (Vue, options) {
 
   };
   // 在Vue的原型上添加实例方法，以全局调用 需要在main.js 上配置
-  Vue.prototype.$orderAddressBox = {
+  Vue.prototype.$myGoodsBox2 = {
     showMsgBox (options) {
       if (!currentMsg) {
         initInstance(options);
@@ -51,4 +51,4 @@ OrderAddressBox.install = function (Vue, options) {
   };
 };
 
-export default OrderAddressBox;
+export default MyGoodsBox;
