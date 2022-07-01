@@ -135,7 +135,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
          let result = api315_query_order(parms_obj,cookie_obj_315)
          console.log("get 315 order result:",result)
              
-         chrome.tabs.sendMessage(sender.tab.id, {method:"result_315_order_query",to:from,result_data:""}, function(response) {
+         chrome.tabs.sendMessage(sender.tab.id, {method:"result_315_order_query",to:from,result_data:JSON.stringify(result)}, function(response) {
 
                  });
             // chrome.runtime.sendMessage({method:"result_315_tuikuan_package",to:"tb_refund2_page",result_data:JSON.stringify(returndata)},function (response) {

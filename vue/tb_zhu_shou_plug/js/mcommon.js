@@ -1,4 +1,19 @@
-
+// 需要取代的字符串列表
+let replace_art_no_str_list = [
+                    {"old":"套装","new":""},
+                    {"old":"现货","new":""},
+                    {"old":"实拍","new":""},
+                    {"old":"非","new":""},
+                    {"old":"大量","new":""},
+                    {"old":"优质","new":""},
+                    {"old":"#","new":""},
+                    {"old":"直接来拿","new":""},
+                    {"old":"原版","new":""},
+                    {"old":"质量","new":""},
+                    {"old":"千件","new":""},
+                    {"old":"好质量","new":""},
+                    // {"old":"*","new":""},
+                ]
 function format_stmp_to_time(shijianchuo){
 //shijianchuo是整数，否则要parseInt转换
      shijianchuo = parseInt(shijianchuo)
@@ -76,5 +91,18 @@ function mcommon_replace_goods_code_str(code_str){
           
          
         return new_code
+}
+
+
+//循环取代所有字符
+function mcommon_replace_all(replace_list,str){
+    for(let i = 0 ; i<replace_list.length;i++){
+        let replace_old = replace_list[i]["old"]
+        let replace_new = replace_list[i]["new"]
+        str = str.replace(new RegExp(replace_old,"g"),replace_new)
+        
+    }
+    return str
+    
 }
 

@@ -12,8 +12,12 @@ var s = time.getSeconds();
 return y+'-'+add0(m)+'-'+add0(d)+' '+add0(h)+':'+add0(mm)+':'+add0(s);
 }
 
-
- 
+//线程休眠
+ function mcomon_thread_sleep(time){
+ console.log("休眠"+time)
+    const startDate   = new Date().getTime()
+     while(new Date().getTime() - startDate<time){}
+ }
 
 
 //谷歌cookie 转换为 key - value 键值对对象

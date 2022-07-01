@@ -199,13 +199,40 @@ if(curLocation.indexOf("vvic.com/user/favoriteUpload")!==-1 ) {
 
 
     }
-}else if(curLocation.indexOf("tusou.vvic.com/list")!==-1){
+}else if(curLocation.indexOf("tusou.vvic.com/list")!==-1 || curLocation.indexOf("vvic.com/main/sameStyle")!==-1 || curLocation.indexOf("www.vvic.com/user/favorite")!==-1){
      //clearfix shop-name-box
     window.onload = function(){
         setTimeout(function(){
-            let shop_div = $(".shop-name-box").prepend("<button class='query_315_btn' style='float: left'>315查询</button>")
+            $(".shop-name-box").prepend("<button class='query_315_btn' style='float: left'>315查询</button>")
+            if(curLocation.indexOf("vvic.com/main/sameStyle")!==-1){
+               $(".cont-info-stallInfo").prepend("<button class='query_315_btn_sameStyle' style='float: left'>315查询</button>")
+            }
             $(".query_315_btn").click(function () {
-                let art_no = $(this).next().text().replace("现货","").replace("实拍","").replace("大量","").replace("优质","").replace("##","").replace("#","").trim()
+
+
+                let art_no = $(this).next().text().trim()
+                art_no = mcommon_replace_all(replace_art_no_str_list,art_no)
+                console.log("art_no：",art_no)
+                 //search_field=goods_sn&q="+art_no+"&status=&do=&reserdate=
+                let params = {
+                    "search_field":"goods_sn",
+                    "q": art_no,
+                    "status": "",
+                    "reserdate": "",
+                }
+
+
+
+                chrome.runtime.sendMessage({from:"skw_tusou_page",method:"get_315_order",parms_str:JSON.stringify(params)},function (response) {
+                         console.log("获取315订单嘻嘻",response)
+
+                     })
+            })
+            $(".query_315_btn_sameStyle").click(function () {
+
+
+                let art_no = $(this).next().next().text().trim()
+                art_no = mcommon_replace_all(replace_art_no_str_list,art_no)
                 console.log("art_no：",art_no)
                  //search_field=goods_sn&q="+art_no+"&status=&do=&reserdate=
                 let params = {
@@ -674,16 +701,15 @@ if(curLocation.indexOf("item.manager.taobao.com/taobao/manager/render.htm?tab=in
         // $(".TempList").append("<button id='order_cache_btn'>订单缓存到本地</button>")
         // $(".TempList").append(" <button id='to_place_order_17'  style='margin: 1em; padding-left: 1em;padding-right: 1em'>选中的获取地址去下单</button>")
         $(".StatisticsTradeCount").prepend('<span id="daifa_page_span" class="StatisticsTradeTab StatisticsTradeTabCheck">代发页面订单</span>')
-        $(".OpenDetail ").before("<button id='init_17_elems' style='margin-left: 5em'>初始化订单</button>")
-        $("#init_17_elems").click(function () {
-            console.log("订单嘻嘻：",$(".OrderShopDetailItemHeader"))
-        })
+  
+
        
         $("#daifa_page_span").click(function () {
              $(".data_div17").remove()
              let disp = $(".WaitPrintListHeight").css("display")
              let chuanmei_data_show = "flex"
              let data_show_17 = "None"
+             let data_show_curr_page_17 = "None"
              if(disp === "flex"){
                  chuanmei_data_show = "None"
                  data_show_17 = "flex"
@@ -693,6 +719,7 @@ if(curLocation.indexOf("item.manager.taobao.com/taobao/manager/render.htm?tab=in
              }
 
              if(data_show_17 === "flex"){
+         
                  chrome.storage.local.get({"chuanmei_order_list_cache":{}},function (local_data) {
 
                  let append_elems_str = '<div class="data_div17">\n'+
@@ -700,13 +727,20 @@ if(curLocation.indexOf("item.manager.taobao.com/taobao/manager/render.htm?tab=in
                      '<button id="order_cache_btn">订单缓存到本地</button>' +
                      '<input placeholder="缓存前几页" style="width: 6em" id="order_cache_page_count"/>' +
                      '<button id="ignore_order_btn">不显示已下单订单</button>' +
+                     '<span id="total_pages17"></span>' +
+                     '<input placeholder="第几页" style="width: 4em" id="dump_page_input17"  value="1"/>' +
+                     '<button  style="width: 4em" id="dump_page_btn17" >跳转</button>' +
+                     '<button  style="width: 4em" id="dump_pre_page_btn17" >上一页</button>' +
+                     '<button  style="width: 4em" id="dump_next_page_btn17" >下一页</button>' +
+
 
                      '</div>'
                  let wait_send_list = local_data["chuanmei_order_list_cache"]
                  console.log("读取本地储存记录,",wait_send_list)
+                      $(".item_data_div17").remove()
                  for(let i = 0 ;i<wait_send_list.length;i++){
                       append_elems_str  = append_elems_str +
-                       '<div style="margin-bottom: 0.5em">\n' +
+                       '<div class="item_data_div17" style="margin-bottom: 0.5em">\n' +
 
                          '              <li style="margin-bottom: 1em">\n' +
                          '                <div style=" background: gainsboro;padding-left: 1em;">\n' +
@@ -739,7 +773,7 @@ if(curLocation.indexOf("item.manager.taobao.com/taobao/manager/render.htm?tab=in
                  }
                  append_elems_str = append_elems_str + "</div>"
                  $(".WaitPrintListHeight").after(append_elems_str)
-                   apichuammei_wait_send_page_init()
+                  apichuammei_wait_send_page_init()
                   update_chuammei_wait_send_page_data()
 
                 })
@@ -757,15 +791,59 @@ if(curLocation.indexOf("item.manager.taobao.com/taobao/manager/render.htm?tab=in
 
 
 }else if(curLocation.indexOf("315df.com/user/profile.html")!==-1){
-    // 传美退款页面
-    console.log("传美退款页面")
+
     window.onload = function(){
         //reqest_test315()
 
     }
 
 
+}else if(curLocation.indexOf("315df.com/user/quick")!==-1){
+
+
+    window.onload = function(){
+        //reqest_test315()
+      console.log("315批量代发页面")
+
+
+
+                         // let order_item_elems = $(page_dom).find("div[class='order-item']")
+                         let order_item_elems = $(".order-item")
+                         console.log("order_item_elems22",order_item_elems)
+
+                         // console.log("批量代发页面数据html",html)
+                         let logisotcs = {
+                            "918217665713628831":3,
+                            "20220529112618113425":19,
+
+                         }
+                         let customize_ = {
+                            "918217665713628831":'编码1',
+                            "20220529112618113425":'编码1',
+
+                         }
+                         let goodcustomize = ["111","222","333"]
+                         for(let i = 0;i<order_item_elems.length;i++){
+                                let order_number =$(order_item_elems[i]).find("input[name = 'tb_orderid']")[0].value
+                                console.log("order_number：",order_number)
+                                    let goods_list_elems = $(order_item_elems[i]).find(".daiFaGoods")
+                                    for(let g = 0;g<goods_list_elems.length;g++){
+
+                                         $(goods_list_elems[g]).find("input[name='customize']")[0].setAttribute("value",goodcustomize[g])
+                                    }
+
+                                    $($(order_item_elems[i]).find("select[name='shipping_id']")[0]).find("option")[0].setAttribute("value",logisotcs[order_number])
+
+
+
+
+                         }
+    }
+
+
 }
+
+
 
 function reqest_test315(){
         $.ajax({
@@ -1138,6 +1216,24 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             init_search_page_elems_data()
     },3500)
 
+    }else if(to ==="skw_tusou_page" && method ==="result_315_order_query"){
+        let result = JSON.parse(request.result_data)
+        let order_list = result["order_list"]
+        let item = order_list[0]
+        let show_text = "未查到"
+        console.log("查到数据:",item)
+        if(item!==undefined){
+            show_text = "下单时间："+item['order_time']
+            for(let i = 0;i<item['goods_list'].length;i++){
+            show_text = show_text + "  [商品"+i+"采购状态："+ item['goods_list'][i]['purchase']+" 商品状态："+item['goods_list'][i]['goods_status']+" 商品价格："+item['goods_list'][i]['goods_price']+"]\n"
+        }
+        }
+
+
+
+
+        Toast(show_text)
+         alert(show_text)
     }else if(to ==="tb_refund2_page" && method ==="result_315_tuikuan_package"){
         let result = JSON.parse(request.result_data)
         let return_logistics_number = result["return_logistics_number"]
@@ -1410,7 +1506,8 @@ function add_order_info_to_chuanmei_refund_page(order_list,order_type){
                     if(d.orderGoods !== undefined   ){
                         for(let n = 0 ; n<d.orderGoods.length;n++){
                              let goods_status = d.orderGoods[n].status
-                             goods_status_span = '<span style="margin-right: 40px;">[商品'+n+" "+goods_status+']</span>';
+                             let service_message = d.orderGoods[n].customer_service_message
+                             goods_status_span = goods_status_span +'<span style="margin-right: 40px;">[商品'+n+" "+goods_status+"]  客服留言："+service_message+'</span>';
                              if(goods_status !== "已取消" && goods_status !== '已退款' ){
                                  back_color = 'red'
                              }

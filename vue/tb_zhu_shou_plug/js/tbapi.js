@@ -349,7 +349,11 @@ return ret_form
             }
         });
 }
-
+ function mcomon_thread_sleep(time){
+ console.log("休眠"+time)
+    const startDate   = new Date().getTime()
+     while(new Date().getTime() - startDate<time){}
+ }
 function tbapi_get_all_page_order_from_tb(){
     let order_list = []
     let order_page = null
@@ -381,6 +385,7 @@ function tbapi_get_all_page_order_from_tb(){
         page_numb =order_page.page_number
         page_counts = order_page.page_counts
         order_list = order_list.concat(order_page.result)
+         mcomon_thread_sleep(3000)
      }
 
 
