@@ -622,6 +622,8 @@ function apibl_load_null_order_frombl(parms){
                             logistic_name = "韵达纸巾"
                        }else if(logistic_name.indexOf("韵达")!==-1 && logistic_name.indexOf("洗衣粉")!==-1){
                             logistic_name = "韵达洗衣粉"
+                       }else if(logistic_name.indexOf("中通")!==-1 && logistic_name.indexOf("空包")!==-1){
+                            logistic_name = "中通空包"
                        }
                       let mark = $(this).find("td:last").text().trim()
 

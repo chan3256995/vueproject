@@ -387,12 +387,13 @@ function  loadOrderPage(url,query_data){
 function init_order_page(){
 
                 if($("#delivery_order_button_from_315").length !==0){return}
-                $("#query_div2").after(" <div style='margin-top: 1em'><input type='button' id='delivery_order_button_from_315'   value='315已发货订单同步到17'><input type='button' id='add_order_button_to315'   value='已付款订单下单到315'></div>");
+                $("#query_div2").after(" <div style='margin-top: 1em;position: fixed;bottom: 0px;background: gainsboro'><div style=' padding:2px;border: #adadad solid 1px'><input type='button' id='add_order_button_to315'   value='已付款订单下单到315'><select id='gift_select_315'><option value='请选择'>请选择</option><option value='2元好评卡'>2元好评卡</option><option value='3元好评卡'>3元好评卡</option><option value='5元好评卡'>5元好评卡</option></select></div></div>");
                 $("#query_div2").after(" <div>" +
                "<input type='button' id='delivery_order_button_blto17'    value='bl已发货订单同步到17'>" +
-               "<input style='margin-left: 1em' type='button' id='load_tuihuan_order_frombl'    value='加载退货退款订单'>" +
-               "<input style='margin-left: 1em' type='button' id='add_order_button_17tobl'         value='已付款订单下单到bl'></div>"+
-               "<input style='margin-left: 1em' type='button' id='add_tag_to_chuanmei'         value='已选择订单添加传美备注'></div>");
+               "<input style='margin-left: 1em' type='button' id='load_tuihuan_order_frombl'    value='加载bl退货退款订单'>" +
+               "<input style='margin-left: 1em' type='button' id='add_order_button_17tobl'         value='已付款订单下单到bl'> "+
+               "<div style='margin-top: 8px'><input style='margin-left: 1em' type='button' id='add_tag_to_chuanmei'         value='已选择订单添加传美备注'> "+
+               "<input type='button' id='delivery_order_button_from_315'   value='315已发货订单同步到17'> </div></div>");
                 $("#load_tuihuan_order_frombl").click(function () {
                     chrome.runtime.sendMessage({"method":"load_tuihuan_order_frombl"},function (response) {
 
@@ -428,44 +429,93 @@ function init_order_page(){
 
          // $("#query_div2").after(" <input type='button' id='add_order_button_to315'   value='已付款订单下单到315'>");
          $("#add_order_button_to315").click(function () {
-
+            console.log($("#gift_select_315")[0].value)
+             let gift_315 = $("#gift_select_315")[0].value
 
              let select_order_item_cache = $("#order_item_cache")[0].value
              if(select_order_item_cache === undefined || select_order_item_cache === "" || JSON.parse(select_order_item_cache).length ===0){
                  Toast("请勾选")
                  return
              }
+             let select_order_item_list = JSON.parse(select_order_item_cache)
+             let address_obj_list = []
+            for(let i = 0 ; i<select_order_item_list.length ;i++){
+                      let address_obj = {
+                          logistics_name : select_order_item_list[i]["logistics_name"],
+                          address : select_order_item_list[i]["consignee_address"],
+                          province : select_order_item_list[i]["consignee_address"].split(',')[0],
+                      }
 
-             chrome.runtime.sendMessage({"method":"api315_check_is_login"},function (response) {
+                     address_obj_list.push(address_obj)
+                 }
+             chrome.runtime.sendMessage({"method":"check_logistics_address_is_pass_315","address_obj_list_str":JSON.stringify(address_obj_list)},function (response) {
+                 let result = JSON.parse(response)
+                 let result_list = result["result_list"]
+                 let error_list = []
+                 for(let i = 0;i<result_list.length;i++){
+                     let checked = result_list[i]['data']['checked']
+
+
+                     if(checked ===0 || result_list[i]['data']['notips'] !== "null"){
+                         if(result_list[i]['data']['notips'] === "null"){
+                             error_list.push(result_list[i]['data']['area_name'])
+                         }else{
+                             error_list.push(result_list[i]['data']['notips'])
+                         }
+
+                     }
+                 }
+                 if(error_list.length > 0){
+                     let show_str = ""
+                     for(let n =0;n<error_list.length;n++){
+                         show_str = show_str + error_list[n] + "   \n"
+                     }
+                     console.log("异常地址g共"+error_list.length+"： \n   ",show_str)
+                     alert("异常地址g共"+error_list.length+"： \n"+show_str)
+
+                     return
+                 }
+
+                 chrome.runtime.sendMessage({"method":"api315_check_is_login"},function (response) {
                   // let is_login = api315_check_is_login()
                  let is_login = response
                  console.log("api315_check_is_login ",is_login)
                  if(!is_login){
-                      console.log("gotologin------------> ",is_login)
+                     console.log("gotologin------------> ",is_login)
                      window.open("http://www.315df.com/")
                      return
-             }
-             let select_order_item_list = JSON.parse(select_order_item_cache)
-             let new_order_number_list = []
-             console.log("select_order_item_list缓存：",select_order_item_list)
-             for(let i = 0 ; i<select_order_item_list.length ;i++){
-                 for(let g = 0; g < select_order_item_list[i].orderGoods.length ; g++){
-                     let goods_item  = select_order_item_list[i].orderGoods[g]
-                     let goods_status_17 = mcommon_get_goods_status()
-                      if(goods_status_17[goods_item.status] !== "标签打印" && goods_status_17[goods_item.status] !== "已付款"  ){
-                          Toast("只能选择已付款和标签打印状态的订单")
-                          return;
-                      }
+                }
+
+                 let new_order_number_list = []
+                 console.log("select_order_item_list缓存：",select_order_item_list)
+                 for(let i = 0 ; i<select_order_item_list.length ;i++){
+                     for(let g = 0; g < select_order_item_list[i].orderGoods.length ; g++){
+                         let goods_item  = select_order_item_list[i].orderGoods[g]
+                         let goods_status_17 = mcommon_get_goods_status()
+                          if(goods_status_17[goods_item.status] !== "标签打印" && goods_status_17[goods_item.status] !== "已付款"  ){
+                              Toast("只能选择已付款和标签打印状态的订单")
+                              return;
+                          }
+                     }
+
+                     new_order_number_list.push(select_order_item_list[i].order_number)
                  }
 
-                 new_order_number_list.push(select_order_item_list[i].order_number)
-             }
+                 let send_obj = {"method":"api17_get_order_to_tag_print_to315","new_order_number_list":JSON.stringify(new_order_number_list), "url":mcommon_get_base_vue_url_17(),"btn_tag":"17to315_btn"}
+                 if(gift_315!=="请选择"){
+                     send_obj['gift_315'] = gift_315
+                 }
+                 chrome.runtime.sendMessage(send_obj,function (response) {
 
-             chrome.runtime.sendMessage({"method":"api17_get_order_to_tag_print_to315","new_order_number_list":JSON.stringify(new_order_number_list), "url":mcommon_get_base_vue_url_17(),"btn_tag":"17to315_btn"},function (response) {
+                          //api17_get_order_to_tag_print_to315_compeleted
+                 })
+                 })
 
-                      //api17_get_order_to_tag_print_to315_compeleted
+
+
              })
-             })
+
+
 
 
 
@@ -584,8 +634,16 @@ chrome.runtime.onMessage.addListener( function(request, sender, sendResponse){
     }else if(request.method === "api17_get_order_to_tag_print_to315_compeleted"){
             console.log("api17_get_order_to_tag_print_to315_compeleted",request)
                     let order_list = request.order_list
+
                     if(request.from_btn === "17to315_btn"){
-                        add_order_17to315(order_list)
+                        let gift_315 = request.gift_315
+                        if(gift_315!==undefined){
+                            add_order_17to315(order_list,gift_315)
+                        }else{
+                             add_order_17to315(order_list)
+                        }
+
+                        // add_order_17to315(order_list,"5元好评卡")
                     }else if(request.from_btn === "17tobl_btn"){
                         add_order_17tobl(order_list)
                     }
@@ -720,7 +778,7 @@ function add_order_17tobl(order_list){
 
 
 }
-function add_order_17to315(order_list) {
+function add_order_17to315(order_list,gift_315) {
     console.log("批量下单到315的订单数据：",order_list)
      let submit_order_list = []
                      for(let i = 0;i<order_list.length;i++){
@@ -731,26 +789,38 @@ function add_order_17to315(order_list) {
                          order_object['order_number'] = order_list[i].order_number.replace("os",'')
                          order_object['logistics_name'] = order_list[i].logistics_name
                          order_object['testing_name'] = order_list[i].quality_testing_name
+                         order_object['gift_315'] = gift_315
 
                          let goodsinfo = []
                          let goodcs = []
                          let goodnum = []
                          let goodimg = []
+                         let goodcustomize = []
                          for(let g = 0;g<order_list[i].order_goods.length;g++){
                              let goods = order_list[i].order_goods[g]
                              let info = goods.shop_market_name +" " +goods.shop_floor +" "+goods.shop_stalls_no+" "+goods.art_no+" "+goods.goods_price
                              let cs = goods.goods_color
                              let num = goods.goods_count
                              let image_url = goods.image_url
+                             let tb_goods_id = goods.tb_goods_id
                              goodsinfo.push(info)
                              goodcs.push(cs)
                              goodnum.push(num)
                              goodimg.push(image_url)
+                             if(tb_goods_id!==undefined){
+                                 goodcustomize.push(tb_goods_id)
+                             }else{
+                                 goodcustomize.push("")
+                             }
                          }
+
+
                          order_object['goodinfo'] = goodsinfo
                          order_object['goodcs'] =goodcs
                          order_object['goodnum'] = goodnum
                          order_object['goodimg'] = goodimg
+                         order_object['goodcustomize'] = goodcustomize
+
                          submit_order_list.push(order_object)
                      }
                     chrome.runtime.sendMessage({"method":"api315_add_order_17to315","submit_order_list":JSON.stringify(submit_order_list)},function (response) {

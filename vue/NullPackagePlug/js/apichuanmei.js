@@ -1,4 +1,4 @@
-let BASE_URL_tb_chuanmei ="https://tb29.chuanmeidayin.com/"
+let BASE_URL_tb_chuanmei ="https://tb30.chuanmeidayin.com/"
 
 
 function apichuanmei_add_tag_tb(tb_wangwangid,tb_order_number,flag){
@@ -14,7 +14,7 @@ function apichuanmei_add_tag_tb(tb_wangwangid,tb_order_number,flag){
          memo:"",
          isFxFlag: 1
      }
-     let url = "https://tb29.chuanmeidayin.com/tradeMulti/editMemo.do"
+     let url = BASE_URL_tb_chuanmei+"/tradeMulti/editMemo.do"
     $.ajax({
                 async: false,
                 url: url,

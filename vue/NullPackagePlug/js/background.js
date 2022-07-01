@@ -223,7 +223,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 	        console.log("method",method)
             let date = new Date()
             let  end_time=  dateFtt("yyyy-MM-dd ", date)
-            date.setDate(date.getDate()-5)
+            date.setDate(date.getDate()-7)
             let  start_time=  dateFtt("yyyy-MM-dd",date )
             console.log("end_time",end_time)
             console.log("start_time",start_time)
@@ -268,9 +268,29 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
     }else  if ( method === 'get_tab_id' ){
             sendResponse({ tabId: sender.tab.id });
+	}else  if ( method === 'check_logistics_address_is_pass_315' ){
+	        let address_obj_list = JSON.parse(request.address_obj_list_str)
+            let ret_result = {
+	            "code":"ok",
+	            "result_list":[],
+	            "message":"",
+            }
+            let result_list = []
+            for(let i = 0 ;i<address_obj_list.length;i++){
+                let logistics_name = address_obj_list[i]["logistics_name"]
+                let province = address_obj_list[i]["province"]
+                let address = address_obj_list[i]["address"]
+                let result = api315_check_address_is_ok(logistics_name,province,address)
+                console.log("检测物流地址结果：",result)
+                 result_list.push(result)
+            }
+	        
+            ret_result['result_list'] = result_list
+            sendResponse(JSON.stringify(ret_result));
 	}else if(method === 'api17_get_order_to_tag_print_to315'){
 	     let cookies_url = request.url;
 	      let new_order_number_list =JSON.parse( request.new_order_number_list)
+         
         chrome.cookies.getAll({'url':cookies_url}, function(cookie) {
             let cookies_obj = {}
             let cookie_str = ""
@@ -285,8 +305,11 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             console.log(JSON.stringify(cookies_obj))
               
              let order_list = api17_get_order_to_tag_print_to315(new_order_number_list,cookies_obj)
-             
-             chrome.tabs.sendMessage(sender.tab.id, {"method":"api17_get_order_to_tag_print_to315_compeleted","order_list":order_list,from_btn:request.btn_tag}, function(response) {
+             let send_obj = {"method":"api17_get_order_to_tag_print_to315_compeleted","order_list":order_list,from_btn:request.btn_tag}
+             if(request.gift_315 !== undefined){
+                 send_obj['gift_315'] = request.gift_315
+             }
+             chrome.tabs.sendMessage(sender.tab.id,send_obj , function(response) {
 
              });
         })

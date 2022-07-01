@@ -15,7 +15,7 @@ function mcommon_nul_order_get_login_account_info_bl(){
 
 function mcommon_get_null_package_logistics_type_choise_bl(){
       //gs网 空包物流类型
-    let null_package_logistics_type_choise_gs = {"圆通洗衣粉": 19,"圆通纸板":20}
+    let null_package_logistics_type_choise_gs = {"圆通洗衣粉": 19,"圆通纸板":20,"中通空包":16}
     // js 网空包物流类型
     let null_package_logistics_type_choise_js = {"圆通空包": 12,"圆通实包":13}
     let null_package_logistics_type_choise = null_package_logistics_type_choise_gs
@@ -30,6 +30,17 @@ function mcommon_get_null_package_base_url_bl(){
     return null_package_base_url
 }
 
+//循环取代所有字符
+function mcommon_replace_all(replace_list,str){
+    for(let i = 0 ; i<replace_list.length;i++){
+        let replace_old = replace_list[i]["old"]
+        let replace_new = replace_list[i]["new"]
+        str = str.replace(new RegExp(replace_old,"g"),replace_new)
+        
+    }
+    return str.trim()
+    
+}
 function mcommon_get_base_url_bl(){
     // let base_url_bl = "http://www.17to17.vip"
     let base_url_bl = "http://speed.tkttt.com"
@@ -41,13 +52,13 @@ function mcommon_get_base_url_315(){
     return base_url_bl
 }
 function mcommon_get_base_url_17(){
-    // let base_url_bl = "http://192.168.2.110:8009"
+    // let base_url_bl = "http://192.168.1.102:8009"
     let base_url_bl = "http://39.96.69.115:8089"
     return base_url_bl
 }
 function mcommon_get_base_vue_url_17(){
     let base_url_bl = "http://39.96.69.115:8080"
-    // let base_url_bl = "http://192.168.2.110:8088"
+    // let base_url_bl = "http://192.168.1.102:8088"
     return base_url_bl
 }
 
