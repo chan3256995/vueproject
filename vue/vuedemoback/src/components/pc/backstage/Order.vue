@@ -12,15 +12,19 @@
         <select  style="width: 5em"  v-model="query_by_selected">
           <option :value="option" v-for="(option,index) in query_by_options" :key="index">{{option.text}}</option>
         </select>
+
         <input v-model="name_search" width="3em" :placeholder="query_by_selected.text">
         <input v-model="search_market_name" style="width: 5em; height: 2em ; " placeholder="市场名"/>
         <input v-model="search_shop_floor" style="width: 5em; height: 2em ; " placeholder="楼层"/>
         <input v-model="search_stall_no" style="width: 5em; height: 2em ; " placeholder="档口号"/>
         <input v-model="search_art_no" style="width: 5em; height: 2em ; " placeholder="款号"/>
+        <input v-model="search_tb_goods_id" style="width: 5em; height: 2em ; " placeholder="淘宝商品ID"/>
         <select  v-model="goods_status_selected">
           <option :value="goods_status_option" v-for="(goods_status_option,index) in goods_status_options" :key="index">{{goods_status_option.text}}</option>
-      </select>
-
+        </select>
+        <select  style="width: 5em"  v-model="order_by_selected">
+          <option :value="option" v-for="(option,index) in order_by_options" :key="index">{{option.text}}</option>
+        </select>
         <button @click='mul_condition_query()' style="margin-left: 0.5em">条件查询{{search_mul_or_order_counts}}</button>
 
       </div>
@@ -50,7 +54,9 @@
           <table class="" >
             <tr>
                 <td>{{goods.id}}</td>
+              <td>淘宝商品ID</td>
                  <td>市场</td>
+
                  <td>楼层</td>
                  <td>档口</td>
                  <td>款号</td>
@@ -59,6 +65,7 @@
                  <td>件数</td>
             </tr>
             <tr ><td>  <img style="width: 3.5em; height: 3.5em;float: left" v-bind:src="goods.image_url"/></td>
+                 <td><input  v-model="goods.tb_goods_id" /></td>
                  <td><input  v-model="goods.shop_market_name" /></td>
                  <td><input  v-model="goods.shop_floor" /></td>
                  <td><input  v-model="goods.shop_stalls_no"/></td>
@@ -161,12 +168,21 @@
             search_shop_floor:"",
             search_stall_no:"",
             search_art_no:"",
+            search_tb_goods_id:"",
             name_search:'',
+            query_by_selected :  {value:"none",text:"请选择"},
             query_by_selected :  {value:"none",text:"请选择"},
             query_by_options:[
               {value:"none",text:"请选择"},
               {value:"user_name",text:"下单用户名"},
               {value:"order_follower_user_name",text:"跟单人用户名"},
+
+            ],
+            order_by_selected :  {value:"none",text:"请选择"},
+            order_by_options:[
+              {value:"none",text:"请选择"},
+              {value:"update_time",text:"发货时间排序"},
+              {value:"goods",text:"商品排序 "},
 
             ],
             order_status:mGlobal.ORDER_STATUS,
@@ -281,13 +297,16 @@
         mul_condition_query(){
           console.log("name:",this.name_search)
 
-              let query_data = {   "market_full":{"shop_market_name":this.search_market_name, "shop_floor":this.search_shop_floor,"shop_stalls_no":this.search_stall_no,"art_no":this.search_art_no},
+              let query_data = {   "market_full":{"shop_market_name":this.search_market_name, "shop_floor":this.search_shop_floor,"shop_stalls_no":this.search_stall_no,"art_no":this.search_art_no,"tb_goods_id":this.search_tb_goods_id},
               }
               if (this.name_search.trim() !== ""){
                 query_data[this.query_by_selected.value] = this.name_search.trim()
               }
               if(this.goods_status_selected.text !== '全部'){
                  query_data['status'] = this.goods_status_selected.value
+              }
+              if(this.order_by_selected.text !== '请选择'){
+                 query_data['order_by'] = this.order_by_selected.value
               }
 
            this.on_orders_query(query_data,"search_mul_or_order_btn")

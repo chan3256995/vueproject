@@ -1,5 +1,6 @@
 <template>
   <div class="container">
+
     <ul class = "items_ul">
       <div style="width: 50% ;text-align: center;margin: 0px auto;" id="calendar" v-if="calendar_show">
           <inlineCalendar    mode="during"  :disabledDate="disabledDate"  :defaultDate="defaultDate" @change="on_calendar_change"/>
@@ -16,6 +17,9 @@
         <select  v-model="null_order_status_selected">
           <option :value="null_order_status_option" v-for="(null_order_status_option,index) in null_order_status_options" :key="index">{{null_order_status_option.text}}</option>
         </select>
+        <select  v-model="seller_wangwang_selected">
+          <option :value="option" v-for="(option,index) in seller_wangwang_options" :key="index">{{option.text}}</option>
+        </select>
 
         <button @click='mul_condition_query()' style="margin-left: 0.5em">条件查询{{search_mul_or_order_counts}}</button>
 
@@ -24,10 +28,18 @@
         <input v-model="query_q" placeholder="订单ID，订单号，收货人名，手机号，快递单号" style="width: 30em; height: 2em ; "  /><button @click='on_orders_query({"q":query_q.trim()})' style="margin-left: 0.5em">查询</button><button style="margin-left: 0.5em" @click='on_orders_query(null,null,"search_all_order_btn")' >查询全部{{all_order_counts}}</button>
         <label style="margin-left: 0.5em">时间选择</label><input style="width: 12em" placeholder="点击选择时间" @click="calendar_show = !calendar_show" v-model="during_str">
       </div>
+      <div style="margin-top: 0.5em">
+      <button @click=" select_all(is_all_order_selected)">全选</button>
+      <button @click=" send_order_to_taobao(order_list)">选中的去淘宝发货</button>
+    </div>
         <li class="item_order" v-for="(item,index) in order_list" :key="index">
+          <div style="float: left">
+                    <input style="width: 1.2em;height: 1.2em"   type="checkbox" v-model="item.is_order_selected" />
+                  </div>
           <div  class="order_div" >
             <label style="margin-right: 0.2em; color:black; font-size: 1.2em">{{item.id}}</label>
             <a style="cursor:pointer; text-decoration:underline; " @click="show_user(item.order_owner)">下单人:{{item.order_owner.user_name}}</a>
+              <label  class="order_label" >卖家旺旺：{{item.tb_seller_wangwang_id}}</label>
               <label  class="order_label" >订单号：{{item.order_number}}</label>
               <label  class="order_label" style="color: red;" v-if="item.tb_order_number !==null && item.tb_order_number !==''" >淘宝订单号：{{item.tb_order_number}}</label>
 
@@ -63,6 +75,7 @@
               </div>
         </li>
     </ul>
+
     <table class="page_table">
       <tr>
         <td style=" cursor:pointer;"><a >首页</a></td>
@@ -102,15 +115,21 @@
               {value:"none",text:"请选择"},
               {value:"user_name",text:"下单用户名"},
 
+            ],
+            seller_wangwang_options:[
+              {value:"",text:"请选择"},
+              {value:"moonlight539",text:"moonlight539"},
+              {value:"chenqling3",text:"chenqling3 "},
 
             ],
-
-
+            is_all_order_selected :true,
             null_order_status:mGlobal.NULL_ORDER_STATUS,
             refund_apply_status:mGlobal.REFUND_APPLY_STATUS,
             refund_apply_status_options:mGlobal.REFUND_APPLY_TYPE_OPTIONS,
             null_order_status_options :[].concat(mGlobal.NULL_ORDER_STATUS_OPTIONS),
             null_order_status_options2 :[].concat(mGlobal.NULL_ORDER_STATUS_OPTIONS),
+
+            seller_wangwang_selected :{value:"",text:"请选择"},
             null_order_status_selected :"",
             prePageShow:true,
             nextPageShow:true,
@@ -134,6 +153,62 @@
       },
 
       methods:{
+          send_order_to_taobao( order_list){
+
+              let go_send_order_list = []
+
+
+            for(let i=0;i<order_list.length;i++){
+              if(order_list[i].tb_order_number!==undefined && order_list[i].tb_order_number!==null  && order_list[i].tb_order_number !== ""&& order_list[i].is_order_selected === true){
+                go_send_order_list.push(order_list[i])
+
+              }
+
+            }
+              let new_order_list = []
+                           // 根据物流分类储存
+              let order_list_sort_object = {}
+              for(let g = 0 ;g<go_send_order_list.length;g++){
+                  if (go_send_order_list[g].logistics_number !==null && go_send_order_list[g].logistics_number !==''){
+                          new_order_list.push(go_send_order_list[g])
+                          if(order_list_sort_object[go_send_order_list[g].logistics_name] === undefined ){
+                               let new_list =  [];
+                              new_list.push(go_send_order_list[g])
+                              order_list_sort_object[go_send_order_list[g].logistics_name] = new_list
+                          }else{
+                               order_list_sort_object[go_send_order_list[g].logistics_name].push(go_send_order_list[g])
+                          }
+                     }
+                 }
+                console.log("order_list_sort_object------->",order_list_sort_object)
+
+              for(let key in order_list_sort_object){
+                   let m_list = order_list_sort_object[key]
+                   let logistics_name = key
+                  console.log("sendMessage-------order_list>",m_list)
+                   this.go_tb_send_order_page(m_list,logistics_name)
+
+
+               }
+          },
+      go_tb_send_order_page(order_list,logistics_name){
+        let tb_order_number = ""
+        for (let i = 0 ;i<order_list.length;i++){
+            tb_order_number = tb_order_number + order_list[i].tb_order_number+","
+        }
+        let url = "https://wuliu.taobao.com/user/batch_consign.htm?trade_ids="+tb_order_number
+        url = url+"2717022096459639556,"
+               console.log("准备跳转的url:",url)
+        // window.open(url)
+},
+          select_all(is_selected){
+
+             for(let i = 0;i< this.order_list.length;i++){
+                    this.$delete(this.order_list[i], 'is_order_selected');
+                    this.$set(this.order_list[i], 'is_order_selected', is_selected);
+            }
+            this.is_all_order_selected = !is_selected;
+          },
         on_calendar_change(date) {
             this.during_str = ""
             for(let i = 0;i<date.length;i++){
@@ -202,7 +277,7 @@
 },
 
         mul_condition_query(){
-          console.log("name:",this.name_search)
+          console.log("seller_wangwang_selected:",this.seller_wangwang_selected)
 
               let query_data = {   "market_full":{"shop_market_name":this.search_market_name, "shop_floor":this.search_shop_floor,"shop_stalls_no":this.search_stall_no,"art_no":this.search_art_no},
               }
@@ -211,6 +286,9 @@
               }
               if(this.null_order_status_selected.text !== '全部'){
                  query_data['status'] = this.null_order_status_selected.value
+              }
+              if(this.seller_wangwang_selected.text !== '请选择'){
+                 query_data['seller_wangwang_id'] = this.seller_wangwang_selected.value
               }
 
            this.on_orders_query(query_data,"search_mul_or_order_btn")
@@ -264,6 +342,7 @@
                let  mdate = mtime.formatDateStrFromTimeSt(item.add_time);
               console.log(mdate)
               item.add_time =mdate;
+               item['is_order_selected'] = false
 
 
             }
@@ -369,7 +448,7 @@
 <style lang="less" scoped>
   .item_order{
     background: #f0f0f0;
-    margin-top: 3em;
+    margin-top: 0.5em;
     border-top:1px solid gray;
   }
 .items_ul li{
