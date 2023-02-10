@@ -10,7 +10,9 @@
 
     <div class="nav_div">
       <router-link class="nav" to = "/pc/douYinHome/pMyDouYinGoods" >商品列表</router-link>
+      <router-link class="nav" to = "/pc/douYinHome/pMyDouYinVideo" >视频列表</router-link>
       <router-link class="nav" to = "/pc/douYinHome/pMyFocusDouYinShop" >关注的店铺</router-link>
+      <router-link class="nav" to = "/pc/douYinHome/pMyFocusDouYinZhuBo" >关注的主播</router-link>
 
     </div>
     <div style="width: 100%; " >

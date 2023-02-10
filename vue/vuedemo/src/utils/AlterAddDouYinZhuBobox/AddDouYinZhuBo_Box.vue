@@ -12,13 +12,14 @@
       <p class="content">{{ content }}</p>
       <div  >
         <table class="market_table1">
-          <tr><img v-bind:src="shop_obj.image_url" style="width: 4em;height: 4em"/></tr>
+          <tr><img v-bind:src="zhbo_detail_obj.image_url" style="width: 4em;height: 4em"/></tr>
           <tr  >
-            <td  ><input v-model="shop_obj.image_url"  placeholder="店铺图片" /></td>
-            <td  ><input v-model="shop_obj.monitor_url" placeholder="监控地址" /></td>
-            <td  ><input v-model="shop_obj.shop_name" placeholder="店铺名字" /></td>
-            <td><input v-model="shop_obj.shop_id" placeholder="店铺字符ID"   /></td>
-            <td><input v-model="shop_obj.shop_id2" placeholder="店铺数字ID"   /></td>
+            <td  ><input v-model="zhbo_detail_obj.image_url"  placeholder="头像" /></td>
+            <td  ><input v-model="zhbo_detail_obj.monitor_url" placeholder="监控地址" /></td>
+            <td  ><input v-model="zhbo_detail_obj.dou_yin_name" placeholder="抖音名称" /></td>
+            <td  ><input v-model="zhbo_detail_obj.dou_yin_id" placeholder="抖音id" /></td>
+            <td  ><input v-model="zhbo_detail_obj.sec_user_id" placeholder="sec_user_id" /></td>
+
           </tr>
 
 
@@ -26,12 +27,10 @@
 
         <table class="market_table1">
 
-          <tr> <td><input v-model="shop_obj.remarks"  placeholder="备注"     /></td>
 
-          </tr>
           <tr>
             <td><input  v-model="taget_url" placeholder="抖音店铺地址"    /></td>
-            <td><button class="btn-primary btn-confirm"  @click="get_dou_yin_shop_info(taget_url)"   >抓取信息</button></td>
+            <td><button class="btn-primary btn-confirm"  @click="get_dou_zhu_bo_info(taget_url)"   >抓取信息</button></td>
           </tr>
         </table>
 
@@ -95,12 +94,12 @@
         submit_btn_disable :false,
         taget_url :"",
 
-        shop_obj:{
-          shop_id:"",
-          shop_id2:"",
+        zhbo_detail_obj:{
+          dou_yin_id:"",
+          sec_user_id:"",
           image_url:"",
-          shop_name:"",
-          remarks:"",
+          dou_yin_name:"",
+
           monitor_url:"",
 
 
@@ -121,42 +120,44 @@
     methods: {
 
       //抓取信息
-      get_dou_yin_shop_info: function(url){
+      get_dou_zhu_bo_info: function(url){
+          let sec_userid  = url.substring(url.indexOf("user/")+5,url.length)
+          url  = "https://www.iesdouyin.com/web/api/v2/user/info/?sec_uid="+sec_userid
+          console.log("抓取的sec_user_id:",sec_userid)
           let ser_url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/getWebPageContent/"
           let  result = this.mcommon_return_url_params(url)
           let return_data = {}
           console.log("result:",result)
-          let shop_str_id = result["id"]
 
-          let dou_yinshop_url = "https://ec.snssdk.com/shop/getInfo?id="+shop_str_id+"&b_type_new=0&device_id=0&is_outside=1"
+
           let params_obj = {
             "method":"GET",
-            "url":dou_yinshop_url,
+            "url":url,
             "header":{
+              "referer":"https://www.douyin.com/user/",
               "user-agent":"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36",
             },
           }
-          this.$axios.post(ser_url,{
-
-                        "req_parms": JSON.stringify(params_obj),
-
-
-       }).then((res)=>{
-        console.log("res",res)
+          this.$axios.post(ser_url,{"req_parms":JSON.stringify(params_obj)} ).then((res)=>{
+          console.log("res",res)
          if(res.data.code === "1000"){
 
             this.$toast("抓取成功")
            console.log("res.data.data",res.data.data)
             let data = JSON.parse(res.data.data)
            console.log("return_data0",return_data)
-           return_data = data.data
+           return_data = data
            console.log("return_data1",return_data)
-           this.shop_obj.shop_id = return_data['id']
-           this.shop_obj.shop_name = return_data['shop_name']
-           this.shop_obj.image_url = return_data['shop_logo']
-           this.shop_obj.shop_id2  = return_data['report_id__for_event']
+           this.zhbo_detail_obj.dou_yin_name = return_data['user_info']['nickname']
+           this.zhbo_detail_obj.sec_user_id = return_data['user_info']['sec_uid']
+           this.zhbo_detail_obj.dou_yin_id = return_data['user_info']['unique_id']
+           this.zhbo_detail_obj.image_url = return_data['user_info']['avatar_thumb']['url_list'][0]
 
-           this.shop_obj.monitor_url = "https://lianmengapi5-core-lf.ecombdapi.com/aweme/v1/store/product/list/?sec_shop_id="+this.shop_obj.shop_id+"&goods_type=1&sort_type=2&sort=0&cursor=0&size=20&iid=4270948144395438&device_id=2335807680293166&channel=tengxun_juguang1_dy_rta_1011&aid=1128&app_name=aweme&version_code=230100&version_name=23.1.0&device_platform=android&os=android&device_type=MI+5s&device_brand=Xiaomi&os_api=23&os_version=6.0.1&ac=wifi"
+        //https://m.douyin.com/web/api/v2/aweme/post/?reflow_source=reflow_page&sec_uid=MS4wLjABAAAABaMFSbUEbA422Nzz2VaAV_MTaHUckUMpoHKP1r5DvWgIclYJwdHzc9W02jeJMmdx&count=21&max_cursor=0
+
+           // this.zhbo_detail_obj.monitor_url = "https://lianmengapi.snssdk.com/aweme/v1/store/product/list/?sec_shop_id="+this.shopzhbo_detail_obj_obj.shop_id+"&goods_type=1&sort_type=2&sort=0&cursor=0&size=20&iid=3364954170996542&device_id=2995518243341992&channel=juyouliang_douyin_and15&aid=1128&app_name=aweme&version_code=200300&version_name=20.3.0&device_platform=android&os=android&device_type=MI+6s&device_brand=Xiaomi&os_api=23&os_version=6.0.1"
+           // this.zhbo_detail_obj.monitor_url = "https://m.douyin.com/web/api/v2/aweme/post/?reflow_source=reflow_page&sec_uid="+this.zhbo_detail_obj.sec_user_id+"&count=21&max_cursor=0"
+           this.zhbo_detail_obj.monitor_url = "https://www.douyin.com/aweme/v1/web/aweme/post/?device_platform=webapp&aid=6383&sec_user_id="+this.zhbo_detail_obj.sec_user_id+"&count=20"
 
 
          }
@@ -177,20 +178,18 @@
 
 
         this.submit_btn_disable = true;
-        let url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDouYinShopAdd/"
+        let url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/douYinZhuBoAdd/"
 
 
         console.log(url)
         this.$axios.post(url,{
 
-                        "shop_id": this.shop_obj.shop_id,
+                        "monitor_url": this.zhbo_detail_obj.monitor_url,
+                        "dou_yin_id": this.zhbo_detail_obj.dou_yin_id,
+                        "sec_user_id": this.zhbo_detail_obj.sec_user_id,
+                        "image_url": this.zhbo_detail_obj.image_url,
+                        "dou_yin_name": this.zhbo_detail_obj.dou_yin_name,
 
-                        "shop_id2": this.shop_obj.shop_id2,
-                        "image_url": this.shop_obj.image_url,
-
-                        "shop_name": this.shop_obj.shop_name,
-                        "remarks": this.shop_obj.remarks,
-                        "monitor_url": this.shop_obj.monitor_url,
 
 
        }).then((res)=>{

@@ -104,27 +104,45 @@ methods: {
               let goods_color_arr = resopnse_text.match(/_COLOR = '(.*?)'/,resopnse_text)
               let goods_size_arr = resopnse_text.match(/_SIZE = '(.*?)'/,resopnse_text)
               let goods_price_arr = resopnse_text.match(/_DISCOUNTPRICE = '(.*?)'/,resopnse_text)
+              let sku_json  = resopnse_text.match(/_SKUMAP = '(.*?)';/,resopnse_text)
+
 
               let art_no = ""
               let main_img = ""
               let goods_color = ""
               let goods_size = ""
               let goods_price = 0
+              if(sku_json.length !== 0){
+                sku_json = sku_json[0].substring("_SKUMAP = '".length,sku_json[0].length-2)
+              }
+
+               let sku_list  = JSON.parse(sku_json)
+               let color_price_obj = {}
+               let size_obj = {}
+               goods_price  = sku_list[0]['discount_price']
+               for(let i=0;i<sku_list.length;i++){
+                 color_price_obj[sku_list[i]['color_name']] = sku_list[i]['discount_price']
+
+               }
+               console.log("sku_list:",sku_list)
+               console.log("price_obj:",color_price_obj )
+
+               for(let key in color_price_obj){
+                 goods_color  = goods_color + key + "("+color_price_obj[key]+") "
+               }
               if(main_img_arr.length !== 0){
                 main_img = main_img_arr[0].substring("_INDEXIMGURL = '".length,main_img_arr[0].length-1)
               }
               if(art_no_arr.length !== 0){
                 art_no = art_no_arr[0].substring("_ARTNO = '".length,art_no_arr[0].length-1)
               }
-              if(goods_color_arr.length !== 0){
-                goods_color = goods_color_arr[0].substring("_COLOR = '".length,goods_color_arr[0].length-1)
-              }
+              // if(goods_color_arr.length !== 0){
+              //   goods_color = goods_color_arr[0].substring("_COLOR = '".length,goods_color_arr[0].length-1)
+              // }
               if(goods_size_arr.length !== 0){
                 goods_size = goods_size_arr[0].substring("_SIZE = '".length,goods_size_arr[0].length-1)
               }
-              if(goods_price_arr.length !== 0){
-                goods_price = goods_price_arr[0].substring("_DISCOUNTPRICE = '".length,goods_price_arr[0].length-1)
-              }
+
               responsse_obj['goods_url'] = goods_url
               responsse_obj['shop_name'] = shop_name
               responsse_obj['market_name'] = market_name
@@ -246,7 +264,47 @@ methods: {
        params_obj[params_item_arr[0]] = params_item_arr[1]
      }
      return params_obj
-   }
+   },
+
+
+  //循环取代所有字符
+ mcommon_replace_all(str){
+    let replace_list = [
+                    {"old":"真实有货","new":""},
+                    {"old":"优质版","new":""},
+                    {"old":"直接来拿","new":""},
+                    {"old":"好质量","new":""},
+                    {"old":"套装","new":""},
+                    {"old":"现货","new":""},
+                    {"old":"实拍","new":""},
+                    {"old":"非","new":""},
+                    {"old":"大量","new":""},
+                    {"old":"优质","new":""},
+                    {"old":"#","new":""},
+
+                    {"old":"原版","new":""},
+                    {"old":"质量","new":""},
+                    {"old":"千件","new":""},
+
+                    {"old":"抖音","new":""},
+                    {"old":"爆款","new":""},
+
+                    {"old":"实价","new":""},
+                    {"old":"不加绒","new":""},
+                    {"old":"加绒","new":""},
+             {"old":"款","new":""},
+                    // {"old":"*","new":""},
+                ]
+    for(let i = 0 ; i<replace_list.length;i++){
+        let replace_old = replace_list[i]["old"]
+        let replace_new = replace_list[i]["new"]
+        str = str.replace(new RegExp(replace_old,"g"),replace_new)
+
+    }
+    return str
+
+}
+
 
 }
 

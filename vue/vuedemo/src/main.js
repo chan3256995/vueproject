@@ -6,6 +6,9 @@ import App from './App'
  import jquery from 'jquery'
  import '../config/axios'
 import m_global from './utils/mGlobal'
+ import Video from 'video.js'
+ import 'video.js/dist/video-js.css'
+ Vue.prototype.$video = Video
  import "babel-polyfill" //这个插件是用来把es6语法转为es5  为了兼容ie等问题
  Vue.prototype.mGLOBAL = m_global
  Vue.config.devtools = true
@@ -15,6 +18,9 @@ import MessageBox2 from './utils/qrbox/qrbox';
 Vue.use(MessageBox2);
 import AlterAddDouYinShopbox from './utils/AlterAddDouYinShopbox/AddDouYinShop'
  Vue.use(AlterAddDouYinShopbox);
+
+import AlterAddDouYinZhuBobox from './utils/AlterAddDouYinZhuBobox/AddDouYinZhuBo'
+ Vue.use(AlterAddDouYinZhuBobox);
 
 import DouYinGoodsCollectLogBox from './utils/DouYinGoodsCollectLogbox/DouYinGoodsCollectLogBox'
  Vue.use(DouYinGoodsCollectLogBox);

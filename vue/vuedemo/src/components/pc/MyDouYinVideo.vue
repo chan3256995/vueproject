@@ -1,6 +1,6 @@
 <template>
   <div id= 'container_id' class="container">
-
+  <meta name="referrer" content="no-referrer"/>
     <div style="text-align: center">
 
 
@@ -13,76 +13,72 @@
 
 
 <div style="margin-left: 3em">
-
-        <input v-model="search_sell_num" style="width: 5em; height: 2em ; " placeholder="销量">
-        <input v-model="search_shop_name" style="width: 5em; height: 2em ; " placeholder="店铺名"/>
-        <input v-model="search_fav_shop_remarks" style="width: 5em; height: 2em ; " placeholder="店铺备注信息"/>
-        <label @click="is_my_fav_click()" :class="{status_select:is_user_fav_shop_data===true}" >只显示我关注的</label>
-        <label @click="order_by_today_sell_num()" :class="{status_select:is_order_by_today_sell_num===true}" >今日销量排序</label>
-        <select  style="margin-left:0.5em;width: 5em"  v-model="goods_add_time_selected1">
-            <option :value="option" v-for="(option,index) in goods_add_time_options1" :key="index">{{option.text}}</option>
+         <input v-model="search_zhubo_remarks" style="width: 5em; height: 2em ; " placeholder="主播备注信息"/>
+         <input v-model="search_zhubo_name" style="width: 5em; height: 2em ; " placeholder="主播名"/>
+        <label @click="is_order_by_zhubo_click()" :class="{status_select:is_order_by_zhubo_data===true}" >按主播排序</label>
+         <select  style="margin-left:0.5em;width: 5em"  v-model="order_by_selected1">
+            <option :value="option" v-for="(option,index) in order_by_options1" :key="index">{{option.text}}</option>
+         </select>
+        <label @click="is_my_fav_click()" :class="{status_select:is_user_fav_zhubo_data===true}" >只显示我关注的</label>
+          <select  style="margin-left:0.5em;width: 5em"  v-model="video_publish_time_selected1">
+            <option :value="option" v-for="(option,index) in video_publish_time_options1" :key="index">{{option.text}}</option>
          </select>
         <button @click='mul_condition_query()' style="margin-left: 0.5em">条件筛选</button>
         <button @click="all_query()" >全部</button>
-        <button @click="clean_douyin_goods_item()" >清除商品数据</button>
+        <button @click="clean_douyin_videos()" >清除视频数据</button>
         <input v-model="clean_days" style="width: 5em; height: 2em ; " placeholder="清除多少天前数据"/>
-
-
       </div>
     <div  class = "items_ul">
-
-
           <div  class="global_background" style=" width:98% ">
             <table   style=" width:98% " >
-
               <tr>
                 <td></td>
-                <td>图片</td>
+                <td>视频</td>
                 <td>标题</td>
-                <td>价格</td>
-                <td>店铺名称</td>
-                <td>采集记录</td>
-                <td>销量</td>
-                <td>今日销量</td>
-                <td>更新/添加时间</td>
+                <td>抖音名</td>
+                <td>抖音id</td>
+                <td>收藏</td>
+                <td>评论</td>
+                <td>分享</td>
+                <td>点赞</td>
+                <td>采集/发布时间</td>
 
               </tr>
-              <tr style="background: white" v-for="(goods,index2) in goods_list">
+              <tr style="background: white" v-for="(video,index2) in video_list">
 
                 <td ><input type="checkbox"  ></td>
 
-                <td><img v-bind:src="goods.image"style="width: 7em;height: 7em"/>
-                <td>
-                <a v-bind:href="goods.goods_url" target="_blank">{{goods.goods_name}}</a>
+                <td><video class="video-js vjs-default-skin"   type="video/mp4" style="width: 8em;" v-bind:src="video.video_url"  ></video>
+                <td style="width: 10em">{{video.desc}}</td>
 
-                </td>
                 <td>
-                   <label   >{{goods.goods_price}}</label>
 
+                    <img v-bind:src="video.dou_yin_zhubo.image_url" style="width: 2.5em;height: 2.5em;display: inline" />
+                     <label style="display: block">{{video.dou_yin_zhubo.dou_yin_name}}</label>
                 </td>
-                <td>
-                  <a v-bind:href="goods.shop_url" target="_blank">{{goods.dou_yin_shop.shop_name}}</a>
-                    <label style="display: block"  >({{goods.dou_yin_shop.remarks}})</label>
+                 <td>
+                    {{video.dou_yin_zhubo.dou_yin_id}}
 
                 </td>
 
-                <td>
 
-
-                  <button @click="show_goods_record(goods.id)" >显示记录</button>
-
-
-                </td>
 
                 <td>
-                   <label   >{{goods.sell_num}}</label>
+                   <label>{{video.collect_count}} </label>
                 </td>
                 <td>
-                   <label   >{{goods.today_sell_num}}</label>
+                   <label   > {{video.comment_count}} </label>
+                </td>
+                 <td>
+                   <label   > {{video.share_count}} </label>
                 </td>
                 <td>
-                   <label style="display: block"  >{{goods.update_time}}</label>
-                   <label   >/{{goods.add_time}}</label>
+                   <label   > {{video.digg_count}} </label>
+                </td>
+                <td>
+                   <label style="display: block"  >更新时间：{{video.update_time}}</label>
+                   <label style="display: block"  >-------------------------</label>
+                   <label   >发布时间：{{video.video_publish_time}}</label>
 
                 </td>
 
@@ -112,39 +108,53 @@
   import mtime from '../../utils/mtime.js';
   import mGlobal from '../../utils/mGlobal';
   import  axios  from 'axios'
+  // import videojs from 'video.js'
+  // import 'videojs-contrib-hls'
+  // import '@videojs/http-streaming'
 
      //设为ttrue 就会带cookies 访问
     axios.defaults.withCredentials=true;
     export default {
-        name: "MyDouYinGoods",
+        name: "MyDouYinVideo",
       data(){
           return{
+            player : null,
             calendar_show:false,
             defaultDate:[],
             disabledDate:[],
             during_str:"",
-            clean_days:30,
-            search_sell_num:"",
-            search_shop_name:"",
-            search_fav_shop_remarks:"",
+            clean_days:20,
+
+            search_zhubo_remarks:"",
+            search_zhubo_name:"",
             is_order_by_update_time :false,
-            // 加载数据后是否滚动到顶端
-            is_scroll_top:true,
-            is_user_fav_shop_data:true,
-            is_order_by_today_sell_num:false,
-            goods_add_time_selected1:{value:"",text:"商品添加时间"},
-            goods_add_time_options1 :[
-              {value:"",text:"商品添加时间"},
+            order_by_selected1:{value:"",text:"排序选择"},
+            video_publish_time_selected1:{value:"14400000",text:"4小时"},
+            video_publish_time_options1 :[
+              {value:"",text:"视频发布时间"},
               {value:"14400000",text:"4小时"},
               {value:"43200000",text:"12小时 "},
               {value:"86400000",text:"24小时 "},
               {value:"172800000",text:"48小时 "},
 
             ],
+            order_by_options1:[
+              {value:"",text:"排序选择"},
+              {value:"-collect_count",text:"收藏"},
+              {value:"-share_count",text:"分享 "},
+              {value:"-comment_count",text:"评论 "},
+              {value:"-digg_count",text:"点赞 "},
+
+            ],
+            // 加载数据后是否滚动到顶端
+            is_scroll_top:true,
+            is_user_fav_zhubo_data:true,
+            is_order_by_zhubo_data:true,
+            is_order_by_today_sell_num:false,
             prePageShow:true,
             nextPageShow:true,
-            goods_list:[],
-            firstPageUrl:this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDouYinGoodsInfo/",
+            video_list:[],
+            firstPageUrl:this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDouYinVideoInfo/",
             prePageUrl:"",
             nextPageUrl:"",
           }
@@ -169,24 +179,28 @@
 
           },
           is_my_fav_click(){
-            this.is_user_fav_shop_data = !this.is_user_fav_shop_data
+            this.is_user_fav_zhubo_data = !this.is_user_fav_zhubo_data
           },
-          order_by_today_sell_num(){
-            this.is_order_by_today_sell_num = !this.is_order_by_today_sell_num
+          is_order_by_zhubo_click(){
+            this.is_order_by_zhubo_data = !this.is_order_by_zhubo_data
           },
+
+         video_click(){
+            console.log("----",this)
+         },
           all_query(){
 
-              this.is_user_fav_shop_data =false
+              this.is_user_fav_zhubo_data =false
               let query_data = { "search_condition":{
 
-                  "is_order_by_today_sell_num":this.is_order_by_today_sell_num,
+
                  },}
               this.on_shop_query(query_data,"all_btn")
 
         },
-          clean_douyin_goods_item(){
+          clean_douyin_videos(){
            let data = {"days":this.clean_days}
-            const user_url = mGlobal.DJANGO_SERVER_BASE_URL+"/user/cleanDouGoodsView/"
+            const user_url = mGlobal.DJANGO_SERVER_BASE_URL+"/user/cleanDouVideosView/"
             axios.post(user_url,data).then((res)=>{
               console.log("res--->",res)
               if(res.data.code ==="1000"){
@@ -199,17 +213,23 @@
 
         },
           mul_condition_query(){
-
-
-              let query_data = { "search_condition":{"is_user_fav_shop_data":this.is_user_fav_shop_data,
-                  "search_sell_num":this.search_sell_num,
-                  "is_order_by_today_sell_num":this.is_order_by_today_sell_num,
-                  "search_fav_shop_remarks":this.search_fav_shop_remarks,
-                  "search_shop_name":this.search_shop_name},}
-              if(this.goods_add_time_selected1.text !== "商品添加时间"){
-                let goods_add_time = new Date().getTime() -  this.goods_add_time_selected1.value
-                query_data['search_condition']["search_goods_add_time"] = goods_add_time
+            let search_conditions  = {}
+            let order_list  = []
+              if(this.is_order_by_zhubo_data === true){
+                order_list.push("-dou_yin_zhubo")
               }
+              if(this.order_by_selected1.text !== "排序选择"){
+                order_list.push(this.order_by_selected1.value)
+              }
+              if(this.video_publish_time_selected1.text !== "视频发布时间"){
+                let publish_time = new Date().getTime() -  this.video_publish_time_selected1.value
+                search_conditions["search_video_publish_time"] = publish_time
+              }
+              search_conditions["is_user_fav_zhubo_data"]=this.is_user_fav_zhubo_data,
+              search_conditions["order_by_list"]=order_list,
+              search_conditions["search_zhubo_remarks"]=this.search_zhubo_remarks
+              search_conditions["search_zhubo_name"]=this.search_zhubo_name
+              let query_data = { "search_condition":search_conditions,}
 
 
 
@@ -229,7 +249,7 @@
 
 
           on_goods_query(query_data,btn_tag){
-            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDouYinGoodsInfo/"
+            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDouYinVideoInfo/"
 
             //
             // if(this.during_str!==""){
@@ -242,7 +262,7 @@
            on_shop_query(query_data,btn){
 
              console.log(query_data)
-            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDouYinGoodsInfo/";
+            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDouYinVideoInfo/";
 
             this.loadOrderPage(url,query_data)
           },
@@ -268,7 +288,7 @@
                let  cur_page_num = parseInt(pre_page_num)-1;
                cur_page_url = base_url+"page="+cur_page_num;
             }else{
-                cur_page_url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDouYinGoodsInfo/";
+                cur_page_url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDouYinVideoInfo/";
             }
 
             let query_data =""
@@ -280,22 +300,24 @@
 
 
           replaceData() {
-            for(let i = 0;i<this.goods_list.length;i++){
-               let item =  this.goods_list[i];
+            for(let i = 0;i<this.video_list.length;i++){
+               let item =  this.video_list[i];
                let  mdate = mtime.formatDateStrFromTimeSt(item.add_time);
                let  update_time = mtime.formatDateStrFromTimeSt(item.update_time);
+               let  video_publish_time = mtime.formatDateStrFromTimeSt( item.video_publish_time);
 
                mdate = mdate.substring(5,16)
                update_time = update_time.substring(5,16)
+               video_publish_time = video_publish_time.substring(5,16)
               console.log(mdate)
               item.add_time =mdate;
               item.update_time =update_time;
-              item.goods_price =item.goods_price/100;
+              item.video_publish_time =video_publish_time;
+
 
 
               item['is_selected'] = false
-              item['goods_url'] = "https://haohuo.jinritemai.com/views/product/detail?id="+item['goods_id']
-              item['shop_url'] = "https://haohuo.jinritemai.com/views/shop/index?id="+item['dou_yin_shop']['shop_id']
+
 
             }
           },
@@ -327,7 +349,7 @@
           }
         ).then((res)=>{
           console.log(res.data)
-          this.goods_list = res.data.results;
+          this.video_list = res.data.results;
           this.replaceData()
           if(this.is_scroll_top){
             window.scrollTo(0,0);
@@ -363,16 +385,30 @@
 
       },
       created(){
-
-          // const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDouYinGoodsInfo/"
+           //  this.player = videojs('cameraMonitoringVideo',{
+           //   bigPlayButton:true,
+           //   textTrakDisplay:false,
+           //   errorDisplay:false,
+           //   controlBar:true,
+           //
+           // },function () {
+           //   this.play()
+           // })
+          // const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDouYinVideoInfo/"
           // this.loadOrderPage(url);
           this.mul_condition_query()
+
 
 
 
       },
       mount(){
 
+      },
+      beforeDestroy(){
+          if(this.player != null){
+            this.player.dispose()
+          }
       }
     }
 </script>

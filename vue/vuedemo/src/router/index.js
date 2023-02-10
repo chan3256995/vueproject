@@ -13,7 +13,9 @@ import pMyGoods from '../components/pc/MyGoods.vue'
 
 import pNullOrder from '../components/pc/PlaceNullOrder.vue'
 import pMyFocusDouYinShop from '../components/pc/MyFocusDouYinShop.vue'
+import pMyFocusDouYinZhuBo from '../components/pc/MyFocusDouYinZhuBo.vue'
 import pMyDouYinGoods from '../components/pc/MyDouYinGoods.vue'
+import pMyDouYinVideo from '../components/pc/MyDouYinVideo.vue'
 import pMyNullOrder from '../components/pc/MyNullOrder.vue'
 import ppOrder from '../components/pc/PlaceOrder.vue'
 import pMyOrder from '../components/pc/MyOrder.vue'
@@ -167,11 +169,22 @@ export default new VueRouter({
             path:'/pc/douYinHome/pMyDouYinGoods',
             name:'pMyDouYinGoods',
             component:pMyDouYinGoods
-         },
+          },           
+          {
+            path:'/pc/douYinHome/pMyDouYinVideo',
+            name:'pMyDouYinVideo',
+            component:pMyDouYinVideo
+          },
             {
             path:'/pc/douYinHome/pMyFocusDouYinShop',
             name:'pMyFocusDouYinShop',
             component:pMyFocusDouYinShop
+         },
+
+          {
+            path:'/pc/douYinHome/pMyFocusDouYinZhuBo',
+            name:'pMyFocusDouYinZhuBo',
+            component:pMyFocusDouYinZhuBo
          },
         ]
 

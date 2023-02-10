@@ -144,13 +144,13 @@
 
 
         let  result = this.mcommon_get_skw_goods_details(url)
-        this.skw_goods_info_obj = this.mcommon_get_skw_goods_details(url)
+        this.skw_goods_info_obj = result
 
         this.orderGoodsBackUp.shop_market_name =result['market_name']
         this.orderGoodsBackUp.shop_floor = result['floor']
         this.orderGoodsBackUp.shop_stalls_no = result['shop_stalls_no']
         this.orderGoodsBackUp.goods_price = result['goods_price']
-        this.orderGoodsBackUp.art_no = result['art_no']
+        this.orderGoodsBackUp.art_no =this.mcommon_replace_all(result['art_no'])
 
 
 

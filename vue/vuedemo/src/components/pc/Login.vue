@@ -161,7 +161,7 @@ fetch("https://wuliu.taobao.com/user/order_list_new.htm?order_status_show=send",
          if(res.data.code === "1000"){
             this.setLocalValue("user",JSON.stringify(res.data.user))
             this.$router.push("/pc/home/porder");
-            this.$cookies.set("access_token" ,res.data.token)
+            this.$cookies.set("access_token" ,res.data.token,7*24*60*60)
             console.log(this.$cookies.get("access_token" ))
 
             this.$router.push("/pc/home/porder");

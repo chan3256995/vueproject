@@ -43,7 +43,7 @@
     </ul>
 
     <div style="padding-left: 3em">
-      <button @click="select_all_unpay_orders(is_all_unpay_order_selected)">全选</button>
+      <button @click="select_all_unpay_orders(is_all_unpay_order_selected)">全选{{selected_order_list.length}}</button>
       <button @click="orders_pay(go_pay_order_list)" v-if="cur_order_status_filter==='未付款'">合并付款</button>
 
       <label style="color: red"> 总计: {{go_pay_money_totals}} 元</label>
@@ -52,13 +52,14 @@
       <!--<button  v-bind:value = "aselect_order_item_cache" id = "move_order_to_chuanmei" v-show="cur_order_status_filter==='未付款'">转至传美打印</button>-->
     </div>
     <div  class = "items_ul">
-        <li class="item_order " v-for="(item,index) in order_list" :key="index">
-          <div  class="global_background order_div" >
+        <li  class="item_order" :class="{item_order_div_tip:item.is_recent_update===true}"   v-for="(item,index) in order_list" :key="index">
+
+            <div  class="global_background order_div" >
             <table style="width: 98%" >
               <tr>
                 <td style="width:80%">
                   <div style="float: left">
-                    <input style="width: 1.2em;height: 1.2em" @change="check_box_change(item)" type="checkbox" v-model="item.is_order_selected" />
+                    <input style="width: 2em;height: 2em" @change="check_box_change(item)" type="checkbox" v-model="item.is_order_selected" />
                   </div>
 
 
@@ -151,6 +152,8 @@
                 <button @click="show_logistics_qr(item.logistics_number)" v-if="item.logistics_number!=='' && item.logistics_number !== null">二维码单号</button>
                 <a  @click=" advance_logistics_number(item)"class = "refund_apply_btn" v-if="(item.logistics_number ==='' ||  item.logistics_number === null) && is_allow_advance_logistics_number(item)===true ">预支单号</a>
               </div>
+
+
         </li>
     </div>
     <table class="page_table">
@@ -200,6 +203,7 @@
             // 合并付款总金额
             go_pay_money_totals :0,
             go_pay_order_list:[],
+            selected_order_list:[],
             query_q :"",
             selected_op :"",
             order_by_selected :  {value:"",text:"请选择"},
@@ -355,6 +359,7 @@
           check_box_change(item){
 
              this.go_pay_order_list = this.get_unpay_order_list();
+             this.selected_order_list = this.get_selected_order_list();
              this.go_pay_money_totals = this.calc_unpay_order_moneys(this.go_pay_order_list)
              this.aselect_order_item_cache = JSON.stringify(this.go_pay_order_list)
           },
@@ -395,6 +400,7 @@
             this.is_all_unpay_order_selected = !is_selected;
 
             this.go_pay_order_list = this.get_unpay_order_list()
+            this.selected_order_list = this.get_selected_order_list()
             this.go_pay_money_totals = this.calc_unpay_order_moneys(this.go_pay_order_list)
         },
          go_tb_send_order_page(order_list,logistics_name){
@@ -426,6 +432,22 @@
               }
             }
             return  go_pay_order_list
+        },
+        // 已选择订单
+        get_selected_order_list(){
+            let selected_order_list= []
+            for(let i = 0;i< this.order_list.length;i++){
+              console.log(this.order_list[i].is_order_selected)
+
+              if(this.order_list[i].is_order_selected ===true){
+
+
+                   selected_order_list.push(this.order_list[i])
+
+
+              }
+            }
+            return  selected_order_list
         },
           //订单支付
           orders_pay(go_pay_order_list){
@@ -828,30 +850,44 @@
         },
 
           replaceData() {
+            let cur_time_stmp = new Date().getTime()
+            console.log("当前时间：",cur_time_stmp)
             for(let i = 0;i<this.order_list.length;i++){
                let item =  this.order_list[i];
                let  mdate = mtime.formatDateStrFromTimeSt(item.add_time);
 
+              if(item.update_time!==0){
+                 let recent_time = cur_time_stmp - item.update_time
+                 let three_min  = 3 * 60 * 1000
+
+                if(recent_time < three_min){
+                  item["is_recent_update"] = true
+                }
+
+              }
+
               item.add_time =mdate;
               let is_address_alter = true
               let orderGoodsTotalMoney = 0;
-                for(let g = 0; g < item.orderGoods.length;g++){
-                   if(item.orderGoods[g].status !== mGlobal.GOODS_STATUS2['已退款']){
-                    orderGoodsTotalMoney = orderGoodsTotalMoney + item.orderGoods[g].goods_price * item.orderGoods[g].goods_count
+              for(let g = 0; g < item.orderGoods.length;g++){
+                 if(item.orderGoods[g].status !== mGlobal.GOODS_STATUS2['已退款']){
+                  orderGoodsTotalMoney = orderGoodsTotalMoney + item.orderGoods[g].goods_price * item.orderGoods[g].goods_count
+                }
+
+              }
+
+              for(let g = 0; g < item.orderGoods.length;g++){
+                   if(item.orderGoods[g].status !== this.goods_status2['已付款'] && item.orderGoods[g].status !== this.goods_status2['未付款']){
+                    is_address_alter = false
+                     break;
                   }
-
-                }
-
-                for(let g = 0; g < item.orderGoods.length;g++){
-                     if(item.orderGoods[g].status !== this.goods_status2['已付款'] && item.orderGoods[g].status !== this.goods_status2['未付款']){
-                      is_address_alter = false
-                       break;
-                    }
-                }
-                item['orderGoodsTotalMoney'] = orderGoodsTotalMoney
-                item['is_order_selected'] = false
-                item['is_address_alter'] = is_address_alter
+              }
+              item['orderGoodsTotalMoney'] = orderGoodsTotalMoney
+              item['is_order_selected'] = false
+              item['is_address_alter'] = is_address_alter
             }
+
+            console.log("after replace data：",this.order_list)
           },
 
           prePage(){
@@ -996,9 +1032,14 @@
     background: yellow;
   }
   .item_order{
-    margin-top: 3em;
+    margin-top: 2em;
     padding-bottom: 0.5em;
     border-top:1px solid gray;
+
+  }
+  .item_order_div_tip{
+
+    border: 1px solid red;
   }
   .items_ul{
     padding-top: 0px;

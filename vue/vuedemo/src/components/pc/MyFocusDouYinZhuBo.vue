@@ -7,7 +7,7 @@
 
     </div>
     <div style="padding-left: 5em">
-        <input v-model="query_q" style="width: 85%;height: 2em;max-width: 40em; " placeholder="店铺ID，店铺名称"/><button @click='on_shop_query(query_q)' style="margin-left: 0.5em">查询</button><button @click="add_shop()"  style="margin-left: 0.5em">添加店铺</button>
+        <input v-model="query_q" style="width: 85%;height: 2em;max-width: 40em; " placeholder="店铺ID，店铺名称"/><button @click='on_shop_query(query_q)' style="margin-left: 0.5em">查询</button><button @click="add_zhubo()"  style="margin-left: 0.5em">添加主播</button>
 
       <button @click='on_query({"no_new_goods_shop":10})' style="margin-left: 0.5em">显示10天无新品店铺</button>
     </div>
@@ -15,8 +15,7 @@
     <div style="padding-left: 1em;margin-top: 1em;margin-bottom:0.2em">
       <button @click="select_all(is_all_selected)">全选</button>
       <button @click="go_to_collect()">选中的进行数据采集</button>
-       <label>sessionid</label><input v-model="sessionid">
-       <label>   X_Tt_Token</label><input v-model="X_Tt_Token">
+
     </div>
 
     <div  class = "items_ul">
@@ -30,48 +29,47 @@
               <tr>
                 <td></td>
                 <td></td>
-                <td>店铺图片</td>
+                <td>主播头像</td>
                 <td>监控地址</td>
-                <td>店铺名称</td>
+                <td>抖音名</td>
 
-                <td>店铺备注</td>
-                <td>店铺地址</td>
+                <td>主播抖音id</td>
 
-                <td>我收藏备注</td>
+                <td>备注</td>
                 <td>更新时间</td>
               </tr>
-              <tr style="background: white" v-for="(fav_shop,index2) in shop_list">
+              <tr style="background: white" v-for="(fav_zhu_bo,index2) in zhubo_list">
 
-                <td ><input type="checkbox" v-model="fav_shop.is_selected" ></td>
-                 <td style="width: 5em"><button @click="delete_my_shop({'id_list':[fav_shop.dou_yin_shop.id]})" style="width: 4em;padding-left: 0;padding-right: 0px">删除</button> <button @click="alter_shop(fav_shop.dou_yin_shop)" style="width: 6em;margin-top:0.2em;display: inline">确定修改</button></td>
-                <td><img v-bind:src="fav_shop.dou_yin_shop.image_url"style="width: 3em;height: 3em"/> <input style="width: 5em" v-model="fav_shop.dou_yin_shop.image_url" placeholder="图片地址"></td>
+                <td ><input type="checkbox" v-model="fav_zhu_bo.is_selected" ></td>
+                 <td style="width: 5em"><button @click="delete_zhu_bo({'id_list':[fav_zhu_bo.dou_yin_zhubo.id]})" style="width: 4em;padding-left: 0;padding-right: 0px">删除</button> <button @click="alter_zhubo(fav_zhu_bo.dou_yin_zhubo)" style="width: 6em;margin-top:0.2em;display: inline">确定修改</button></td>
+                <td><img @click="img_click(fav_zhu_bo.dou_yin_zhubo.sec_user_id)" v-bind:src="fav_zhu_bo.dou_yin_zhubo.image_url"style="width: 3em;height: 3em"/> <input style="width: 5em" v-model="fav_zhu_bo.dou_yin_zhubo.image_url" placeholder="图片地址"></td>
                 <td>
-                  <input  v-model="fav_shop.dou_yin_shop.monitor_url" placeholder="监控地址">
+                  <input  v-model="fav_zhu_bo.dou_yin_zhubo.monitor_url" placeholder="监控地址">
                 </td>
                 <td>
-                  <input  v-model="fav_shop.dou_yin_shop.shop_name" placeholder="店铺名称">
+                  <input  v-model="fav_zhu_bo.dou_yin_zhubo.dou_yin_name" placeholder="主播名">
                 </td>
-                  <td>
-                   <input  v-model="fav_shop.dou_yin_shop.remarks" placeholder="店铺备注">
-                </td>
+
                 <td>
-                  <label>https://haohuo.jinritemai.com/views/shop/index?id={{fav_shop.dou_yin_shop.shop_id}}</label>
+                  <label>{{fav_zhu_bo.dou_yin_zhubo.dou_yin_id}}</label>
                 </td>
 
 
                 <td>
-                   <input  v-model="fav_shop.remarks" placeholder="备注">
-                  <button @click="alert_fav_info({'remarks':fav_shop.remarks,'id':fav_shop.id})">修改备注</button>
+                   <input  v-model="fav_zhu_bo.remarks" placeholder="备注">
+                  <button @click="alert_fav_info({'remarks':fav_zhu_bo.remarks,'id':fav_zhu_bo.id})">修改备注</button>
                 </td>
                 <td>
 
-                  <label>{{fav_shop.dou_yin_shop.update_time}}</label>
+                  <label style="display: block">更新时间：{{fav_zhu_bo.dou_yin_zhubo.update_time}}</label>
+                  <label style="display: block">----------------------</label>
+                  <label style="display: block">添加时间：{{fav_zhu_bo.dou_yin_zhubo.add_time}}</label>
                 </td>
 
 
 
                 <td>
-                  <div style="border: grey solid 1px;margin-bottom: 2px"><label style="float: left">锁定监控</label><input type="checkbox"  v-model="fav_shop.dou_yin_shop.is_monitor" ></div>
+                  <div style="border: grey solid 1px;margin-bottom: 2px"><label style="float: left">锁定监控</label><input type="checkbox"  v-model="fav_zhu_bo.dou_yin_zhubo.is_monitor" ></div>
 
                 </td>
 
@@ -107,7 +105,7 @@
     export default {
       // 复用模块组件
     mixins:[mcommon_function],
-        name: "MyDouYinShop",
+        name: "MyDouYinZhuBo",
       data(){
           return{
             sell_num:"",
@@ -116,8 +114,7 @@
             defaultDate:[],
             disabledDate:[],
             during_str:"",
-            sessionid:"ca0ec46f81673efc6aa837137c747c96",
-            X_Tt_Token:"00ca0ec46f81673efc6aa837137c747c96044ca420cd85d8507572a3c2cc2957a7c24b24b4ac23439e975a090875829ca4d8ffacd3fa6f6bc932008951a5d852d7b4d0ee880e6f6dcc1d4abacb83c61aa1bd70f9cf48add6c2758a02c13d18dec99d7-1.0.1",
+
             is_all_selected :true,
             is_order_by_update_time :false,
             // 加载数据后是否滚动到顶端
@@ -125,8 +122,8 @@
             query_q:"",
             prePageShow:true,
             nextPageShow:true,
-            shop_list:[],
-            firstPageUrl:this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDouYinShopInfo/",
+            zhubo_list:[],
+            firstPageUrl:this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userFavDouYinZhuBoInfo/",
             prePageUrl:"",
             nextPageUrl:"",
             curPageUrl:"",
@@ -135,55 +132,34 @@
 
       methods:{
 
-
+        img_click(sec_user_id){
+          // https://www.douyin.com/user/MS4wLjABAAAABaMFSbUEbA422Nzz2VaAV_MTaHUckUMpoHKP1r5DvWgIclYJwdHzc9W02jeJMmdx
+          let url = "https://www.douyin.com/user/"+sec_user_id
+          window.open(url)
+        },
 
         go_to_collect(){
           let is_selected_shop_list = []
-          let iiii = {}
+
           let collect_target_list = []
-          for(let i = 0;i< this.shop_list.length;i++){
-              if(this.shop_list[i]["is_selected"] === true){
+          for(let i = 0;i< this.zhubo_list.length;i++){
+              if(this.zhubo_list[i]["is_selected"] === true){
                  let collect_target_obj = {}
-                is_selected_shop_list.push(this.shop_list[i])
-                collect_target_obj['collect_url'] = this.shop_list[i]['dou_yin_shop']['monitor_url']
+                is_selected_shop_list.push(this.zhubo_list[i])
+                collect_target_obj['collect_url'] = this.zhubo_list[i]['dou_yin_zhubo']['monitor_url']
                 let params = this.mcommon_return_url_params(collect_target_obj['collect_url'])
                  collect_target_obj['params'] =params
-                 collect_target_obj['cookies'] ={"sessionid": this.sessionid}
-                 collect_target_obj['headers'] ={
-                   "User-Agent": "com.ss.android.ugc.aweme/200301 (Linux; U; Android 6.0.1; zh_CN; MI 5s; Build/V417IR;tt-ok/3.10.0.2)",
-                   "X-Tt-Token": this.X_Tt_Token,
-                 }
+
+                 collect_target_obj['headers'] ={"User-Agent": "com.ss.android.ugc.aweme/200301 (Linux; U; Android 6.0.1; zh_CN; MI 5s; Build/V417IR;tt-ok/3.10.0.2)"}
                 collect_target_list.push(collect_target_obj)
               }
             }
             console.log("collect_target_list:",collect_target_list)
 
-                 let url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/collectDouYinData/";
-               // ******************
-               //      url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/getWebPageContent/";
-              //      let target_url = "https://ec.snssdk.com/shop/goodsList?shop_id=JlzKkqu&size=10&page=0&b_type_new=0&device_id=0&is_outside=1&sort_type=2"
-               //       target_url = "https://lianmengapi.snssdk.com/aweme/v1/store/product/list/?sec_shop_id=RIiZTPaL&goods_type=1&sort_type=2&sort=0&cursor=0&size=20&pass_through_api=%7B%22ecom_scene_id%22%3A%221003%22%7D&iid=3364954170996542&device_id=2995518243341992&ac=wifi&channel=juyouliang_douyin_and15&aid=1128&app_name=aweme&version_code=200300&version_name=20.3.0&device_platform=android&os=android&ssmix=a&device_type=MI+5s&device_brand=Xiaomi&language=zh&os_api=23&os_version=6.0.1&openudid=fdab3bc00f289703&manifest_version_code=200301&resolution=700*1120&dpi=233&update_version_code=20309900&_rticket=1653024842921&package=com.ss.android.ugc.aweme&cpu_support64=false&host_abi=armeabi-v7a&ts=1653024842&appTheme=light&app_type=normal&need_personal_recommend=1&is_guest_mode=0&minor_status=0&is_android_pad=0&cdid=877e79dc-60d3-4b49-a8cb-ff3f7a32db60&uuid=866796058502945"
-                // **********************************
+                 let url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/collectDouYinVideoData/";
+
                  let post_data = {"target_list":collect_target_list}
-                 // ***********
-                 // post_data = {"req_parms":JSON.stringify(
-                 //     {
-                 //       "method":"GET",
-                 //       "url":target_url,
-                 //       "cookies":{
-                 //            "sessionid":"766aec287d506ce9913301792c713ba4",
-                 //            // "d_ticket":"70ac3c6a1de8ff74804a82dd17735a07a4f2f",
-                 //       },
-                 //       "header":{
-                 //          // 'Origin': 'https://haohuo.jinritemai.com',
-                 //          // 'x-tt-dt': 'AAA3WRCFZGFX6DTTAJWL7ZFU3YUBURNSAGUHSZYULQHGSJBHOOF2JP5J7TBABM5RSIGBQ25AVPMLVFMKATU4LKBAWX3ISVLBSA447YBBJET7TVSWLWS6KO5V3DRDFRLMN55GSAQKHDCVEFRAPNCJPTQ',
-                 //          // 'activity_now_client': '1653024843876',
-                 //          "User-Agent": "com.ss.android.ugc.aweme/200301 (Linux; U; Android 6.0.1; zh_CN; MI 5s; Build/V417IR;tt-ok/3.10.0.2)",
-                 //           // "User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36",
-                 //       },
-                 //     })
-                 // }
-                  // ***********
+
                 axios.post(url,post_data,{timeout:100000}).then((res)=>{
                  if(res.data.code === "1000"){
                    alert("采集完成le ")
@@ -196,12 +172,12 @@
             })
         },
         select_all(is_selected){
-            console.log("shop_list",this.shop_list)
+            console.log("zhubo_list",this.zhubo_list)
 
-             for(let i = 0;i< this.shop_list.length;i++){
+             for(let i = 0;i< this.zhubo_list.length;i++){
 
-              this.$delete(this.shop_list[i], 'is_selected');
-              this.$set(this.shop_list[i], 'is_selected', is_selected);
+              this.$delete(this.zhubo_list[i], 'is_selected');
+              this.$set(this.zhubo_list[i], 'is_selected', is_selected);
 
 
             }
@@ -215,15 +191,12 @@
                 return ;
               }
 
-              const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDouYinFavShopInfoEdit/";
+              const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDouYinFavZhuBoInfoEdit/";
               let post_goods = {
-     	          "user_dou_yin_fav_shop_data":{
+     	          "user_dou_yin_fav_zhubo_data":{
      	   	      "id":fav_info.id,
 
-
-
                 "remarks": fav_info.remarks,
-
 
      	          }
      }
@@ -244,22 +217,21 @@
 
         },
           // 修改商品信息
-        alter_shop(shop){
+        alter_zhubo(zhubo){
               if(!confirm("确定修改吗？")) {
                 return ;
               }
-              const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/useDouYinShopEdit/";
+              const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/useDouYinZhuBoEdit/";
               let post_goods = {
-     	          "user_dou_yin_shop_data":{
-     	   	      "id":shop.id,
-     	   	      "shop_id":shop.shop_id,
-     	   	      "shop_id2":shop.shop_id2,
-     	   	      "image_url": shop.origin_url,
-     	   	      "monitor_url": shop.monitor_url,
-                "shop_name":  shop.shop_name,
-                "remarks": shop.remarks,
-                "is_monitor": shop.is_monitor,
-
+     	          "user_dou_yin_zhubo_data":{
+     	   	      "id":zhubo.id,
+     	   	      "monitor_url":zhubo.monitor_url,
+     	   	      "dou_yin_id":zhubo.dou_yin_id,
+     	   	      "sec_user_id": zhubo.sec_user_id,
+     	   	      "image_url": zhubo.image_url,
+                "dou_yin_name":  zhubo.dou_yin_name,
+                "remarks": zhubo.remarks,
+                "is_monitor": zhubo.is_monitor,
      	          }
      }
                axios.post(url,post_goods).then((res)=>{
@@ -278,14 +250,15 @@
             })
       },
         replaceData() {
-            for(let i = 0;i<this.shop_list.length;i++){
-               let item =  this.shop_list[i];
-               let update_time = mtime.formatDateStrFromTimeSt(item.dou_yin_shop.update_time);
+            for(let i = 0;i<this.zhubo_list.length;i++){
+               let item =  this.zhubo_list[i];
+               let update_time = mtime.formatDateStrFromTimeSt(item.dou_yin_zhubo.update_time);
                let  mdate = mtime.formatDateStrFromTimeSt(item.add_time);
 
-              console.log(mdate)
-              item.add_time =mdate;
-              item.dou_yin_shop.update_time =update_time;
+
+
+              item.dou_yin_zhubo.update_time =update_time;
+              item.dou_yin_zhubo.add_time =mdate;
 
 
               item['is_selected'] = false
@@ -303,9 +276,9 @@
           },
 
           // 添加商品
-        add_shop(){
-            this.$myDouYinShopBox2.showMsgBox({
-                  title: '添加商品',
+        add_zhubo(){
+            this.$myDouYinZhuboBox2.showMsgBox({
+                  title: '添加主播',
                   isShowInput: false,
 
               }).then(async (val) => {
@@ -319,12 +292,12 @@
               });
           },
                   // 删除订单(
-        delete_my_shop(shop_id_list){
+        delete_zhu_bo(zhubo_id_list){
                   if(!confirm("确定删除吗？删除后不可恢复。")) {
                     return ;
                   }
-                const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDouYinShopDelete/";
-                axios.post(url,shop_id_list).then((res)=>{
+                const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDouYinZhuBoDelete/";
+                axios.post(url,zhubo_id_list).then((res)=>{
                  if(res.data.code === "1000"){
                    alert("删除成功")
 
@@ -343,14 +316,14 @@
           on_query(query_data){
 
 
-            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDouYinShopInfo/";
+            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userFavDouYinZhuBoInfo/";
 
             this.loadOrderPage(url,query_data)
           },
         on_shop_query(query_keys){
 
              console.log(query_keys)
-            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDouYinShopInfo/";
+            const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userFavDouYinZhuBoInfo/";
             let query_data = null
             if(query_keys.trim()!==""){
               query_data = {"keys":query_keys.trim()};
@@ -364,7 +337,7 @@
             let cur_page_url = "";
             let cur_page_num ;
             let url_params = {}
-             let base_url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDouYinShopInfo/";
+             let base_url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userFavDouYinZhuBoInfo/";
             this.is_scroll_top = false;
               console.log("this.nextPageUrl",this.nextPageUrl)
             if(this.nextPageUrl !== null && this.nextPageUrl !==""){
@@ -427,7 +400,7 @@
           }
         ).then((res)=>{
           console.log(res.data)
-          this.shop_list = res.data.results;
+          this.zhubo_list = res.data.results;
           this.replaceData()
           if(this.is_scroll_top){
             window.scrollTo(0,0);
@@ -464,7 +437,7 @@
       },
       created(){
 
-          const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userDouYinShopInfo/"
+          const url = this.mGLOBAL.DJANGO_SERVER_BASE_URL+"/user/userFavDouYinZhuBoInfo/"
           this.loadOrderPage(url);
 
 

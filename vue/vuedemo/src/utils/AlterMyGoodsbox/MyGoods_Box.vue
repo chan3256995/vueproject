@@ -97,6 +97,7 @@
     data () {
       return {
         mGlobal:mGlobal,
+
         pay_moneys:0,
         isShowMessageBox: false,
         resolve: '',
@@ -144,7 +145,10 @@
           this.goods_obj['market_name'] = result['market_name']
           this.goods_obj['floor'] = result['floor']
           this.goods_obj['shop_stalls_no'] =  result['shop_stalls_no']
-          this.goods_obj['art_no'] = result['art_no']
+
+           result['shop_stalls_no'] =  this.mcommon_replace_all(result['art_no'])
+
+          this.goods_obj['art_no'] = result['shop_stalls_no']
           this.goods_obj['main_img'] = result['main_img']
           this.goods_obj['goods_color'] = result['goods_color']
           this.goods_obj['goods_size'] = result['goods_size']
