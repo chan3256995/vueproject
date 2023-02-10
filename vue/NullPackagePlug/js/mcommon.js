@@ -22,12 +22,17 @@ function mcommon_get_null_package_logistics_type_choise_bl(){
     return null_package_logistics_type_choise
 }
 
-function mcommon_get_null_package_base_url_bl(){
-     // 空包代发地址
-    let null_package_base_url_gs = "http://www.17to17.vip"
-    // let null_package_base_url_js = "http://speed.tkttt.com"
-    let null_package_base_url = null_package_base_url_gs
-    return null_package_base_url
+function mcommon_get_null_package_base_url_bl(web_site_name){
+
+        let base_url_bl = "http://www.17to17.vip"
+    let site_name = {
+        "光速代发":"http://www.17to17.vip",
+        "海鸥代发":"http://haiou.xuanhuoba.com",
+
+    }
+    base_url_bl = site_name[web_site_name]
+    return base_url_bl
+
 }
 
 //循环取代所有字符
@@ -41,9 +46,14 @@ function mcommon_replace_all(replace_list,str){
     return str.trim()
     
 }
-function mcommon_get_base_url_bl(){
-    // let base_url_bl = "http://www.17to17.vip"
-    let base_url_bl = "http://speed.tkttt.com"
+function mcommon_get_base_url_bl(web_site_name){
+    let base_url_bl = "http://www.17to17.vip"
+    let site_name = {
+        "光速代发":"http://www.17to17.vip",
+        "海鸥代发":"http://haiou.xuanhuoba.com",
+
+    }
+    base_url_bl = site_name[web_site_name]
     return base_url_bl
 }
 function mcommon_get_base_url_315(){

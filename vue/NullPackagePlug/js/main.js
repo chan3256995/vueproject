@@ -5,18 +5,7 @@ var curLocation = window.location.href.toString();
 // var daifaURL_bl_ho = "http://www.haioudaifa.com";
 console.log("curLocatio2n",curLocation)
 
-if(curLocation.indexOf("https://www.315df.com/user/order/daifa")!==-1){
-    console.log("8888",$("a:contains('扫码充值')"))
- $("a:contains('扫码充值')").before("<button id='check_315_address'> 检查地址</button>")
-  $("#check_315_address").click(function () {
-       let result = api315_check_address_is_ok(19,"广东省","广东省,深圳市,宝安区,新安街道固戍地铁站")
-        chrome.runtime.sendMessage({"method":"check_315_address_is_ok"},function (response) {
-                              console.log("传美插旗结果，",response)
-
-         })
-  })
-
-}else if (curLocation.indexOf("pc/back/home/order")){
+ if (curLocation.indexOf("pc/back/home/order")){
 
         init_order_page()
         chrome.runtime.sendMessage({"method":"keep_cookie_active_315"},function (response) {
@@ -31,8 +20,11 @@ if (curLocation.indexOf("17to17.vip/login.aspx") !== -1 || curLocation.indexOf("
      console.log("curLocation------->",curLocation)
         $("#btnLogin").before(" <input type='button' id='gs_delivery_button'   value='gs自动后台密码登录'>");
         $("#gs_delivery_button").click(function () {
-         let base_url = mcommon_get_null_package_base_url_bl()
-         let user_info = apibl_get_user_name_and_pwd()
+         let base_url = mcommon_get_null_package_base_url_bl("光速代发")
+         let user_info = apibl_get_user_name_and_pwd("光速代发")
+            console.log("base_url:"+base_url)
+            console.log("user_info:"+user_info)
+            console.log(user_info)
          apibl_login2(base_url,user_info['user_name'],user_info['password'])
             window.open(base_url+"/User/Gift_List.aspx")
         })
@@ -389,13 +381,21 @@ function init_order_page(){
                 if($("#delivery_order_button_from_315").length !==0){return}
                 $("#query_div2").after(" <div style='margin-top: 1em;position: fixed;bottom: 0px;background: gainsboro'><div style=' padding:2px;border: #adadad solid 1px'><input type='button' id='add_order_button_to315'   value='已付款订单下单到315'><select id='gift_select_315'><option value='请选择'>请选择</option><option value='2元好评卡'>2元好评卡</option><option value='3元好评卡'>3元好评卡</option><option value='5元好评卡'>5元好评卡</option></select></div></div>");
                 $("#query_div2").after(" <div>" +
+               "<select id='daifa_select_bl'><option value='请选择代发'>请选择代发</option><option value='光速代发'>光速代发</option><option value='海鸥代发'>海鸥代发</option></select>" +
                "<input type='button' id='delivery_order_button_blto17'    value='bl已发货订单同步到17'>" +
                "<input style='margin-left: 1em' type='button' id='load_tuihuan_order_frombl'    value='加载bl退货退款订单'>" +
                "<input style='margin-left: 1em' type='button' id='add_order_button_17tobl'         value='已付款订单下单到bl'> "+
                "<div style='margin-top: 8px'><input style='margin-left: 1em' type='button' id='add_tag_to_chuanmei'         value='已选择订单添加传美备注'> "+
-               "<input type='button' id='delivery_order_button_from_315'   value='315已发货订单同步到17'> </div></div>");
+               "<input type='button' id='delivery_order_button_from_315'   value='315已发货订单同步到17'> " +
+               "<input type='button' id='delivery_select_order_button_from_315'   value='选中的订单从315同步到17'> " +
+                    "</div></div>");
                 $("#load_tuihuan_order_frombl").click(function () {
-                    chrome.runtime.sendMessage({"method":"load_tuihuan_order_frombl"},function (response) {
+                      let web_site_name = $("#daifa_select_bl")[0].value
+                         if (web_site_name==="请选择代发"){
+                             Toast("请选择代发")
+                             return
+                         }
+                    chrome.runtime.sendMessage({"method":"load_tuihuan_order_frombl","web_site_name":web_site_name},function (response) {
 
 
 
@@ -404,8 +404,36 @@ function init_order_page(){
 
 
             })
+                $("#delivery_select_order_button_from_315").click(function () {
+                let select_order_item_cache = $("#order_item_cache")[0].value
+                if(select_order_item_cache === undefined || select_order_item_cache === "" || JSON.parse(select_order_item_cache).length ===0){
+                    Toast("请勾选")
+                    return
+                 }
+                 let select_order_item_list = JSON.parse(select_order_item_cache)
+                 let order_list = []
+                 for(let i = 0 ; i<select_order_item_list.length ;i++) {
+                     let order_item = {
+                         order_number :select_order_item_list[i]["order_number"].replace("os","")
+                     }
+                     order_list.push(order_item)
 
-            $("#delivery_order_button_from_315").click(function () {
+                 }
+                 console.log("order_list4444",order_list)
+                 chrome.runtime.sendMessage({"method":"delivery_select_order_315to17","order_list":JSON.stringify(order_list)},function (response) {
+                    console.log("response",response)
+                    let result = JSON.parse(response)
+                        if(result.code === "fail" && result.message ==="未登录"){
+                            Toast("未登录")
+                            window.open("https://account.315df.com/login.html")
+                            return
+                        }
+                        Toast("同步订单完成" + response)
+                    })
+
+
+                })
+                $("#delivery_order_button_from_315").click(function () {
 
 
                     chrome.runtime.sendMessage({"method":"delivery_order_315to17"},function (response) {
@@ -417,12 +445,17 @@ function init_order_page(){
                             return
                         }
                         Toast("同步订单完成" + response)
+                    })
+
+
                 })
-
-
-            })
                 $("#delivery_order_button_blto17").click(function () {
-                chrome.runtime.sendMessage({"method":"delivery_order_blto17"},function (response) {
+                     let web_site_name = $("#daifa_select_bl")[0].value
+                         if (web_site_name==="请选择代发"){
+                             Toast("请选择代发")
+                             return
+                         }
+                chrome.runtime.sendMessage({"method":"delivery_order_blto17","web_site_name":web_site_name},function (response) {
                 Toast("同步订单完成" +response)
            })
          })
@@ -521,17 +554,23 @@ function init_order_page(){
 
          })
          $("#add_order_button_17tobl").click(function () {
-             
+              let web_site_name = $("#daifa_select_bl")[0].value
+                         if (web_site_name==="请选择代发"){
+                             Toast("请选择代发")
+                             return
+                         }
+             console.log("已选择代发：",web_site_name)
              let select_order_item_cache = $("#order_item_cache")[0].value
              if(select_order_item_cache === undefined || select_order_item_cache === "" || JSON.parse(select_order_item_cache).length ===0){
                  Toast("请勾选")
                  return
              }
-              chrome.runtime.sendMessage({"method":"apibl_check_is_login"},function (response) {
+              chrome.runtime.sendMessage({"method":"apibl_check_is_login","web_site_name":web_site_name},function (response) {
                   let is_login = response
                   
                   if(!is_login){
-                        window.open(mcommon_get_base_url_bl())
+
+                        window.open(mcommon_get_base_url_bl(web_site_name))
                         return
                   }
 
@@ -551,7 +590,7 @@ function init_order_page(){
                      new_order_number_list.push(select_order_item_list[i].order_number)
                  }
 
-                chrome.runtime.sendMessage({"method":"api17_get_order_to_tag_print_to315","new_order_number_list":JSON.stringify(new_order_number_list), "url":mcommon_get_base_vue_url_17(),"btn_tag":"17tobl_btn"},function (response) {
+                chrome.runtime.sendMessage({"method":"api17_get_order_to_tag_print_to315","new_order_number_list":JSON.stringify(new_order_number_list), "url":mcommon_get_base_vue_url_17(),"btn_tag":"17tobl_btn","web_site_name":web_site_name},function (response) {
 
                           //api17_get_order_to_tag_print_to315_compeleted
                  })
@@ -603,7 +642,7 @@ function init_null_package_page(){
          if($("#gs_delivery_button").length !==0){return}
           $("#query_div2").after(" <input type='button' id='gs_delivery_button'   value='gs空包发货到17'>");
          $("#gs_delivery_button").click(function () {
-            chrome.runtime.sendMessage({"method":"delivery_null_order_blto17"},function (response) {
+            chrome.runtime.sendMessage({"method":"delivery_null_order_blto17","web_site_name":"光速代发"},function (response) {
            })
          })
 
@@ -616,7 +655,7 @@ function init_null_package_page(){
              // apibl_login2(base_url,user_info['user_name'],user_info['password'])
 
              chrome.runtime.sendMessage({"method":"get_tab_id" },function (response) {
-                    chrome.runtime.sendMessage({"method":"add_null_order_tobl","url":cookies_url },function (response) {
+                    chrome.runtime.sendMessage({"method":"add_null_order_tobl","url":cookies_url ,"web_site_name":"光速代发"},function (response) {
                     })
              })
 
@@ -645,13 +684,15 @@ chrome.runtime.onMessage.addListener( function(request, sender, sendResponse){
 
                         // add_order_17to315(order_list,"5元好评卡")
                     }else if(request.from_btn === "17tobl_btn"){
-                        add_order_17tobl(order_list)
+                        let web_site_name =  request.web_site_name
+                        console.log("web_site_name8888:",web_site_name)
+                        add_order_17tobl(order_list,web_site_name)
                     }
 
 
     }
 })
-function add_order_17tobl(order_list){
+function add_order_17tobl(order_list,web_site_name){
 
              let submit_order_list = []
              // 手动下单
@@ -716,7 +757,14 @@ function add_order_17tobl(order_list){
                     let result = JSON.parse(response)
                         if(result.code === "error" && result.message ==="未登录"){
                             Toast("未登录")
-                            window.open(mcommon_get_base_url_bl())
+                         let web_site_name = $("#daifa_select_bl")[0].value
+                            console.log("已选择代发:",web_site_name)
+                         if (web_site_name==="请选择代发"){
+                             Toast("请选择代发")
+                             return
+                         }
+                            window.open(mcommon_get_base_url_bl(web_site_name))
+
                             return
                         }
                         if(result.code === "ok"){
@@ -738,10 +786,10 @@ function add_order_17tobl(order_list){
                 })
              }
              if(plugs_order_list.length>0){
-                 chrome.runtime.sendMessage({"method":"apibl_add_order_17tobl","submit_order_list":JSON.stringify(plugs_order_list) },function (response) {
+                 chrome.runtime.sendMessage({"web_site_name":web_site_name,"method":"apibl_add_order_17tobl","submit_order_list":JSON.stringify(plugs_order_list) },function (response) {
                  let res = JSON.parse(response)
                  if(res.code === "error" && res.message === "未登录"){
-                     window.open(mcommon_get_base_url_bl()+"/Login.aspx");
+                     window.open(mcommon_get_base_url_bl(web_site_name)+"/Login.aspx");
                  }else if(res.code === "ok"){
                      if(res.exits_in_lb_order_list !==null && res.exits_in_lb_order_list !==undefined && res.exits_in_lb_order_list.length !==0 ){
                          let new_exits_in_lb_order_list = []
@@ -788,6 +836,8 @@ function add_order_17to315(order_list,gift_315) {
                          order_object['phone'] = order_list[i].consignee_phone
                          order_object['order_number'] = order_list[i].order_number.replace("os",'')
                          order_object['logistics_name'] = order_list[i].logistics_name
+                         order_object['logistics_name'] = logistics_name_string_315[order_list[i].logistics_name]
+
                          order_object['testing_name'] = order_list[i].quality_testing_name
                          order_object['gift_315'] = gift_315
 

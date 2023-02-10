@@ -1,11 +1,25 @@
 let BASE_URL_315 ="https://www.315df.com"
 let logistics_choies_315 = {
     "圆通[菜鸟]":19,
+    "圆通-【菜鸟】":19,
     "圆通[拼多多]":27,
     "圆通":19,
     "韵达":3,
+    "韵达-菜鸟":3,
+    "EMS特快":29,
     "EMS":29,
 }
+
+let logistics_name_string_315 = {
+    "圆通[菜鸟]": "圆通-【菜鸟】",
+    "韵达": "韵达-菜鸟",
+    "EMS": "EMS特快",
+
+
+}
+
+
+
 let testing_choies_315 = {
     "普通质检":19,
     "精检":19,
@@ -235,10 +249,14 @@ function api315_get_order_from315(params){
                              let tb_order_number_td_elems = $($(ul_elems[i]).find("tbody").find("tr")[1]).find("td:contains(备注：)")
                              console.log("tb_order_number_td_elems:",tb_order_number_td_elems)
 
-                             let logistics_td_elems = $(ul_elems[i]).find("td:contains(单号)")
+                             let logistics_td_elems = $(ul_elems[i]).find("td:contains(单号：)")
 
                              if(tb_order_number_td_elems.length !==0){
-                                 let order_number_str = $(tb_order_number_td_elems[0]).text().replace("插件同步淘宝订单：","").replace("备注：" ,"")
+                                 let order_number_str  =  $(tb_order_number_td_elems[0]).text()
+                                 if(order_number_str.indexOf("第三方订单")!==-1){
+                                     order_number_str = order_number_str.substring(0,order_number_str.indexOf("第三方订单"))
+                                 }
+                                 order_number_str = order_number_str.replace("插件同步淘宝订单：","").replace("备注：" ,"")
                                  // let tem_arr = order_number_str.split("：")
                                  // let length = tem_arr.length
                                  // let order_number = tem_arr[length-1]
@@ -250,6 +268,7 @@ function api315_get_order_from315(params){
 
                              }
                              if(logistics_td_elems.length !==0){
+                                 console.log("物流元素:",logistics_td_elems)
                                  let text_arr = $(logistics_td_elems[0]).text().split("名称：")
 
                                  let name_number_arr = text_arr[1].split("单号：")

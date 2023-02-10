@@ -69,13 +69,23 @@ function apibl_login2(base_url,user_name,password){
     });
     return is_login
 }
-function apibl_get_user_name_and_pwd(){
-    let user_info = {
-        user_name : "gs01",
-        password :"a123a123a",
+function apibl_get_user_name_and_pwd(site_name_bl){
+    if(site_name_bl ==="光速代发"){
+        let user_info = {
+            user_name : "gs01",
+            password :"a123a123a",
+        }
+
+        return user_info
+    }else if(site_name_bl ==="海鸥代发"){
+        let user_info = {
+            user_name : "haiou01",
+            password :"a123a123a",
+        }
+         return user_info
     }
-   
-    return user_info
+    return null
+
 }
 function apibl_check_is_login(base_url){
     let is_login = false
@@ -108,7 +118,7 @@ function apibl_check_is_login(base_url){
     });
     return is_login
 }
-function apibl_add_order_17tobl(submit_order_list,base_url){
+function apibl_add_order_17tobl(submit_order_list,base_url,web_site_name){
       
      let ret = {"code":"ok","message":""}
      let submit_data_str = ""
@@ -167,7 +177,7 @@ function apibl_add_order_17tobl(submit_order_list,base_url){
                     post_data["ctl00$ContentPlaceHolder1$ddlGeShi"] = 2
                     post_data["ctl00$ContentPlaceHolder1$btnNew"] = "重新解析"
                     post_data["ctl00$ContentPlaceHolder1$HForderlist"] =  submit_data_obj["ctl00$ContentPlaceHolder1$HForderlist"]
-                    let res = re_analysis(post_data)
+                    let res = re_analysis(post_data,web_site_name)
                     if(res.code === "ok"){
                           let dom = res.data
                           let order_number_elems_list = $(dom).find("input[name='ordernumber']")
@@ -214,7 +224,7 @@ function apibl_add_order_17tobl(submit_order_list,base_url){
                             console.log("data_obj",data_obj)
                             // 有符合条件的才进行提交
                            if(order_number_elems_list.length > 0 ){
-                                let submit_result =  submit_order_tobl_ajax(data_obj)
+                                let submit_result =  submit_order_tobl_ajax(data_obj,web_site_name)
                                 ret = Object.assign(ret,submit_result)
                            }else{
                                 ret['code'] = 'ok'
@@ -417,7 +427,7 @@ function analyse_sended_order_frombl(item_elems){
                       $($(item_elems).find("ul[class='sonpro']")[0]).find("li").each(function () {
                            console.log("goods_div",$(this).find("div[class='detailright']").find("div:contains(状态)"))
                            let goods_status = $(this).find("div[class='detailright']").find("div:contains(状态)").text()
-                           if(goods_status.indexOf("已拿货") !== -1){
+                           if(goods_status.indexOf("已拿货") !== -1  || goods_status.indexOf("验货完成") !== -1){
                                is_all_yinahuo = true
                            }else{
                                is_all_yinahuo = false
@@ -431,7 +441,7 @@ function analyse_sended_order_frombl(item_elems){
                       console.log("order_status",order_status)
                       let logistics_name = logistics.split("单号")[0].replace("快递：","").trim()
                       if(logistics_name.indexOf("圆通") !== -1){
-                          logistics_name = "圆通"
+                          logistics_name = "圆通[菜鸟]"
                       }else if(logistics_name.indexOf("中通") !== -1){
                           logistics_name = "中通"
                       }else if(logistics_name.indexOf("韵达") !== -1){
@@ -554,9 +564,9 @@ function analyse_tuihuan_order_frombl(item_elems){
       return return_obj
 }
 //从bl网 加载空包订单
-function apibl_load_null_order_frombl(parms){
+function apibl_load_null_order_frombl(parms,web_site_name){
  console.log("request_url----00")
-    let request_url  = mcommon_get_null_package_base_url_bl()+"/User/Gift_List.aspx"
+    let request_url  = mcommon_get_null_package_base_url_bl(web_site_name)+"/User/Gift_List.aspx"
     console.log("request_url----0",request_url)
     let request_type = "POST"
     if(parms.__VIEWSTATE === ""){
@@ -677,7 +687,7 @@ function apibl_load_null_order_frombl(parms){
 }
 
 // 初始化空包订单页面信息
-function apibl_init_null_order_page_parms(){
+function apibl_init_null_order_page_parms(web_site_name){
 
     let parms = {
                  "__VIEWSTATE":"",
@@ -688,7 +698,7 @@ function apibl_init_null_order_page_parms(){
 
        }
 
-    let result = apibl_load_null_order_frombl(parms)
+    let result = apibl_load_null_order_frombl(parms,web_site_name)
 
     return  result
 }
@@ -917,12 +927,12 @@ function serialize_data_to_obj(serialize_data){
          }
         return data_obj
 }
-function re_analysis(post_data){
+function re_analysis(post_data,web_site_name){
     console.log("post_form_data",post_data)
     let ret = {"code":"ok","message":""}
     $.ajax({
                 async: false,
-                url: mcommon_get_base_url_bl()+"/User/quick_daifa.aspx",
+                url: mcommon_get_base_url_bl(web_site_name)+"/User/quick_daifa.aspx",
                 type: "POST",
                 data: post_data,
                 timeout: 5000,
@@ -952,12 +962,12 @@ function re_analysis(post_data){
     return ret
 }
 
-function submit_order_tobl_ajax(post_data) {
+function submit_order_tobl_ajax(post_data,web_site_name) {
     console.log("post_form_data",post_data)
     let ret = {"code":"ok","message":""}
     $.ajax({
                 async: false,
-                url: mcommon_get_base_url_bl()+"/User/quick_daifa.aspx",
+                url: mcommon_get_base_url_bl(web_site_name)+"/User/quick_daifa.aspx",
                 type: "POST",
                 data: post_data,
                 timeout: 5000,

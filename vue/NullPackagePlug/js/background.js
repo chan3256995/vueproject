@@ -44,11 +44,12 @@ chrome.tabs.onUpdated.addListener(function (id, info, tab) {
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 	let method = request.method;
-	if (method === "add_null_order_tobl")
-	{
-                     let base_url = mcommon_get_null_package_base_url_bl()
-                    let user_info = apibl_get_user_name_and_pwd()
-                    apibl_login2(base_url,user_info['user_name'],user_info['password'])
+
+	if (method === "add_null_order_tobl"){
+	    let web_site_name = request.web_site_name;
+         let base_url = mcommon_get_null_package_base_url_bl(web_site_name)
+        let user_info = apibl_get_user_name_and_pwd(web_site_name)
+        apibl_login2(base_url,user_info['user_name'],user_info['password'])
 	    let cookies_url = request.url;
         chrome.cookies.getAll({'url':cookies_url}, function(cookie) {
             let cookies_obj = {}
@@ -71,14 +72,14 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
                          break
                      }
                 order_list = load_null_order_from17(url,{'for':"logistics_print"});
-                let res = apibl_init_add_null_order_page_parms(mcommon_get_null_package_base_url_bl())
+                let res = apibl_init_add_null_order_page_parms(mcommon_get_null_package_base_url_bl(web_site_name))
 
                 if(res.is_success){
 
-                     let ret = start_add_null_package_order_tobl(order_list,mcommon_get_null_package_base_url_bl(),res.parms)
+                     let ret = start_add_null_package_order_tobl(order_list,mcommon_get_null_package_base_url_bl(web_site_name),res.parms)
                     success_counts = success_counts + ret['success_counts']
                     if(ret['message']==="未登录"){
-                         window.open(mcommon_get_null_package_base_url_bl()+"/Login.aspx/");
+                         window.open(mcommon_get_null_package_base_url_bl(web_site_name)+"/Login.aspx/");
                          break
                     }else if(ret['message']==='stop_task'){
                         console.log("stop_task")
@@ -86,7 +87,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
                     }
                 }else{
                     if(res.message==="未登录"){
-                         window.open(mcommon_get_null_package_base_url_bl()+"/Login.aspx/");
+                         window.open(mcommon_get_null_package_base_url_bl(web_site_name)+"/Login.aspx/");
                     }
                 }
 
@@ -98,6 +99,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         })
     }else if(method === "delivery_null_order_blto17"){
 	    console.log("method",method)
+	    let web_site_name = request.web_site_name
 	    chrome.cookies.getAll({'url':mcommon_get_base_vue_url_17()}, function(cookie) {
 	        let cookies_obj = {}
             let cookie_str = ""
@@ -110,12 +112,12 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
                     cookie_string += (name + "=" + value +"&");
                 }
 
-            let is_login = apibl_check_is_login(mcommon_get_null_package_base_url_bl())
+            let is_login = apibl_check_is_login(mcommon_get_null_package_base_url_bl(web_site_name))
             if(!is_login){
-                window.open(mcommon_get_null_package_base_url_bl())
+                window.open(mcommon_get_null_package_base_url_bl(web_site_name))
                 return
             }
-            let result  = apibl_init_null_order_page_parms()
+            let result  = apibl_init_null_order_page_parms(web_site_name)
 
             let parms = result.parms
             let date = new Date()
@@ -126,7 +128,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             parms['__EVENTTARGET'] = "ctl00$ContentPlaceHolder1$AspNetPager1"
             parms['ctl00$ContentPlaceHolder1$txtStart'] = start_time
             parms['ctl00$ContentPlaceHolder1$txtEnd'] = end_time
- console.log("11111")
+
             let page_info = result.page_info
             let i = 0
             let task_start_time_stmp = new Date().getTime()
@@ -137,8 +139,8 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
                          break
                      }
                      sleep(800)
-                 console.log("2222")
-                     let result2 = apibl_load_null_order_frombl(parms)
+
+                     let result2 = apibl_load_null_order_frombl(parms,web_site_name)
                      console.log("result266666",result2)
                      let page_info = result2.page_info
                      api17_delivery_null_package_to17(result2.order_list,cookie_string,mcommon_get_base_url_17())
@@ -153,6 +155,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
 
     }else if(method === "delivery_order_blto17"){
+	        let web_site_name = request.web_site_name
 	        console.log("method",method)
              chrome.cookies.getAll({'url':mcommon_get_base_vue_url_17()}, function(cookie) {
                  let cookies_obj = {}
@@ -166,12 +169,12 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
                      cookie_string += (name + "=" + value + "&");
                  }
                  console.log("获取17vue cookies：，",cookies_obj)
-                let is_login = apibl_check_is_login(mcommon_get_base_url_bl())
+                let is_login = apibl_check_is_login(mcommon_get_base_url_bl(web_site_name))
                  if(!is_login){
-                     window.open(mcommon_get_base_url_bl()+"/Login.aspx/")
+                     window.open(mcommon_get_base_url_bl(web_site_name)+"/Login.aspx/")
                      return
                  }
-                let result  = apibl_init_order_page_parms(mcommon_get_base_url_bl())
+                let result  = apibl_init_order_page_parms(mcommon_get_base_url_bl(web_site_name))
                 console.log("apibl_init_order_page_parms-----",result)
 
                 let parms = result.parms
@@ -199,7 +202,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
                          sleep(800)
 
                          parms['ctl00$ContentPlaceHolder1$txtPageSize'] = 10
-                         let result2 = apibl_load_order_frombl(parms,mcommon_get_base_url_bl())
+                         let result2 = apibl_load_order_frombl(parms,mcommon_get_base_url_bl(web_site_name))
                          console.log("result2",result2)
                          let page_info = result2.page_info
 
@@ -215,6 +218,54 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
 
                  })
+
+
+    }else if(method === "delivery_select_order_315to17"){
+
+            let order_list = JSON.parse(request.order_list)
+
+
+
+             chrome.cookies.getAll({'url':mcommon_get_base_url_17()}, function(cookie) {
+                 let cookies_obj = {}
+                 let cookie_str = ""
+                 let cookie_string = ""
+                 for (let i in cookie) {
+                     let name = cookie[i].name;
+                     let value = cookie[i].value;
+                     cookies_obj[name] = value;
+                     cookie_str += (name + "=" + value + ";\n");
+                     cookie_string += (name + "=" + value + "&");
+
+                 }
+                  console.log("获取17 cookies：，",cookies_obj)
+                 for(let i=0;i<order_list.length;i++){
+                       let data = {
+                            search_field: 'all',
+                            q: order_list[i]['order_number'],
+                            status: '',
+                            do:'' ,
+                            reserdate:'' ,
+                        }
+                        let result  = api315_get_order_from315(data)
+                        console.log("api315_get_order_from315--->result",result)
+                        if(result.data!==null && result.data.order_list !==null){
+                            api17_delivery_order_to17(result.data.order_list,mcommon_get_base_url_17(),cookies_obj)
+                        }
+
+
+                 }
+
+
+
+             })
+
+
+
+
+            let i = 0
+            let task_start_time_stmp = new Date().getTime()
+
 
 
     }else if(method === "delivery_order_315to17"){
@@ -305,7 +356,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             console.log(JSON.stringify(cookies_obj))
               
              let order_list = api17_get_order_to_tag_print_to315(new_order_number_list,cookies_obj)
-             let send_obj = {"method":"api17_get_order_to_tag_print_to315_compeleted","order_list":order_list,from_btn:request.btn_tag}
+             let send_obj = {"method":"api17_get_order_to_tag_print_to315_compeleted","order_list":order_list,from_btn:request.btn_tag,"web_site_name":request.web_site_name}
              if(request.gift_315 !== undefined){
                  send_obj['gift_315'] = request.gift_315
              }
@@ -317,27 +368,31 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 	    
          
     }else if(method == "apibl_check_is_login"){
-	    let is_login = apibl_check_is_login(mcommon_get_base_url_bl())
+	    let web_site_name  = request.web_site_name
+	    let is_login = apibl_check_is_login(mcommon_get_base_url_bl(web_site_name))
         sendResponse(is_login)
     }else if (method == "api315_check_is_login"){
 	     let is_login = api315_check_is_login(mcommon_get_base_url_315())
         sendResponse(is_login)
     }else if(method == "apibl_add_order_17tobl"){
+	    let web_site_name  = request.web_site_name
+        console.log("web_site_name:",web_site_name)
 	    let submit_order_list = JSON.parse(request.submit_order_list)
-	    let res = apibl_add_order_17tobl(submit_order_list,mcommon_get_base_url_bl())
+	    let res = apibl_add_order_17tobl(submit_order_list,mcommon_get_base_url_bl(web_site_name),web_site_name)
         sendResponse(JSON.stringify(res))
     }else if(method == "api315_add_order_17to315"){
 	    let submit_order_list = JSON.parse(request.submit_order_list)
 	    let res = api315_add_order_17to315(submit_order_list)
         sendResponse(JSON.stringify(res))
     }else if(method ==="shoudong_add_order_17tobl" ){
+	    let web_site_name  = request.web_site_name
 	    let order_list = JSON.parse(request.submit_order_list)
          let ret = {"code":"ok","message":""}
         // 已存在订单
         let exits_in_lb_order_list=[]
         let success_order_list=[]
         for(let i = 0;i<order_list.length;i++){
-            let result = apibl_shoudong_add_order_step1(mcommon_get_base_url_bl())
+            let result = apibl_shoudong_add_order_step1(mcommon_get_base_url_bl(web_site_name))
 
         if(result.code === "ok"){
             let order_goods_list = order_list[i].goodinfo
@@ -375,7 +430,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
           ret["success_order_list"] = success_order_list
         sendResponse(JSON.stringify(ret))
     }else if(method === "load_tuihuan_order_frombl"){
-
+             let web_site_name  = request.web_site_name
 	        console.log("method",method)
              chrome.cookies.getAll({'url':mcommon_get_base_vue_url_17()}, function(cookie) {
                  let cookies_obj = {}
@@ -388,13 +443,13 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
                      cookie_str += (name + "=" + value + ";\n");
                      cookie_string += (name + "=" + value + "&");
                  }
-                let is_login = apibl_check_is_login(mcommon_get_base_url_bl())
+                let is_login = apibl_check_is_login(mcommon_get_base_url_bl(web_site_name))
                  if(!is_login){
-                     window.open(mcommon_get_base_url_bl()+"/Login.aspx/")
+                     window.open(mcommon_get_base_url_bl(web_site_name)+"/Login.aspx/")
                      return
                  }
 
-                let result  = apibl_init_tuihuan_page_parms(mcommon_get_base_url_bl())
+                let result  = apibl_init_tuihuan_page_parms(mcommon_get_base_url_bl(web_site_name))
                 console.log("apibl_init_tuihuan_page_parms-----",result)
 
                 let parms = result.parms
@@ -417,7 +472,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
                          parms['ctl00$ContentPlaceHolder1$txtYunDanHao'] = ""
                          parms['ctl00$ContentPlaceHolder1$txtOrderNo'] = ""
                          parms['ctl00$ContentPlaceHolder1$rblType'] = ""
-                         let result2 = apibl_load_tuihuan_order_frombl(parms,mcommon_get_base_url_bl(),"退款退货","处理中")
+                         let result2 = apibl_load_tuihuan_order_frombl(parms,mcommon_get_base_url_bl(web_site_name),"退款退货","处理中")
                          console.log("333333333333333333333",result2)
 
                          page_info = result2.page_info
