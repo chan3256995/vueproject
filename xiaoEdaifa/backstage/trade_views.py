@@ -27,6 +27,8 @@ from utils import mIP_utils
 from utils import mglobal
 from utils import bl_site_utils
 from _decimal import Decimal
+from backstage import bserializers
+from rest_framework.mixins import CreateModelMixin,RetrieveModelMixin,UpdateModelMixin,ListModelMixin,DestroyModelMixin
 import time
 import datetime
 import threading
@@ -111,6 +113,12 @@ class TradeInfoViewSet(mixins.ListModelMixin,GenericViewSet):
             logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
             return JsonResponse(ret)
         return JsonResponse(ret)
+
+
+
+
+
+
 
 
 #
@@ -235,6 +243,64 @@ class Temp(APIView):
             logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
         return Response(ret)
         # return JsonResponse(ret)
+
+
+# 临时处理代码 比如批量修改数据库信息
+class Temp2(APIView):
+    authentication_classes = []
+    renderer_classes = [GBKJSONRenderer, ]
+    permission_classes = []
+
+
+    def get_url_params(self,url):
+        return_obj = {}
+        indextem = url.index("?")
+        sum_length = len(url)
+        params_str = url[url.index("?") + 1:len(url)]
+        print("params_str:" + params_str)
+        params_arr = params_str.split("&")
+        print(params_arr)
+        for item_ in params_arr:
+            item_key_value = item_.split("=")
+            key1 = item_key_value[0]
+            value1 = item_key_value[1]
+            return_obj[key1] = value1
+        return return_obj
+
+    def post(self, request, *args, **kwargs):
+        ret = {'code': "1000", 'message': ""}
+        try:
+            query_ = trade_models.UserFocusDouYinShop.objects.filter()
+            for item_query in query_:
+                url = item_query.monitor_url
+                base_url = url.split("?")[0]
+                base_url = "https://lianmengapi5-core-lf.ecombdapi.com/aweme/v1/store/product/list/"
+                params_obj = self.get_url_params(url)
+                params_obj['iid'] = 4270948144395438
+                params_obj['device_id'] = 2335807680293166
+                params_obj['channel'] = "tengxun_juguang1_dy_rta_1011"
+
+                str_ = ""
+                for key in params_obj.keys():
+                    str_ = str_ + str(key) + "=" + str(params_obj[key]) + "&"
+                str_ = str_[0:len(str_) - 1]
+                new_monitor_url = base_url + "?" + str_
+                print(url)
+                print("新地址:"+new_monitor_url)
+                item_query.monitor_url = new_monitor_url
+                item_query.save()
+            print(request.data)
+
+            return Response(ret)
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "查询异常"
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+        return Response(ret)
+        # return JsonResponse(ret)
+
+
 
 
 class AppClient(APIView):
@@ -387,6 +453,8 @@ class SaveDouYinGoods(APIView):
             print(request.data)
             douyin_goods_list = request.data.get("douyin_goods_list")
             shop_id = request.data.get("shop_id")
+            # 不更新时间
+            is_ignore_shop_update_time = request.data.get("is_ignore_shop_update_time")
             sql_user_shop = trade_models.UserFocusDouYinShop.objects.filter(shop_id=shop_id).first()
             if sql_user_shop is None:
                 ret["code"] = "1001"
@@ -394,17 +462,22 @@ class SaveDouYinGoods(APIView):
                 return  Response(ret)
             shop_update_time_old = sql_user_shop.update_time
             cur_time = time.time() * 1000
-            # 更新时间不小于 1 小时
-            dur_time = cur_time - shop_update_time_old
-            one_hour = 60 * 60 * 1000
-            print("店铺更上次更新时间:" + mtime.stamp_to_time(shop_update_time_old / 1000, "%Y-%m-%d %H:%M:%S"))
-            if dur_time < one_hour:
-                ret = {'code': "1001", 'message': ""}
-                return Response(ret)
 
+
+            if is_ignore_shop_update_time is not None and  is_ignore_shop_update_time is True:
+                # 更新时间不小于 1 小时
+                sql_user_shop.update_time = shop_update_time_old
+            else:
+                dur_time = cur_time - shop_update_time_old
+                one_hour = 60 * 60 * 1000
+                sql_user_shop.update_time = dur_time
+                print("店铺更上次更新时间:" + mtime.stamp_to_time(shop_update_time_old / 1000, "%Y-%m-%d %H:%M:%S"))
+                if dur_time < one_hour:
+                    ret = {'code': "1001", 'message': ""}
+                    return Response(ret)
             my_site_utils.save_dou_yin_goods_data_to_db(self, douyin_goods_list, shop_id)
-            sql_user_shop.update_time = cur_time
             sql_user_shop.save()
+            print("店铺:" + shop_id +"更新成功")
             ret = {'code': "1000", 'message': ""}
 
 
@@ -467,6 +540,173 @@ class AddReturnPackages(APIView):
         return Response(ret)
 
 
+    # 添加问题单跟单
+class AddTroubleOrderView(APIView):
+
+    authentication_classes = [BackStageAuthentication]
+    def post(self, request, *args, **kwargs):
+        try:
+            ret = {'code': "1000", 'message': ""}
+            post_obj = request.data
+            print(post_obj)
+            with transaction.atomic():
+                data = {
+                    "owner": request.user,
+                    "plat_form_order_number": post_obj['plat_form_order_number'],
+                    "logistics_number": post_obj['logistics_number'],
+                    "plat_form": post_obj['plat_form'],
+                    "order_status": post_obj['order_status'],
+                    "shop_name": post_obj['shop_name'],
+                    "remarks": post_obj['remarks'],
+                    "update_time": time.time() * 1000,
+                    "add_time": time.time() * 1000,
+                }
+
+                data['update_time'] = 0
+                troubleOrders = back_models.TroubleOrders.objects.create(**data)
+                troubleOrders.save()
+
+        except:
+            logger.info('%s userid->%s ,  url:%s method:%s' % (
+                "提交异常" + traceback.format_exc(), self.request.user.id, self.request.path, self.request.method))
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = '添加异常，,' + traceback.format_exc()
+            return Response(ret)
+
+        return Response(ret)
+
+
+# 问题单跟单编辑
+class EditTroubleOrderView(APIView):
+    authentication_classes = [BackStageAuthentication]
+    permission_classes = [NahuoUserpermission]
+
+    def post(self, request, *args, **kwargs):
+        ret = {"code": "1000", "message": ""}
+        try:
+            data = request.data
+            req_trouble_order = data.get("trouble_order_data")
+            print(req_trouble_order)
+
+            # 判断非游客用户
+            if isinstance(request.user, user_models.User):
+                with transaction.atomic():
+
+                    sql_trouble_order = back_models.TroubleOrders.objects.filter(id=req_trouble_order.get('id')).first()
+                    if sql_trouble_order is not None:
+                        if req_trouble_order.get('plat_form_order_number') is not None:
+                            sql_trouble_order.plat_form_order_number = req_trouble_order.get('plat_form_order_number')
+                        if req_trouble_order.get('logistics_number') is not None:
+                            sql_trouble_order.logistics_number = req_trouble_order.get('logistics_number')
+                        if req_trouble_order.get('plat_form') is not None:
+                            sql_trouble_order.plat_form = req_trouble_order.get('plat_form')
+                        if req_trouble_order.get('order_status') is not None:
+                            sql_trouble_order.order_status = req_trouble_order.get('order_status')
+                        if req_trouble_order.get('shop_name') is not None:
+                            sql_trouble_order.shop_name = req_trouble_order.get('shop_name')
+                        if req_trouble_order.get('remarks') is not None:
+                            sql_trouble_order.remarks = req_trouble_order.get('remarks')
+
+                        sql_trouble_order.save()
+
+                    else:
+                        ret['code'] = "1001"
+                        ret['message'] = "不存在"
+                        return Response(ret)
+            else:
+                ret['code'] = "1001"
+                ret['message'] = '无效用户'
+                return JsonResponse(ret)
+        except:
+
+            ret['code'] = "1001"
+            ret['message'] = '查询异常'
+            ret['message2'] = '查询异常'+traceback.format_exc()
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return JsonResponse(ret)
+        return JsonResponse(ret)
+
+        # 问题单跟单删除
+
+
+class DeleteTroubleOrderView(APIView):
+    authentication_classes = [BackStageAuthentication]
+    permission_classes = [NahuoUserpermission]
+
+    def post(self,request, *args, **kwargs):
+        try:
+            ret = {'code': "1000", 'message': ""}
+            data = request.data
+            print(data)
+            id_list = data.get("id_list")
+
+            with transaction.atomic():
+                back_models.TroubleOrders.objects.filter(owner = request.user,id__in= id_list).delete()
+
+
+
+        except:
+            logger.info('%s userid->%s ,  url:%s method:%s' % ("提交异常" + traceback.format_exc(), self.request.user.id, self.request.path, self.request.method))
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = '查询异常'
+            ret['message2'] = '查询异常,'+traceback.format_exc()
+            return Response(ret)
+
+        return Response(ret)
+
+
+# 问题单列表
+class TroubleOrderView(ListModelMixin, GenericViewSet):
+    authentication_classes = [BackStageAuthentication]
+    permission_classes = [NahuoUserpermission]
+    # 设置分页的class
+    pagination_class = UsersPagination
+
+    serializer_class = bserializers.BackTroubleOrderSQuerySerializer
+
+    def get_queryset(self):
+        try:
+            print(self.request.query_params)
+            query_keys = self.request.query_params.get("keys")
+            order_status = self.request.query_params.get("order_status")
+            order_by = ["add_time"]
+            args = Q()
+            if order_status is not None:
+                args  = args & Q(order_status=order_status)
+            if query_keys is not None:
+                upper_query_key = query_keys.upper()
+                args = args & Q(Q(remarks__contains=query_keys)| Q(logistics_number__contains=upper_query_key)  | Q(logistics_number__contains=query_keys) | Q(shop_name__contains=query_keys)| Q(plat_form_order_number__contains=query_keys))
+
+            return back_models.TroubleOrders.objects.filter(args).order_by(*order_by)
+
+        except:
+            traceback.print_exc()
+
+    def list(self,request, *args, **kwargs):
+        ret = {'code': "1000", 'message': ""}
+        try:
+            trouble_orders_query_set = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(trouble_orders_query_set)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+
+                return self.get_paginated_response(serializer.data)
+
+            serializer = self.get_serializer(trouble_orders_query_set, many=True)
+            ret['code'] = "1000"
+            ret['result'] = serializer.data
+            return JsonResponse(ret)
+            # ser = self.QueryInviteRegisterInfoSerializer(instance=invite_register_info_query_set, many=True)
+            # ret['results'] = ser.data
+        except:
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            ret['code'] = "1001"
+            ret['message'] = '查询失败'
+        return Response(ret)
 # 给你用户添加余额
 class AddUserBalance(APIView):
 
@@ -721,7 +961,7 @@ class AutoScanYiNaHuoOrder(APIView):
     #   返回采集时间间隔秒
     def get_collect_douyin_goods_task_interval_time(self, cur_hour):
         if (cur_hour > 0 and cur_hour < 6) or cur_hour == 6  :
-            return 1 * 60 * 60
+            return 10 * 60
 
         elif (cur_hour > 6 and cur_hour < 10) or cur_hour == 10:
             return 10 * 60
@@ -736,8 +976,11 @@ class AutoScanYiNaHuoOrder(APIView):
 
 
     def start_collect_douyin_goods_thread(self, task_item):
-        m_cookies = {"sessionid": "766aec287d506ce9913301792c713ba4"}
-        headers = {"User-Agent": "com.ss.android.ugc.aweme/200301 (Linux; U; Android 6.0.1; zh_CN; MI 5s; Build/V417IR;tt-ok/3.10.0.2)"}
+        m_cookies = {"sessionid": "ca0ec46f81673efc6aa837137c747c96"}
+        headers = {"User-Agent": "com.ss.android.ugc.aweme/200301 (Linux; U; Android 6.0.1; zh_CN; MI 5s; Build/V417IR;tt-ok/3.10.0.2)",
+                   "X-Tt-Token": "00ca0ec46f81673efc6aa837137c747c9604fb27ef72651c1fd4b199ca16890c5ccfc721366594729e4a2efe0baf02cb8b8ed32adf51d884817dfb07f2a700f3dbaf7b88a1562790b6fef13cca65a0f2339b36264050497e61f24e3ea4e5e6f6efa62-1.0.1",
+                   "X-Ladon": "xjgKZdbr258QQyMJ1R2N1QOGm3usLvEhPc59187ybvHYt+yQ",
+                   }
 
         # 最后 一次运行时间
         last_time = task_item.last_run_time
@@ -750,9 +993,10 @@ class AutoScanYiNaHuoOrder(APIView):
         #
 
         m_time = cur_time - (last_time + time_interval)
-        task_item.last_run_time = time.time()
-        task_item.save()
+
         if m_time > 0:
+            task_item.last_run_time = time.time()
+            task_item.save()
             last_time2 = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(last_time))
             cur_time_format = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(cur_time))
             cur_hour = cur_time_format.split(" ")[1].split(":")[0]
@@ -760,38 +1004,45 @@ class AutoScanYiNaHuoOrder(APIView):
             query_set = trade_models.UserFocusDouYinShop.objects.filter(is_monitor=True).order_by(*order_by)[0:25]
             print("即将采集店铺数："+str(len(query_set)))
             for sql_shop_info in query_set:
-                is_monitor = sql_shop_info.is_monitor
-                if is_monitor is False:
-                    continue
-                update_time = sql_shop_info.update_time
-                monitor_url = sql_shop_info.monitor_url
-                url = monitor_url
-                mheader = headers
-                req_params = commom_utils.get_url_params(url)
-                if url.find("lianmengapi.snssdk.com") !=-1:
-                    shop_id = req_params['sec_shop_id']
-                    sql_user_shop = trade_models.UserFocusDouYinShop.objects.filter(shop_id=shop_id).first()
-                    if sql_user_shop is   None:
+
+
+
+                try:
+                    is_monitor = sql_shop_info.is_monitor
+                    if is_monitor is False:
                         continue
-                    shop_update_time_old = sql_user_shop.update_time
-                    m_cur_time = time.time()*1000
-                    # 更新时间不小于 1 小时
-                    one_hour = 60 * 60 * 1000
-                    dur_time = m_cur_time - shop_update_time_old
+                    update_time = sql_shop_info.update_time
+                    monitor_url = sql_shop_info.monitor_url
+                    url = monitor_url
+                    mheader = headers
+                    req_params = commom_utils.get_url_params(url)
+                    if url.find("lianmengapi5-core-lf.ecombdapi.com") != -1:
+                        shop_id = req_params['sec_shop_id']
+                        sql_user_shop = trade_models.UserFocusDouYinShop.objects.filter(shop_id=shop_id).first()
+                        if sql_user_shop is None:
+                            continue
+                        shop_update_time_old = sql_user_shop.update_time
+                        m_cur_time = time.time() * 1000
+                        # 更新时间不小于 1 小时
+                        one_hour = 60 * 60 * 1000
+                        dur_time = m_cur_time - shop_update_time_old
 
+                        print("店铺更上次更新时间:" + mtime.stamp_to_time(shop_update_time_old / 1000, "%Y-%m-%d %H:%M:%S"))
+                        if dur_time < one_hour:
+                            continue
 
-                    print("店铺更上次更新时间:" + mtime.stamp_to_time(shop_update_time_old / 1000, "%Y-%m-%d %H:%M:%S"))
-                    if dur_time < one_hour:
+                        my_site_utils.get_dou_yin_goods_data2(self, url, m_cookies, mheader, req_params, sql_user_shop,
+                                                              req_params['sec_shop_id'])
+                        sql_user_shop.update_time = m_cur_time
 
-                        continue
+                        sql_user_shop.save()
+                    random_num = random.randint(1, 3)
+                    print("随机数:" + str(random_num))
+                    time.sleep(random_num)
+                except:
+                    traceback.print_exc()
 
-                    my_site_utils.get_dou_yin_goods_data2(self,url,m_cookies,mheader,req_params,sql_user_shop,req_params['sec_shop_id'])
-                    sql_user_shop.update_time = m_cur_time
-
-                    sql_user_shop.save()
-                random_num = random.randint(1,3)
-                print("随机数:"+str(random_num))
-                time.sleep(random_num)
+                    logger.info('%s url:%s method:%s' % (traceback.format_exc(), "", "start_collect_douyin_goods_thread"))
             interval_time = self.get_collect_douyin_goods_task_interval_time(int(cur_hour))
             task_item.time_interval = interval_time
             # task_item.last_run_time = time.time()
@@ -1104,35 +1355,58 @@ class DeliverGoodsView(APIView):
 # 空包 发货
 class DeliverNullOrderView(APIView):
     authentication_classes = [BackStageAuthentication,BackStageNahuoAuthentication ]
+    # authentication_classes = []
     permission_classes = [NahuoUserpermission]
+    # permission_classes = []
 
     def post(self, request, *args, **kwargs):
 
         print(request.data)
         try:
             with transaction.atomic():
-                ip = mIP_utils.get_windows_local_ip()
                 ret = {'code': "1000", 'message': ""}
+                find_order_by = "id"
+                ip = mIP_utils.get_windows_local_ip()
+                # if ip.find('172.17.1.38') == -1:
+                #     ret['code'] = "1001"
+                #     ret['message'] = "数据异常"
+                #     return JsonResponse(ret)
+
                 req_order_list = json.loads(request.data.get("deliver_order_list"))
                 req_order_id_list = []
+                req_order_tb_order_number_list = []
                 # 异常状态订单
                 exception_order_list = []
                 for i in range(0,len(req_order_list)):
                     req_id = req_order_list[i].get("id")
+                    tb_order_number = req_order_list[i].get("tb_order_number")
                     if req_id is not None and req_id != "":
-                        if ip.find('172.17.1.38') != -1:
-                            if req_id.startswith("r") is False:
-                                ret['code'] = "1001"
-                                ret['message'] = "数据异常"
-                                return JsonResponse(ret)
-                            else:
-                                req_id = req_id.replace('r', '')
-                                req_order_list[i]['id'] = req_id
+                        if req_id.startswith("r") is False:
+                            ret['code'] = "1001"
+                            ret['message'] = "数据异常"
+                            return JsonResponse(ret)
+                        else:
+                            req_id = req_id.replace('r', '')
+                            req_order_list[i]['id'] = req_id
                         req_order_id_list.append(req_id)
+                    if tb_order_number is not None and tb_order_number != "":
+                        req_order_tb_order_number_list.append(tb_order_number)
 
-                order_queryset = trade_models.NullPackageOrder.objects.select_for_update().filter(Q(id__in=req_order_id_list)).distinct()
+                if len(req_order_id_list)>0:
+                    find_order_by = "id"
+                    order_queryset = trade_models.NullPackageOrder.objects.select_for_update().filter(Q(id__in=req_order_id_list)).distinct()
+                elif len(req_order_tb_order_number_list) > 0:
+                    find_order_by = "tb_order_number"
+                    order_queryset = trade_models.NullPackageOrder.objects.select_for_update().filter(Q(tb_order_number__in=req_order_tb_order_number_list)).distinct()
+
                 for sql_order in order_queryset:
-                    req_order = self.find_order(sql_order.id, req_order_list)
+                    req_order = None
+                    if find_order_by == "id":
+                        req_order = self.find_order(id=sql_order.id,tb_order_number="",req_order_list=req_order_list)
+                    else:
+                        req_order = self.find_order(id="",tb_order_number=sql_order.tb_order_number, req_order_list=req_order_list)
+                    if req_order is None:
+                        continue
                     logistic_name = req_order.get("logistics_name")
                     req_order_logistic_name = back_utils.back_null_package_logistic_choices[logistic_name]
                     if req_order_logistic_name is None:
@@ -1157,15 +1431,18 @@ class DeliverNullOrderView(APIView):
             traceback.print_exc()
             ret['code'] = "1001"
             ret['message'] = "查询异常"
+            ret['message'] = '%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method)
             logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
             return JsonResponse(ret)
         return JsonResponse(ret)
 
-    def find_order(self,id,req_order_list):
+    def find_order(self,id,tb_order_number,req_order_list):
         for req_order in req_order_list:
-            if str(id) == req_order.get("id"):
+            if (id!="") and (str(id) == req_order.get("id")):
                 return req_order
-        return ""
+            elif (tb_order_number!="") and (str(tb_order_number) == req_order.get("tb_order_number")):
+                return req_order
+        return None
 
 
 # 这个接口只为315物流来源发货

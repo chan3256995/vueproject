@@ -1139,6 +1139,84 @@ class NullOrderViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, GenericVi
 
     def get_object(self):
         return self.request.user
+class DouYinShopViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, GenericViewSet):
+    # 用户添加的抖音店铺
+    class DouYinShopSerializer(serializers.ModelSerializer):
+        """
+        抖音店铺
+        """
+
+        class Meta:
+            model = trade_models.UserFocusDouYinShop
+            fields = ["id","shop_id","monitor_url","shop_id2","image_url","shop_name","is_monitor","update_time","add_time"]
+            depth = 1
+            # 反向序列化  要在model.DouYinGoods 理的对应指向dou_yin_shop的字段 设置 related_name 为 ‘douYinGoods’
+
+
+    authentication_classes = []
+    permission_classes = []
+    serializer_class = DouYinShopSerializer
+    # 设置分页的class
+    pagination_class = CommonPagination
+
+    def list(self, request, *args, **kwargs):
+        ret = {"code": 1000, "message": ""}
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        except:
+            traceback.print_exc()
+            ret = {"code": "1001", "message": "获取订单失败"}
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return Response(ret)
+
+    def get_queryset(self):
+        one_hour = 1 * 60 * 60 * 1000
+        cur_time = time.time() * 1000
+        tag_time = cur_time - one_hour
+        args = Q(update_time__lt=tag_time)
+        order_by = ["update_time"]
+        query_keys = self.request.query_params.get("id_limit")
+        if query_keys is not None and query_keys !="":
+            id_limit = int(query_keys)
+            args = args & Q(id__gt=id_limit)
+            order_by = ["id"]
+        return trade_models.UserFocusDouYinShop.objects.filter(args).distinct().order_by(*order_by)
+
+    def update(self, request, *args, **kwargs):
+        ret = {"code": "1000", "message": ""}
+        try:
+            order_id = kwargs.get("pk")
+            partial = True
+            instance = trade_models.NullPackageOrder.objects.filter(id=order_id).first()
+            print(instance)
+            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+        except:
+            print(serializer.error)
+            print(traceback.print_exc())
+            ret = {"code": "1001", "message": "更改失败"}
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return Response(ret)
+
+        ret['code'] = "1000"
+        ret['message'] = "更新成功"
+        ret['data'] = serializer.data
+        return Response(ret)
+
+
+
+    def get_object(self):
+        return self.request.user
+
+
+
 
 
 class DiscountCardViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin,mixins.DestroyModelMixin, GenericViewSet):

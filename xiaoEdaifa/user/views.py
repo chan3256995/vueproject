@@ -12,7 +12,9 @@ from trade import models as trade_models
 from django.db.models import Max,Min
 from rest_framework.pagination import PageNumberPagination
 from utils import m_serializers
+from datetime import datetime as utc_date_time
 
+import datetime
 import  utils.m_serializers
 from utils.m_serializers import TradeAddOrdersSerializer,UserRegisterSerializer,UserQuerySerializer,UserUpdateSerializer
 from django.http.response import JsonResponse,HttpResponse
@@ -52,9 +54,7 @@ def md5(user):
     return m.hexdigest()
 
 
-
 # 用户登录
-
 class LoginView(APIView):
     authentication_classes = []
 
@@ -62,6 +62,7 @@ class LoginView(APIView):
 
         print(request.data)
         ret = {'code': "1000", 'message': ""}
+        json_response = JsonResponse(ret)
         try:
             # raise Exception
             name = request.data.get('username')
@@ -80,7 +81,7 @@ class LoginView(APIView):
                 token = user_token_obj.token
                 if user_token_obj is not None:
                     cur_time_stmp = time.time() * 1000
-                    if cur_time_stmp - user_token_obj.add_time >3 *  24 * 60 * 60 *1000 :
+                    if cur_time_stmp - user_token_obj.add_time > 7 *  24 * 60 * 60 *1000 :
                         token = commom_utils.md5(name)
                         models.UserToken.objects.update_or_create(user=user_obj, defaults={'token': token, 'add_time': time.time()*1000})
                 else:
@@ -91,13 +92,22 @@ class LoginView(APIView):
                 ret['message'] = '登录成功'
                 ret['token'] = token
                 ret['user'] = user_ser.data
+                json_response = JsonResponse(ret)
+                ct = utc_date_time.utcnow()
+                expire_seconds = 7 * 24 * 60 * 60
+                v = datetime.timedelta(seconds=expire_seconds)
+                value = ct + v
+                # json_response.set_cookie(key="access_token", value=ret['token'], expires=value)
+                return json_response
         except:
             traceback.print_exc()
             logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
             ret['code'] = "1001"
             ret['message'] = '登录失败'
+            json_response = JsonResponse(ret)
             pass
-        return JsonResponse(ret)
+
+        return json_response
 
 
 class UserMulOrderSaveViewSet(CreateModelMixin,GenericViewSet):
@@ -1879,7 +1889,7 @@ class CollectDouYinGoodsDataView(APIView):
 
             header = {
                 'Content-Type': 'application/json',
-                'Origin': 'https://haohuo.jinritemai.com',
+                "X-Tt-Token": "00ca0ec46f81673efc6aa837137c747c96044ca420cd85d8507572a3c2cc2957a7c24b24b4ac23439e975a090875829ca4d8ffacd3fa6f6bc932008951a5d852d7b4d0ee880e6f6dcc1d4abacb83c61aa1bd70f9cf48add6c2758a02c13d18dec99d7-1.0.1",
                 # 'Referer': 'https://haohuo.jinritemai.com/views/shop/index?id=RIiZTPaL&origin_type=3002002002&origin_id=3166235318031159_3548181884968257845&new_source_type=47&new_source_id=0&source_type=47&source_id=0&entrance_info=%7B%22product_source_page%22%3A%22product_detail_tab%22%2C%22carrier_source%22%3A%22store_page%22%2C%22source_method%22%3A%22products%22%2C%22tab_label%22%3A%22%22%2C%22category_id%22%3A%22%22%2C%22tab_type%22%3A%22%22%2C%22page_version%22%3A%22%22%2C%22page_name%22%3A%22store_page%22%2C%22follow_status%22%3A%220%22%2C%22temp_id%22%3A%226950484201175138567-7038768393167601928-0%22%2C%22store_type%22%3A%22shop%22%2C%22request_id%22%3A%22202205152348300101501541011F0B22C6%22%2C%22store_source_page%22%3A%22store_page%22%2C%22store_source_method%22%3A%22list_card%22%2C%22store_group_type%22%3A%22video%22%2C%22pre_product_id%22%3A%22%22%2C%22pre_room_id%22%3A%22%22%2C%22pre_group_id%22%3A%22%22%2C%22ecom_scene_id%22%3A%221003%22%2C%22is_product_info%22%3A%221%22%2C%22is_price_info%22%3A%220%22%2C%22is_recommend_info%22%3A%220%22%2C%22content_form%22%3A%22%22%2C%22content_source%22%3A%22shop%22%2C%22ecom_group_type%22%3A%22video%22%2C%22search_params%22%3A%22%22%2C%22card_status%22%3A%22%22%2C%22anchor_id%22%3A%223166235318031159%22%7D',
                 # "Host": "",
                 # 'origin': '',
@@ -1894,7 +1904,7 @@ class CollectDouYinGoodsDataView(APIView):
                 return Response(ret)
             for collect_info in collect_target_list:
                 url = collect_info['collect_url']
-                if url.find("https://lianmengapi.snssdk.com/aweme/v1/store/product/list") != -1:
+                if url.find("https://lianmengapi5-core-lf.ecombdapi.com/aweme/v1/store/product/list/") != -1:
                     cur_time = time.time()*1000
                     m_cookies = collect_info['cookies']
                     headers = collect_info['headers']
@@ -1920,6 +1930,47 @@ class CollectDouYinGoodsDataView(APIView):
                     # self.get_dou_yin_goods_data2(url,m_cookies,headers,params)
                 else:
                     self.get_dou_yin_goods_data1(url)
+        except:
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            ret['code'] = "1001"
+            ret['message'] = " 查询异常"+'%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method)
+            return Response(ret)
+        ret['message'] = " 采集完成"
+        return Response(ret)
+
+
+# 采集抖音视频数据保存到数据库
+class CollectDouYinVideoDataView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        try:
+            ret = {'code': "1000", 'message': ""}
+            print(request.data)
+            req_data = request.data
+            collect_target_list =  req_data.get("target_list")
+
+            header = {
+                # 'Content-Type': 'application/json',
+                # 'Origin': 'https://haohuo.jinritemai.com',
+                'Referer': 'https://www.douyin.com/user/',
+                # "Host": "",
+                # 'origin': '',
+                # 'Cookie': '__COOKID=sdqy7wkajopkf; PHPSESSID=09gm73bda964inso5n5jl9ujj4; area=think%3A%7B%22areaid%22%3A%221%22%2C%22areaname%22%3A%22%25E6%25B2%2599%25E6%25B2%25B3%25E4%25BB%25A3%25E5%258F%2591%22%2C%22areacode%22%3A%22440100%22%7D',
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36",
+
+            }
+
+            if len(collect_target_list)>15:
+                ret['code'] = "1001"
+                ret['message'] = "数量过多"
+                return Response(ret)
+            for collect_info in collect_target_list:
+                url = collect_info['collect_url']
+                my_site_utils.get_dou_yin_video_data2(self,url,header)
+
         except:
             traceback.print_exc()
             logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
@@ -2142,6 +2193,56 @@ class AddUserDouYinShopView(APIView):
         return Response(ret)
 
 
+    # 添加抖音主播
+class AddDouYinZhuBoView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            ret = {'code': "1000", 'message': ""}
+            post_obj = request.data
+            print(post_obj)
+            with transaction.atomic():
+                data = {
+                    "owner": request.user,
+                    "monitor_url": post_obj['monitor_url'],
+                    "dou_yin_id": post_obj['dou_yin_id'],
+                    "sec_user_id": post_obj['sec_user_id'],
+                    "image_url": post_obj['image_url'],
+                    "dou_yin_name": post_obj['dou_yin_name'],
+
+                    "update_time": time.time() * 1000,
+                    "add_time": time.time() * 1000,
+                }
+                dou_yin_zhu_bo = trade_models.DouYinZhubBo.objects.filter(sec_user_id=data['sec_user_id']).first()
+                if dou_yin_zhu_bo is None:
+                    data['update_time'] = 0
+                    dou_yin_zhu_bo = trade_models.DouYinZhubBo.objects.create(**data)
+                    dou_yin_zhu_bo.save()
+                raw_data = {
+                    "owner": request.user,
+                    "dou_yin_zhubo": dou_yin_zhu_bo,
+                    "add_time": time.time() * 1000,
+
+                }
+                sql_fav = trade_models.UserFavDouYinZhuBoInfo.objects.filter(owner=request.user,dou_yin_zhubo=dou_yin_zhu_bo).first()
+                if sql_fav is None:
+                    new_fav = trade_models.UserFavDouYinZhuBoInfo.objects.create(**raw_data)
+                    new_fav.save()
+
+
+        except:
+            logger.info('%s userid->%s ,  url:%s method:%s' % (
+            "提交异常" + traceback.format_exc(), self.request.user.id, self.request.path, self.request.method))
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = '添加异常，,'+traceback.format_exc()
+            return Response(ret)
+
+        return Response(ret)
+
+
 # 添加用户商品
 class AddUserGoodsView(APIView):
     authentication_classes = [UserAuthtication]
@@ -2215,6 +2316,34 @@ class DeleteDouYinShopView(APIView):
         return Response(ret)
 
 
+        # 删除用户关注的抖音店铺
+class DeleteDouYinZhuBoView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def post(self,request, *args, **kwargs):
+        try:
+            ret = {'code': "1000", 'message': ""}
+            data = request.data
+            print(data)
+            id_list = data.get("id_list")
+
+            with transaction.atomic():
+                trade_models.DouYinZhubBo.objects.filter(owner = request.user,id__in= id_list).delete()
+
+
+
+        except:
+            logger.info('%s userid->%s ,  url:%s method:%s' % ("提交异常" + traceback.format_exc(), self.request.user.id, self.request.path, self.request.method))
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = '查询异常'
+            ret['message2'] = '查询异常,'+traceback.format_exc()
+            return Response(ret)
+
+        return Response(ret)
+
+
 # 删除用户商品
 class DeleteUserGoodsView(APIView):
     authentication_classes = [UserAuthtication]
@@ -2229,6 +2358,78 @@ class DeleteUserGoodsView(APIView):
 
             with transaction.atomic():
                 trade_models.UserGoods.objects.filter(goods_owner = request.user,id__in= id_list).delete()
+
+
+
+        except:
+            logger.info('%s userid->%s ,  url:%s method:%s' % ("提交异常" + traceback.format_exc(), self.request.user.id, self.request.path, self.request.method))
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = '查询异常'
+            ret['message2'] = '查询异常,'+traceback.format_exc()
+            return Response(ret)
+
+        return Response(ret)
+
+
+    # 删除抖音商品数据
+class CleanDouGoodsView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def post(self,request, *args, **kwargs):
+        try:
+            ret = {'code': "1000", 'message': ""}
+            data = request.data
+            print(data)
+            days = data.get("days")
+            days = int(days)
+
+            cur_time_stm = time.time() * 1000
+            days_stm =   days * 24 * 60 * 60 * 1000
+            days_befor_stm = cur_time_stm - days_stm
+            #*****************清除记录
+            record_list_query = trade_models.DouYinGoodsCollectRecord.objects.filter(add_time__lt=days_befor_stm).values_list('id',flat=True).order_by("add_time")[:300]
+            print(list(record_list_query))
+            trade_models.DouYinGoodsCollectRecord.objects.filter(id__in=list(record_list_query)).delete()
+            # *****************清除记录
+            # *****************清除商品
+            # id_list_query  = trade_models.DouYinGoods.objects.filter(add_time__lt=days_befor_stm).values_list('id',flat=True).order_by("add_time")[:30]
+            # print(list(id_list_query))
+            # trade_models.DouYinGoods.objects.filter(id__in=list(id_list_query)).delete()
+             # *****************清除商品
+
+
+        except:
+            logger.info('%s userid->%s ,  url:%s method:%s' % ("提交异常" + traceback.format_exc(), self.request.user.id, self.request.path, self.request.method))
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = '查询异常'
+            ret['message2'] = '查询异常,'+traceback.format_exc()
+            return Response(ret)
+
+        return Response(ret)
+
+
+#删除抖音视频数据
+class CleanDoVideosView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def post(self,request, *args, **kwargs):
+        try:
+            ret = {'code': "1000", 'message': ""}
+            data = request.data
+            print(data)
+            days = data.get("days")
+            days = int(days)
+
+            cur_time_stm = time.time() * 1000
+            days_stm =   days * 24 * 60 * 60 * 1000
+            days_befor_stm = cur_time_stm - days_stm
+
+            with transaction.atomic():
+                trade_models.DouYinVideo.objects.filter(add_time__lt=days_befor_stm).delete()
 
 
 
@@ -2280,7 +2481,66 @@ class EditDouYinShopView(APIView):
                             sql_user_shop.monitor_url = req_user_shop.get('monitor_url')
                         if req_user_shop.get('is_monitor') is not None:
                             sql_user_shop.is_monitor = req_user_shop.get('is_monitor')
+
                         sql_user_shop.save()
+
+                    else:
+                        ret['code'] = "1001"
+                        ret['message'] = "不存在"
+                        return Response(ret)
+            else:
+                ret['code'] = "1001"
+                ret['message'] = '无效用户'
+                return JsonResponse(ret)
+        except:
+
+            ret['code'] = "1001"
+            ret['message'] = '查询异常'
+            ret['message2'] = '查询异常'+traceback.format_exc()
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return JsonResponse(ret)
+        return JsonResponse(ret)
+
+
+class EditDouYinZhuBoView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def post(self, request, *args, **kwargs):
+        ret = {"code": "1000", "message": ""}
+        try:
+            data = request.data
+            req_user_zhubo = data.get("user_dou_yin_zhubo_data")
+            print(req_user_zhubo)
+
+            # 判断非游客用户
+            if isinstance(request.user, models.User):
+                with transaction.atomic():
+
+                    sql_zhu_bo = trade_models.DouYinZhubBo.objects.filter(id=req_user_zhubo.get('id')).first()
+
+                    if sql_zhu_bo is not None:
+                        # if sql_user_shop.owner != request.user:
+                        #     ret['code'] = "1001"
+                        #     ret['message'] = '非法查询'
+                        #     return JsonResponse(ret)
+
+                        if req_user_zhubo.get('monitor_url') is not None:
+                            sql_zhu_bo.monitor_url = req_user_zhubo.get('monitor_url')
+                        if req_user_zhubo.get('dou_yin_id') is not None:
+                            sql_zhu_bo.dou_yin_id = req_user_zhubo.get('dou_yin_id')
+                        if req_user_zhubo.get('sec_user_id') is not None:
+                            sql_zhu_bo.sec_user_id = req_user_zhubo.get('sec_user_id')
+                        if req_user_zhubo.get('image_url') is not None:
+                            sql_zhu_bo.image_url = req_user_zhubo.get('image_url')
+                        if req_user_zhubo.get('dou_yin_name') is not None:
+                            sql_zhu_bo.dou_yin_name = req_user_zhubo.get('dou_yin_name')
+                        if req_user_zhubo.get('remarks') is not None:
+                            sql_zhu_bo.remarks = req_user_zhubo.get('remarks')
+                        if req_user_zhubo.get('is_monitor') is not None:
+                            sql_zhu_bo.is_monitor = req_user_zhubo.get('is_monitor')
+                            sql_zhu_bo.save()
 
                     else:
                         ret['code'] = "1001"
@@ -2332,6 +2592,49 @@ class EditUserDouYinFavShopInfoView(APIView):
                             sql_user_shop.is_monitor = req_user_shop.get('is_monitor')
                         sql_user_shop.save()
 
+                    else:
+                        ret['code'] = "1001"
+                        ret['message'] = "不存在"
+                        return Response(ret)
+            else:
+                ret['code'] = "1001"
+                ret['message'] = '无效用户'
+                return JsonResponse(ret)
+        except:
+
+            ret['code'] = "1001"
+            ret['message'] = '查询异常'
+            ret['message2'] = '查询异常'+traceback.format_exc()
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return JsonResponse(ret)
+        return JsonResponse(ret)
+
+
+class EditUserDouYinFavZhuBoInfoView(APIView):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+
+    def post(self, request, *args, **kwargs):
+        ret = {"code": "1000", "message": ""}
+        try:
+            data = request.data
+            req_user_fav_zhubo = data.get("user_dou_yin_fav_zhubo_data")
+            print(req_user_fav_zhubo)
+
+            # 判断非游客用户
+            if isinstance(request.user, models.User):
+                with transaction.atomic():
+
+                    sql_user_zhubo = trade_models.UserFavDouYinZhuBoInfo.objects.filter(id=req_user_fav_zhubo.get('id')).first()
+                    if sql_user_zhubo is not None:
+                        if sql_user_zhubo.owner != request.user:
+                            ret['code'] = "1001"
+                            ret['message'] = '非法查询'
+                            return JsonResponse(ret)
+                        if req_user_fav_zhubo.get('remarks') is not None:
+                            sql_user_zhubo.remarks = req_user_fav_zhubo.get('remarks')
+                        sql_user_zhubo.save()
                     else:
                         ret['code'] = "1001"
                         ret['message'] = "不存在"
@@ -2712,6 +3015,61 @@ class UserDouYinShopViewSet(ListModelMixin, GenericViewSet):
         return Response(ret)
 
 
+# 主播列表
+class UserDouYinZhuBoViewSet(ListModelMixin, GenericViewSet):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+    # 设置分页的class
+    pagination_class = UsersPagination
+
+    serializer_class = m_serializers.UserFavDouYinZhuBoSerializer
+
+    def get_queryset(self):
+        try:
+            print(self.request.query_params)
+            query_keys = self.request.query_params.get("keys")
+            not_new_goods_time = self.request.query_params.get("no_update_zhu_bo")
+            order_by = ["dou_yin_zhubo__update_time"]
+            if not_new_goods_time is not None :
+                not_new_goods_time =  int(not_new_goods_time)
+                ten_day = not_new_goods_time * 24 * 60 * 60 * 1000
+                curr_ = time.time() * 1000
+                taget_time = curr_ - ten_day
+
+                min_time_goods_query = trade_models.DouYinZhubBo.objects.annotate(mintime=Max("dou_yin_shop__douYinGoods__add_time")).filter(mintime__lt=taget_time).order_by(*order_by)
+                return min_time_goods_query
+            elif query_keys is not None:
+                args = Q(remarks__contains=query_keys) | Q(dou_yin_zhubo__dou_yin_id=query_keys) | Q(dou_yin_zhubo__sec_user_id=query_keys)| Q(dou_yin_zhubo__dou_yin_id__contains=query_keys)| Q(dou_yin_zhubo__dou_yin_name__contains=query_keys)
+                return trade_models.UserFavDouYinZhuBoInfo.objects.filter(Q(owner=self.request.user) & args).order_by(*order_by)
+            else:
+                return trade_models.UserFavDouYinZhuBoInfo.objects.filter(owner=self.request.user).order_by(*order_by)
+        except:
+            traceback.print_exc()
+
+    def list(self,request, *args, **kwargs):
+        ret = {'code': "1000", 'message': ""}
+        try:
+            dou_yin_zhubo_info_query_set = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(dou_yin_zhubo_info_query_set)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+
+                return self.get_paginated_response(serializer.data)
+
+            serializer = self.get_serializer(dou_yin_zhubo_info_query_set, many=True)
+            ret['code'] = "1000"
+            ret['result'] = serializer.data
+            return JsonResponse(ret)
+            # ser = self.QueryInviteRegisterInfoSerializer(instance=invite_register_info_query_set, many=True)
+            # ret['results'] = ser.data
+        except:
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            ret['code'] = "1001"
+            ret['message'] = '查询失败'
+        return Response(ret)
+
+
 # 用户保存的抖音商品列表
 class UserDouYinGoodsViewSet(ListModelMixin, GenericViewSet):
     authentication_classes = [UserAuthtication]
@@ -2739,16 +3097,103 @@ class UserDouYinGoodsViewSet(ListModelMixin, GenericViewSet):
                     zero_clock_time_stamp=mcommon.get_time_0clock_of_today()*1000
                     args = args & Q(update_time__gte=zero_clock_time_stamp)
                     order_by = ["-today_sell_num",'-add_time']
+                if search_condition.get("search_fav_shop_remarks") is not None and search_condition.get( "search_fav_shop_remarks") != "":
+                    search_my_fav_shop_remarks = search_condition.get('search_fav_shop_remarks')
 
+                    my_fav_shop_query = trade_models.UserFavDouYinShopInfo.objects.filter(owner=self.request.user, remarks__contains=search_my_fav_shop_remarks).values('dou_yin_shop')
+                    args = args & Q(dou_yin_shop__in=my_fav_shop_query)
+                if search_condition.get("search_goods_add_time") is not None and search_condition.get("search_goods_add_time")!="":
+                    search_goods_add_time = search_condition.get('search_goods_add_time')
+                    args = args & Q(add_time__gt=search_goods_add_time)
                 if search_condition.get("search_sell_num") is not None and search_condition.get("search_sell_num")!="":
                     search_sell_num = int(search_condition.get('search_sell_num'))
                     args = args & Q(sell_num__gte=search_sell_num)
                 if search_condition.get("search_shop_name") is not None and search_condition.get("search_shop_name")!="":
                     search_shop_name =  search_condition.get('search_shop_name')
                     args = args & Q(dou_yin_shop__shop_name__contains=search_shop_name)
-                
-                
+                if search_condition.get("search_goods_add_time") is not None and search_condition.get("search_goods_add_time")!="":
+                    search_goods_add_time = search_condition.get('search_goods_add_time')
+                    args = args & Q(add_time__gt=search_goods_add_time)
+                if search_condition.get("order_by_list") is not None and search_condition.get("order_by_list")!="":
+                    order_by_list = search_condition.get("order_by_list")
+                    order_by = []
+                    for order_by_item in order_by_list:
+                        order_by.append(order_by_item)
+                    order_by.append('-add_time')
             return trade_models.DouYinGoods.objects.filter(args).order_by(*order_by)
+        except:
+            traceback.print_exc()
+
+    def list(self,request, *args, **kwargs):
+        ret = {'code': "1000", 'message': ""}
+        try:
+            dou_yin_goods_info_query_set = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(dou_yin_goods_info_query_set)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+
+                return self.get_paginated_response(serializer.data)
+
+            serializer = self.get_serializer(dou_yin_goods_info_query_set, many=True)
+            ret['code'] = "1000"
+            ret['result'] = serializer.data
+            return JsonResponse(ret)
+            # ser = self.QueryInviteRegisterInfoSerializer(instance=invite_register_info_query_set, many=True)
+            # ret['results'] = ser.data
+        except:
+            traceback.print_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            ret['code'] = "1001"
+            ret['message'] = '查询失败'
+        return Response(ret)
+
+
+#  抖音视频列表
+class UserDouYinVideoViewSet(ListModelMixin, GenericViewSet):
+    authentication_classes = [UserAuthtication]
+    permission_classes = [UserPermission]
+    # 设置分页的class
+    pagination_class = UsersPagination
+
+    serializer_class = m_serializers.UserDouYinVideoSerializer
+
+    def get_queryset(self):
+        try:
+            print(self.request.query_params)
+            order_by = ['-video_publish_time']
+            search_condition = self.request.query_params.get("search_condition")
+
+            args = Q()
+            if search_condition is not None:
+                search_sell_num = 0
+                search_condition = json.loads(search_condition)
+                if search_condition.get("is_user_fav_zhubo_data") is not None and search_condition.get("is_user_fav_zhubo_data") is True:
+                    my_fav_video_query = trade_models.UserFavDouYinZhuBoInfo.objects.filter(owner=self.request.user).values('dou_yin_zhubo')
+                    args = args & Q(dou_yin_zhubo__in=my_fav_video_query)
+                if search_condition.get("search_zhubo_remarks") is not None and search_condition.get("search_zhubo_remarks")!="":
+                    search_zhubo_remarks =  search_condition.get('search_zhubo_remarks')
+                    # args = args & Q(dou_yin_zhubo__remarks__contains=search_zhubo_remarks)
+
+                    my_fav_remarks_zhubo_query = trade_models.UserFavDouYinZhuBoInfo.objects.filter(owner=self.request.user,remarks__contains=search_zhubo_remarks).values('dou_yin_zhubo')
+                    args = args & Q(dou_yin_zhubo__in=my_fav_remarks_zhubo_query)
+                if search_condition.get("search_zhubo_name") is not None and search_condition.get("search_zhubo_name")!="":
+                    search_zhubo_name =  search_condition.get('search_zhubo_name')
+                    zhubo_query = trade_models.DouYinZhubBo.objects.filter(owner=self.request.user,dou_yin_name__contains=search_zhubo_name)
+                    args = args & Q(dou_yin_zhubo__in=zhubo_query)
+                if search_condition.get("search_title") is not None and search_condition.get("search_title")!="":
+                    search_title =  search_condition.get('search_title')
+                    args = args & Q(desc__contains=search_title)
+
+                if search_condition.get("search_video_publish_time") is not None and search_condition.get("search_video_publish_time")!="":
+                    search_video_publish_time = search_condition.get('search_video_publish_time')
+                    args = args & Q(video_publish_time__gt=search_video_publish_time)
+                if search_condition.get("order_by_list") is not None and search_condition.get("order_by_list")!="":
+                    order_by_list = search_condition.get("order_by_list")
+                    order_by = []
+                    for order_by_item in order_by_list:
+                        order_by.append(order_by_item)
+                    order_by.append('-video_publish_time')
+            return trade_models.DouYinVideo.objects.filter(args).order_by(*order_by)
         except:
             traceback.print_exc()
 

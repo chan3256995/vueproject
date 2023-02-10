@@ -54,10 +54,15 @@ router.register(r'inviteInfo', user_views.InviteInfoViewSet, base_name='inviteIn
 router.register(r'userGoodsInfo', user_views.UserGoodsInfoViewSet, base_name='userGoodsInfo')
 
 # 用关注的抖音店铺
-router.register(r'userDouYinShopInfo', user_views.UserDouYinShopViewSet,base_name='userGoodsInfo')
+router.register(r'userDouYinShopInfo', user_views.UserDouYinShopViewSet,base_name='userDouYinShopInfo')
+
+# 主播列表
+router.register(r'userFavDouYinZhuBoInfo', user_views.UserDouYinZhuBoViewSet,base_name='userFavDouYinZhuBoInfo')
 # 商品采集记录
 router.register(r'douYinGoodsCollectRecord', user_views.DouYinGoodsCollectRecordViewSet,base_name='douYinGoodsCollectRecord')
+
 router.register(r'userDouYinGoodsInfo', user_views.UserDouYinGoodsViewSet,base_name='userDouYinGoodsInfo')
+router.register(r'userDouYinVideoInfo', user_views.UserDouYinVideoViewSet,base_name='userDouYinVideoInfo')
 
 
 urlpatterns = [
@@ -103,24 +108,43 @@ urlpatterns = [
     url('getWebPageContent2/', user_views.GetWebPageContentView2.as_view()),
 
     # ***************************抖音**********************************
+    # 搜集抖音商品信息
     url('collectDouYinData/', user_views.CollectDouYinGoodsDataView.as_view()),
+    # 收集抖音视频信息
+    url('collectDouYinVideoData/', user_views.CollectDouYinVideoDataView.as_view()),
     #  用户关注的抖音店铺
     url('userDouYinShopAdd/', user_views.AddUserDouYinShopView.as_view()),
+    #  添加抖音主播
+    url('douYinZhuBoAdd/', user_views.AddDouYinZhuBoView.as_view()),
 
-    #  用户关注的抖音店铺删除
+    #  用户添加的抖音店铺删除
     url('userDouYinShopDelete/', user_views.DeleteDouYinShopView.as_view()),
+
+    #  用户添加的主播删除
+    url('userDouYinZhuBoDelete/', user_views.DeleteDouYinZhuBoView.as_view()),
 
     #  用户自己保存的修改
     url('useDouYinShopEdit/', user_views.EditDouYinShopView.as_view()),
 
+    #  修改主播信息
+    url('useDouYinZhuBoEdit/', user_views.EditDouYinZhuBoView.as_view()),
+
     # 用户收藏的item修改
     url('userDouYinFavShopInfoEdit/', user_views.EditUserDouYinFavShopInfoView.as_view()),
+
+    # 用户收藏的主播信息修改
+    url('userDouYinFavZhuBoInfoEdit/', user_views.EditUserDouYinFavZhuBoInfoView.as_view()),
+        #  清除数据
+    url('cleanDouGoodsView/', user_views.CleanDouGoodsView.as_view()),
+    # 清除视频数据
+    url('cleanDouVideosView/', user_views.CleanDoVideosView.as_view()),
     # ***************************抖音**********************************
 
     #  用户自己保存的商品
     url('userGoodsAdd/', user_views.AddUserGoodsView.as_view()),
     #  用户自己保存的商品删除
     url('userGoodsDelete/', user_views.DeleteUserGoodsView.as_view()),
+
     #  用户自己保存的修改
     url('userGoodsEdit/', user_views.EditUserGoodsView.as_view()),
 

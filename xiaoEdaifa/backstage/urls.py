@@ -37,7 +37,16 @@ router.register(r'taskThread', views.TaskThreadViewSet, base_name='taskThread')
 router.register(r'goodsRefund', views.OrderGoodsRefundViewSet, base_name='goodsRefund')
 router.register(r'tradeInfo', trade_views.TradeInfoViewSet, base_name='tradeInfo')
 # router.register(r'tagPrint', trade_views.TagPrintViewSet, base_name='tradeInfo')
+# *************************************抖音**************************************
 
+router.register(r'getDouYinShopForCollect', views.DouYinShopViewSet, base_name='getDouYinShopForCollect')
+# *************************************抖音**************************************
+
+
+#************************问题单跟单*******************************
+# 问题单列表
+router.register(r'troubleOrderList', trade_views.TroubleOrderView,base_name='troubleOrderList')
+#************************问题单跟单*******************************
 urlpatterns = [
     # url(r'^static/(?P<path>.*)$', my_view.serve),
     url(r'static/(?P<path>.*)', serve, {'document_root': settings.STATIC_ROOT}),
@@ -93,8 +102,13 @@ urlpatterns = [
 
     # 明日有货 重新修改为 付款状态 定时器开关
     url('timeSwitch/', trade_views.TimeSwitchView.as_view()),
-    # 发货到淘宝 temp
+    # 临时处理代码 比如批量修改数据库信息
     url('temp/', trade_views.Temp.as_view()),
+
+    # 临时处理代码 比如批量修改数据库信息
+    url('temp2/', trade_views.Temp2.as_view()),
+
+
     # 监听收款码付款
     url('appclient/', trade_views.AppClient.as_view()),
     url('addOrderToChuanMei/', trade_views.AddOrderToChuanMeiView.as_view()),
@@ -109,9 +123,16 @@ urlpatterns = [
     url('bl_get_account_record_by_order_number/', bl_site_views.BLGetAccountRecordByOrderNumber.as_view()),
 
     # *****************************bl********************
+
+    # *************************************抖音**************************************
     url('addDouYinGoods/', trade_views.SaveDouYinGoods.as_view()),
     # *************************************抖音**************************************
 
-    # *************************************抖音**************************************
+    #***************************************问题单跟单*****************************
+    #
+    url('troubleOrderAdd/', trade_views.AddTroubleOrderView.as_view()),
+    url('troubleOrderEdit/', trade_views.EditTroubleOrderView.as_view()),
+    url('troubleOrderDelete/', trade_views.DeleteTroubleOrderView.as_view()),
+    #***************************************问题单跟单*****************************
     url(r'', include(router.urls))
 ]

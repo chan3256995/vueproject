@@ -49,6 +49,18 @@ class BackTradeNullOrderQuerySerializer(serializers.ModelSerializer):
         # 查表深度  关联表（父表）的数据也会查处出来  深度值官方推荐 0-10
         depth = 2
 
+
+        # 问题单跟进
+class BackTroubleOrderSQuerySerializer(serializers.ModelSerializer):
+    owner = m_serializers.UserQuerySerializer()
+
+    class Meta:
+        model = back_models.TroubleOrders
+
+        fields = '__all__'
+        # 查表深度  关联表（父表）的数据也会查处出来  深度值官方推荐 0-10
+        depth = 2
+
 # 折扣卡查询
 class BackDiscountCardQuerySerializer(serializers.ModelSerializer):
     user = m_serializers.UserQuerySerializer()

@@ -90,6 +90,30 @@ class UserFocusDouYinShop(models.Model):
     is_monitor = models.BooleanField(default=False, null=False)
     update_time = models.BigIntegerField(null=False,default=0)
     add_time = models.BigIntegerField(null=False)
+    
+    
+    # 抖音用户
+class DouYinZhubBo(models.Model):
+    # 添加数据的账号
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    # 要监控的地址
+    monitor_url = models.CharField(max_length=1024, null=True)
+    # 抖音号
+    dou_yin_id = models.CharField(null=False,max_length=60,unique=True, blank=True)
+    sec_user_id = models.CharField(null=False,max_length=120,unique=True, blank=True)
+    # 抖音账号头像
+    image_url = models.CharField(max_length=240, null=True)
+
+    # d抖音名
+    dou_yin_name = models.CharField(max_length=120, null=True)
+    # 备注
+    remarks = models.CharField(max_length=200, null=True)
+    # 是否监控
+    is_monitor = models.BooleanField(default=False, null=False)
+    update_time = models.BigIntegerField(null=False,default=0)
+
+    add_time = models.BigIntegerField(null=False)
 
 
 class UserFavDouYinShopInfo(models.Model):
@@ -104,6 +128,16 @@ class UserFavDouYinShopInfo(models.Model):
 
     # 分组
     type = models.SmallIntegerField(choices=mcommon.dou_yin_fav_shop_type_choices,default=1)
+    add_time = models.BigIntegerField(null=False)
+
+
+class UserFavDouYinZhuBoInfo(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    dou_yin_zhubo = models.ForeignKey(DouYinZhubBo, on_delete=models.CASCADE)
+    # 备注
+    remarks = models.CharField(max_length=200, null=True)
+
+
     add_time = models.BigIntegerField(null=False)
 
 
@@ -125,6 +159,29 @@ class DouYinGoods(models.Model):
     product_id = models.CharField(max_length=120, null=True,unique=True)
     sell_num = models.IntegerField(null=False,default=0)
     today_sell_num =  models.IntegerField(null=True,default=0)
+    add_time = models.BigIntegerField(null=False)
+    update_time = models.BigIntegerField(null=False)
+
+
+# 抖音商品
+class DouYinVideo(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    dou_yin_zhubo = models.ForeignKey(DouYinZhubBo, related_name="douYinZhuBo" ,on_delete=models.CASCADE)
+    # 视频uri
+    video_id = models.CharField(max_length=64, null=False, unique=True)
+    # 收藏
+    collect_count = models.IntegerField(null=False, default=0)
+    #评论
+    comment_count = models.IntegerField(null=False, default=0)
+    # 点赞
+    digg_count = models.IntegerField(null=False, default=0)
+    #分享
+    share_count = models.IntegerField(null=False, default=0)
+    video_url = models.CharField(max_length=256,null=True)
+    # 描述
+    desc = models.CharField(max_length=256, null=True)
+    # 视频发布时间
+    video_publish_time = models.BigIntegerField(null=False, default=0)
     add_time = models.BigIntegerField(null=False)
     update_time = models.BigIntegerField(null=False)
 

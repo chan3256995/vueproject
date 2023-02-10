@@ -1,8 +1,8 @@
 
 # STATIC_URL_BK = "http://39.96.69.115:8089"
 # STATIC_VUE_URL = "http://17daina.com"
-STATIC_URL_BK = "http://192.168.0.202:8009"
-STATIC_VUE_URL ="http://192.168.0.202:8082"
+STATIC_URL_BK = "http://192.168.1.202:8009"
+STATIC_VUE_URL ="http://192.168.1.202:8082"
 
 
 # 获取交易单号

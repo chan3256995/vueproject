@@ -465,6 +465,17 @@ class UserDouYinGoodsSerializer(serializers.ModelSerializer):
         depth = 1
 
 
+# 用户关注的抖音店铺商品
+class UserDouYinVideoSerializer(serializers.ModelSerializer):
+    """
+    用户自己保存的商品
+    """
+    class Meta:
+        model = models.DouYinVideo
+        fields = "__all__"
+        depth = 2
+
+
 # 用户收藏的抖音店铺
 class UserFavDouYinShopSerializer(serializers.ModelSerializer):
     """
@@ -479,7 +490,20 @@ class UserFavDouYinShopSerializer(serializers.ModelSerializer):
         depth = 1
 
 
-   # 用户收藏的抖音店铺
+# 主播
+class UserFavDouYinZhuBoSerializer(serializers.ModelSerializer):
+    """
+    用户收藏的主播
+    """
+    class Meta:
+        model = models.UserFavDouYinZhuBoInfo
+        fields = "__all__"
+        depth = 2
+
+
+
+
+   # 用户添加的抖音店铺
 class UserDouYinShopSerializer(serializers.ModelSerializer):
     """
     抖音店铺
@@ -488,7 +512,7 @@ class UserDouYinShopSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.UserFocusDouYinShop
-        fields ="_all__"
+        fields ="__all__"
         depth = 1
         # 反向序列化  要在model.DouYinGoods 理的对应指向dou_yin_shop的字段 设置 related_name 为 ‘douYinGoods’
 
