@@ -197,9 +197,9 @@
             tb_order_number = tb_order_number + order_list[i].tb_order_number+","
         }
         let url = "https://wuliu.taobao.com/user/batch_consign.htm?trade_ids="+tb_order_number
-        url = url+"2717022096459639556,"
-               console.log("准备跳转的url:",url)
-        // window.open(url)
+        // url = url+"2717022096459639556,"
+        //        console.log("准备跳转的url:",url)
+        window.open(url)
 },
           select_all(is_selected){
 

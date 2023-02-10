@@ -69,6 +69,7 @@
 
 <script>
    import mGlobal from '../../utils/mGlobal';
+   import mcommon_function from '../../utils/mcommon_function';
   export default {
     props: {
       orderGoods:{},
@@ -103,6 +104,7 @@
     data () {
       return {
         mGlobal:mGlobal,
+        mcommon_function:mcommon_function,
         pay_moneys:0,
         isShowMessageBox: false,
         resolve: '',

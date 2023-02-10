@@ -39,6 +39,7 @@ import pbkUsers from '../components/pc/backstage/Users'
 import pbkUserAliPayAccountInfo from '../components/pc/backstage/UserAliPayAccount'
 import pbkInviteRegisterInfo from '../components/pc/backstage/InviteRegister'
 import pbkReturnPackageInfo from '../components/pc/backstage/ReturnPackage'
+import pbkTroubleOrderList from '../components/pc/backstage/TroubleOrderList'
 
 Vue.use(VueRouter)
 export default new VueRouter({
@@ -250,6 +251,13 @@ export default new VueRouter({
           path:'/pc/back/home/returnPackageInfo',
           name:'pbkReturnPackageInfo',
           component:pbkReturnPackageInfo
+         },
+
+                {
+          // 退件信息
+          path:'/pc/back/home/troubleOrderList',
+          name:'pbkTroubleOrderList',
+          component:pbkTroubleOrderList
          },
       ]
     }

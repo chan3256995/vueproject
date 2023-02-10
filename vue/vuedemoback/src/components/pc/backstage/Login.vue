@@ -56,7 +56,7 @@
           this.submit_btn_disable = false;
          if(res.data.code === "1000"){
 
-            this.$cookies.set("access_token_bk" ,res.data.token)
+            this.$cookies.set("access_token_bk" ,res.data.token,7*24*60*60)
             this.$router.push("/pc/back/home/order");
          }else{
            alert("登录失败："+res.data.message)

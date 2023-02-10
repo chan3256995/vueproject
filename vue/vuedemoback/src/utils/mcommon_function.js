@@ -1,6 +1,7 @@
 
 import  axios  from 'axios'
 export default {
+// 需要取代的字符串列表
 
 
    copyToClipboard(txt) {
@@ -49,6 +50,7 @@ export default {
             createInput.style.display='none';
             alert("复制成功");//没有layui的可以改为alert
         },
+
 
 
 }
