@@ -549,6 +549,8 @@ if(curLocation.indexOf("wuliu.taobao.com/user/batch_consign.htm") !== -1){
         )
 
         let tb_order_number_list = []
+        let order_counts =  $(".order-number").length
+        $("#step3").prepend("<label style='color:red; font-size: 18px'>共 "+order_counts+" 单</label>")
         $(".order-number").each(function() {
             tb_order_number_list.push( $(this).text().replace('订单编号：','').trim())
         })
