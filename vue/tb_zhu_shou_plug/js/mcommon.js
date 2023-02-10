@@ -1,3 +1,11 @@
+let seller_id_choies = {
+    "小林林精品女装":"moonlight539",
+    "小兔西女装":"chenqling3",
+    "MuMu小店":"tb143754675",
+
+}
+
+
 // 需要取代的字符串列表
 let replace_art_no_str_list = [
                     {"old":"套装","new":""},
@@ -12,6 +20,13 @@ let replace_art_no_str_list = [
                     {"old":"质量","new":""},
                     {"old":"千件","new":""},
                     {"old":"好质量","new":""},
+                    {"old":"抖音","new":""},
+                    {"old":"爆款","new":""},
+
+                    {"old":"实价","new":""},
+                    {"old":"不加绒","new":""},
+                    {"old":"加绒","new":""},
+             {"old":"款","new":""},
                     // {"old":"*","new":""},
                 ]
 function format_stmp_to_time(shijianchuo){
@@ -57,7 +72,7 @@ function mcommon_get_base_vue_url_17(){
 
 
 function mcommon_get_base_server_url_17(){
-    // let base_url_bl = "http://192.168.1.102:8009"
+    // let base_url_bl = "http://192.168.0.108:8009"
      let base_url_bl = "http://39.96.69.115:8089"
 
     return base_url_bl

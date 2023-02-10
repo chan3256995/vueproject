@@ -1,5 +1,5 @@
 
-let  CHUAMMEI_BASE_URL = "https://tb30.chuanmeidayin.com"
+let  CHUAMMEI_BASE_URL = "https://tb31.chuanmeidayin.com"
 let chuammei_order_status = {
     WAIT_SELLER_SEND_GOODS:"待发货",
 }
@@ -14,6 +14,8 @@ let  chuammei_goods_refund_status = {
      CLOSED:"退款关闭",
 
 }
+
+
 function websqlapi_init_chuanmei_db(){
       let db2 = openDatabase('my_tb_db',"1.0","chuanmeishuju",5*1024*1024)
              db2.transaction(function (tx) {
@@ -71,7 +73,7 @@ function apichuanmei_get_order_counts(start_time,end_time){
         message:"",
     }
      let  submit_data = {
-         multiShops: 'chenqling3,moonlight539',
+         multiShops: 'chenqling3,moonlight539,tb143754675',
 tradeType: 1,
 selTime: 1,
 starttime: start_time,//'2021-08-26 00:00:00'
@@ -163,7 +165,7 @@ function apichuanmei_get_order(start_time,end_time,pageNo,page_size=20){
         message:"",
     }
      let  submit_data = {
-multiShops: 'chenqling3,moonlight539',
+multiShops: 'chenqling3,moonlight539,tb143754675',
 tradeType: 1,
 selTime: 1,
 starttime: start_time,
@@ -318,13 +320,18 @@ function apichuanmei_order_item_replace(chuanmei_order_item){
             new_order_obj['youbian'] = chuanmei_order_item['receiverZip']
             new_order_obj['name'] = chuanmei_order_item['receiverName']
             new_order_obj['phone'] = chuanmei_order_item['receiverMobile']
+            new_order_obj['cmFlag'] = chuanmei_order_item['cmFlag']
+            // 卖家留言
+            new_order_obj['seller_remarks'] = chuanmei_order_item['sellerMemo']
             let new_goods_list = []
             for(let g = 0;g<chuanmei_order_item['orders'].length;g++){
                 let goods_item = chuanmei_order_item['orders'][g]
                 let new_goods_obj = {}
                 let goods_code = goods_item['outerId']
                 let sku_code = goods_item['outerSkuId']
-                let color_size_arr = goods_item['skuPropName'].replace("主要颜色:","").replace("颜色分类:","").replace("尺码:","").split(";")
+                let color_size_arr = goods_item['skuPropName'].replace("主要颜色:","").replace("颜色分类:","").replace("尺寸:","").replace("尺码:","").split(";")
+
+
                 let color = color_size_arr[0]
                 let size = color_size_arr[1]
                 if(sku_code!==""){
@@ -332,9 +339,9 @@ function apichuanmei_order_item_replace(chuanmei_order_item){
                 }
                 goods_code = mcommon_replace_goods_code_str(goods_code)
 
-                new_goods_obj['color'] = color
-                new_goods_obj['size'] = size
-                
+                new_goods_obj['color'] = color_size_replace_string(color)
+                new_goods_obj['size'] = color_size_replace_string(size)
+
                 new_goods_obj['code'] = goods_code
 
                 new_goods_obj['goods_id'] = goods_item['numIID']
@@ -349,6 +356,29 @@ function apichuanmei_order_item_replace(chuanmei_order_item){
                     
     return new_order_obj
 }
+
+
+function color_size_replace_string(old_string){
+
+    let reg_list  = [
+        /\[建议(.*?)斤\]/,
+        /\[(.*?)斤\]/,
+        /【建议(.*?)斤】/,
+        /【(.*?)斤】/,
+        /\[建议(.*?)\]/,
+        /【建议(.*?)】/,
+    ]
+    for(let i=0;i<reg_list.length;i++){
+        let reg_item = reg_list[i]
+        let match_str_arr  = old_string.match(reg_item,old_string)
+
+        if(match_str_arr!==null && match_str_arr.length>0){
+           old_string = old_string.replace(match_str_arr[0],"")
+        }
+    }
+
+    return old_string
+}
 // 传美代发货页面
 function apichuammei_wait_send_page_init(){
         let dum_page = 0
@@ -358,9 +388,24 @@ function apichuammei_wait_send_page_init(){
         $("#dump_pre_page_btn17").unbind("click")
         $("#dump_next_page_btn17").unbind("click")
         $("#to_place_order_17").unbind("click")
+        $("#add_order_to17").unbind("click")
+        $("#go_to_place_order_to_17").unbind("click")
         $("#order_cache_btn").unbind("click")
         $("#ignore_order_btn").unbind("click")
         $("#dump_page_btn17").unbind("click")
+        $(".chuammei_flag_label").unbind("click")
+         $(".chuammei_flag_label").click(function(){
+            console.log("旺旺ID：", $(this).parent().find(".seller_wang_wang_id_17"))
+            let tb_order_number = $($(this).parent().find(".tb_order_number_lb_17")[0]).text().trim()
+            let sell_wangwang_id = $($(this).parent().find(".seller_wang_wang_id_17")[0]).text().trim()
+             let result_  = apichuanmei_add_tag_tb(sell_wangwang_id,tb_order_number,1,"")
+              if(result_["success"] === false){
+                                   Toast(tb_order_number+" 插旗失败，"+result_["message"])
+                               }else{
+                                    Toast(tb_order_number+" 插旗成功，"+result_["message"],300)
+                               }
+
+         })
          $("#dump_page_btn17").click(function () {
             let dum_page =    $("#dump_page_input17")[0].value
              apichuanmei_dump_page(dum_page,page_size,total_page,result['start_time'],result['end_time'])
@@ -392,7 +437,7 @@ function apichuammei_wait_send_page_init(){
        $("#to_place_order_17").click(function () {
              chrome.storage.local.get({"chuanmei_order_list_cache":{}},function (local_data) {
              let chuammei_wait_send_list = local_data["chuanmei_order_list_cache"]
-       $(".check_box_17:checked").each(function () {
+             $(".check_box_17:checked").each(function () {
                      let select_order_number = $($(this).parent().find(".tb_order_number_lb_17")[0]).text().trim()
                      let order = find_order(select_order_number,chuammei_wait_send_list)
                      let oaid = order['chuammei_oaid']
@@ -421,127 +466,334 @@ function apichuammei_wait_send_page_init(){
                                     console.log("传美更新地址后，保存成功，",chuammei_wait_send_list)
 
                                 })
-                     // 用于下单到17网 列表
-                     let my_tb_wait_send_order_cache1 = []
-                     for(let m = 0;m<chuammei_wait_send_list.length;m++){
-                          let cur_item = chuammei_wait_send_list[m]
-                          let new_item = {}
-                          // 镇
-                          let towm = cur_item["towm"]
-                         if(towm===undefined){
-                             towm = ""
-                         }
 
-                         new_item['address'] = cur_item["province"]+","+cur_item["city"]+","+cur_item["area"]+towm+cur_item["address"]
-                         new_item['province'] = cur_item["province"]
-                         new_item['city'] = cur_item["city"]
-                         new_item['area'] = cur_item["area"]
-                         new_item['address_details'] = cur_item["address"]
-                         new_item['name'] = cur_item["name"]
-                          new_item['wangwang_id'] = cur_item["sellerNick"]
-                          new_item['order_id'] = ""
-                          new_item['phone'] = cur_item["phone"]
-                          new_item['tb_order_number'] = cur_item["tb_order_number"]
-                          new_item['user_wangwang_id'] = cur_item["buyer_nick"]
-                          let cur_item_order_goods_list = cur_item["order_goods"]
-                          let order_goods_list = []
-                          for(let g = 0;g<cur_item_order_goods_list.length;g++){
-                              let goods = {}
-                              let code = cur_item_order_goods_list[g]['code']
-                              goods['code'] = code
-                              goods['color'] = cur_item_order_goods_list[g]['color']
-                              goods['size'] = cur_item_order_goods_list[g]['size']
-                              goods['img'] = cur_item_order_goods_list[g]['goods_pic']
-                              goods['tb_goods_id'] = cur_item_order_goods_list[g]['goods_id']
-                              //用户编码
-                              goods['user_code'] = cur_item_order_goods_list[g]['goods_id']
-                              if(code!==undefined && code!==default_tb_code){
-                                  goods['user_code'] = code
+                     chrome.storage.local.get({"my_tb_wait_send_order_cache1":{}},function(data0){
+                          // 用于下单到17网 列表
+                         let my_tb_wait_send_order_cache1 = data0["my_tb_wait_send_order_cache1"]
+
+
+                         for(let m = 0;m<chuammei_wait_send_list.length;m++){
+                              let cur_item = chuammei_wait_send_list[m]
+                              let new_item = {}
+                              // 镇
+                              let towm = cur_item["towm"]
+                             if(towm===undefined){
+                                 towm = ""
+                             }
+
+                             new_item['address'] = cur_item["province"]+","+cur_item["city"]+","+cur_item["area"]+towm+cur_item["address"]
+                             new_item['province'] = cur_item["province"]
+                             new_item['city'] = cur_item["city"]
+                             new_item['area'] = cur_item["area"]
+                             new_item['address_details'] = cur_item["address"]
+                             new_item['name'] = cur_item["name"]
+                              new_item['wangwang_id'] = cur_item["sellerNick"]
+                              new_item['order_id'] = ""
+                              new_item['phone'] = cur_item["phone"]
+                              new_item['tb_order_number'] = cur_item["tb_order_number"]
+                              new_item['user_wangwang_id'] = cur_item["buyer_nick"]
+                              let cur_item_order_goods_list = cur_item["order_goods"]
+                              let order_goods_list = []
+                              for(let g = 0;g<cur_item_order_goods_list.length;g++){
+                                  let goods = {}
+                                  let code = cur_item_order_goods_list[g]['code']
+                                  goods['code'] = code
+                                  goods['color'] = cur_item_order_goods_list[g]['color']
+                                  goods['size'] = cur_item_order_goods_list[g]['size']
+                                  goods['img'] = cur_item_order_goods_list[g]['goods_pic']
+                                  goods['tb_goods_id'] = cur_item_order_goods_list[g]['goods_id']
+                                  //用户编码
+                                  goods['user_code'] = cur_item_order_goods_list[g]['goods_id']
+                                  if(code!==undefined && code!==default_tb_code){
+                                      goods['user_code'] = code
+                                  }
+
+                                  goods['count'] = cur_item_order_goods_list[g]['goods_counts']
+                                  order_goods_list.push(goods)
                               }
+                               new_item['order_goods_list'] = order_goods_list
+                             let order = find_order(new_item['tb_order_number'],my_tb_wait_send_order_cache1)
+                             if(order == null){
+                                 my_tb_wait_send_order_cache1.push(new_item)
+                             }
 
-                              goods['count'] = cur_item_order_goods_list[g]['goods_counts']
-                              order_goods_list.push(goods)
-                          }
-                           new_item['order_goods_list'] = order_goods_list
-                         my_tb_wait_send_order_cache1.push(new_item)
+
+
+
 
                      }
-                     chrome.storage.local.set({"my_tb_wait_send_order_cache1":my_tb_wait_send_order_cache1},function () {
-                        console.log("保存成功my_tb_wait_send_order_cache1，",my_tb_wait_send_order_cache1)
-                        Toast("my_tb_wait_send_order_cache1")
+                             chrome.storage.local.set({"my_tb_wait_send_order_cache1":my_tb_wait_send_order_cache1},function () {
+                                    console.log("保存成功my_tb_wait_send_order_cache1，",my_tb_wait_send_order_cache1)
+                                    Toast("my_tb_wait_send_order_cache1")
 
-                        let tb_order_number_list = []
-                        for(let c = 0;c<my_tb_wait_send_order_cache1.length;c++){
-                            tb_order_number_list.push(my_tb_wait_send_order_cache1[c]['tb_order_number'])
-                        }
-                        let p1 = new Promise(function (resolve, reject) {
+                                    let tb_order_number_list = []
+                                    for(let c = 0;c<my_tb_wait_send_order_cache1.length;c++){
+                                        tb_order_number_list.push(my_tb_wait_send_order_cache1[c]['tb_order_number'])
+                                    }
+                                    let p1 = new Promise(function (resolve, reject) {
 
-                            chrome.runtime.sendMessage({order_number_list: JSON.stringify(tb_order_number_list),method: 'get_orders_from17'}, function (response) {
-                                let response_order_list = JSON.parse(response)
-                                resolve({"orders": response_order_list})
-                                });
-                        })
-                        let p2 = new Promise(function (resolve, reject) {
+                                        chrome.runtime.sendMessage({order_number_list: JSON.stringify(tb_order_number_list),method: 'get_orders_from17'}, function (response) {
+                                            let response_order_list = JSON.parse(response)
+                                            resolve({"orders": response_order_list})
+                                            });
+                                    })
+                                    let p2 = new Promise(function (resolve, reject) {
 
-                            chrome.runtime.sendMessage({order_number_list: JSON.stringify(tb_order_number_list),method: 'get_null_orders_from17'}, function (response) {
-                            let response_order_list = JSON.parse(response)
-                            resolve({"null_orders": response_order_list})
+                                        chrome.runtime.sendMessage({order_number_list: JSON.stringify(tb_order_number_list),method: 'get_null_orders_from17'}, function (response) {
+                                        let response_order_list = JSON.parse(response)
+                                        resolve({"null_orders": response_order_list})
 
-                            });
-                        });
-                        Promise.all([p1, p2]).then(function (results) {
+                                        });
+                                    });
+                                    Promise.all([p1, p2]).then(function (results) {
 
-                        let null_orders_list_17 = {}
-                        let orders_list_17 = {}
-                        if (results[0].orders !== null) {
-                            orders_list_17 = Object(results[0].orders)
-                            null_orders_list_17 = Object(results[1].null_orders)
-                        } else {
-                            orders_list_17 = Object(results[1].orders)
-                            null_orders_list_17 = Object(results[0].null_orders)
-                        }
+                                    let null_orders_list_17 = {}
+                                    let orders_list_17 = {}
+                                    if (results[0].orders !== null) {
+                                        orders_list_17 = Object(results[0].orders)
+                                        null_orders_list_17 = Object(results[1].null_orders)
+                                    } else {
+                                        orders_list_17 = Object(results[1].orders)
+                                        null_orders_list_17 = Object(results[0].null_orders)
+                                    }
 
-                        let my_tb_wait_send_order_cache = []
+                                    let my_tb_wait_send_order_cache = []
 
-                        //不存在的订单才同步
+                                    //不存在的订单才同步
 
-                        for (let i = 0; i < my_tb_wait_send_order_cache1.length; i++) {
-                            let order = find_order(my_tb_wait_send_order_cache1[i].tb_order_number, orders_list_17)
-                            let null_order = find_order(my_tb_wait_send_order_cache1[i].tb_order_number, null_orders_list_17)
-                            if (order === null && null_order === null) {
-                                my_tb_wait_send_order_cache.push(my_tb_wait_send_order_cache1[i])
+                                    for (let i = 0; i < my_tb_wait_send_order_cache1.length; i++) {
+                                        let order = find_order(my_tb_wait_send_order_cache1[i].tb_order_number, orders_list_17)
+                                        let null_order = find_order(my_tb_wait_send_order_cache1[i].tb_order_number, null_orders_list_17)
+                                        if (order === null && null_order === null) {
+                                            my_tb_wait_send_order_cache.push(my_tb_wait_send_order_cache1[i])
 
-                            }
-                        }
+                                        }
+                                    }
 
-                        let my_tb_wait_send_order_cache_str = JSON.stringify(my_tb_wait_send_order_cache)
-                        chrome.storage.local.set({"my_tb_wait_send_order_cache":my_tb_wait_send_order_cache},function () {
-                            console.log("数据保存到谷歌插件成功my_tb_wait_send_order_cache",my_tb_wait_send_order_cache)
-
-
-                            if (!confirm("共 " + my_tb_wait_send_order_cache.length + " 单，确定跳转下单2？")) {
-                                        return;
-                            }
-                            my_tb_wait_send_order_cache_str =  my_tb_wait_send_order_cache_str.replace(/#/g,"^^^")
-                            window.open(mcommon_get_base_vue_url_17() + "/#/pc/home/porder/?plug_order_data=" + my_tb_wait_send_order_cache_str);
+                                    let my_tb_wait_send_order_cache_str = JSON.stringify(my_tb_wait_send_order_cache)
+                                    chrome.storage.local.set({"my_tb_wait_send_order_cache":my_tb_wait_send_order_cache},function () {
+                                        console.log("数据保存到谷歌插件成功my_tb_wait_send_order_cache",my_tb_wait_send_order_cache)
 
 
-                        })
+                                        if (!confirm("共 " + my_tb_wait_send_order_cache.length + " 单，确定跳转下单2？")) {
+                                                    return;
+                                        }
+                                        my_tb_wait_send_order_cache_str =  my_tb_wait_send_order_cache_str.replace(/#/g,"^^^")
+                                        window.open(mcommon_get_base_vue_url_17() + "/#/pc/home/porder/?plug_order_data=" + my_tb_wait_send_order_cache_str);
 
 
+                                    })
 
 
 
 
-                        }).catch(function (r) {
-                           console.log(r);
-                            });
+
+
+                                    }).catch(function (r) {
+                                       console.log(r);
+                                        });
 
                                 })
+                     })
+
                 })
 
          })
+       // 添加到17网下单缓存
+       $("#add_order_to17").click(function () {
+             chrome.storage.local.get({"chuanmei_curr_page_order_list_cache":{}},function (local_data) {
+                 let chuanmei_curr_page_order_list_cache = local_data["chuanmei_curr_page_order_list_cache"]
+                     // 17网下单需要该数据
+                 let order_to_17_list = []
+                 $(".check_box_17:checked").each(function () {
+                         let select_order_number = $($(this).parent().find(".tb_order_number_lb_17")[0]).text().trim()
+                         let order = find_order(select_order_number,chuanmei_curr_page_order_list_cache)
+                         let oaid = order['chuammei_oaid']
+                         let sellerNick =  order['sellerNick']
+                         let tb_order_number =  order['tb_order_number']
+                         let address_result = apichuanmei_get_order_address(sellerNick,oaid,tb_order_number)
+                         if(address_result.success === true){
+                                 let mobile = address_result['data']['mobile']
+                                 order['name'] = address_result['data']['name']
+                                 if(mobile===undefined || mobile === null || mobile ===""){
+                                     mobile = address_result['data']['phone']
+                                 }
+                                 order['phone'] = mobile
+                                 order['province'] = address_result['data']['state']
+                                 order['city'] = address_result['data']['city']
+                                 order['area'] = address_result['data']['district']
+                                 order['towm'] = address_result['data']['towm']
+                                 let address_raw = address_result['data']['addressDetail']
+                                let match_str_arr  = address_raw.match(/【配送拨打(.*?)】/,address_raw)
 
+                                if(match_str_arr!==null && match_str_arr.length>0){
+                                   address_raw = address_raw.replace(match_str_arr[0],"")
+                                }
+
+                                order['address'] = address_raw
+
+
+                                 chuanmei_curr_page_order_list_cache = update_order(order,chuanmei_curr_page_order_list_cache)
+                                 order_to_17_list.push(order)
+                             }else{
+                             Toast("获取地址失败，"+address_result["message"])
+                         }
+                         console.log("获取地址结果:",address_result)
+                        })
+                 chrome.storage.local.set({"chuanmei_order_list_cache":chuanmei_curr_page_order_list_cache},function () {
+                                console.log("传美更新地址后，保存成功，",chuanmei_curr_page_order_list_cache)
+
+                            })
+
+
+                 chrome.storage.local.get({"my_tb_wait_send_order_cache1":[]},function (data0) {
+                      // 用于下单到17网 列表
+                       let my_tb_wait_send_order_cache1 = data0["my_tb_wait_send_order_cache1"]
+
+                       for(let m = 0;m<order_to_17_list.length;m++){
+                      let cur_item = order_to_17_list[m]
+                      let new_item = {}
+                      // 镇
+                      let towm = cur_item["towm"]
+                     if(towm===undefined){
+                         towm = ""
+                     }
+
+                     new_item['address'] = cur_item["province"]+","+cur_item["city"]+","+cur_item["area"]+towm+cur_item["address"]
+                     new_item['province'] = cur_item["province"]
+                     new_item['city'] = cur_item["city"]
+                     new_item['area'] = cur_item["area"]
+                     new_item['address_details'] = cur_item["address"]
+                     new_item['name'] = cur_item["name"]
+                      new_item['wangwang_id'] = cur_item["sellerNick"]
+                      new_item['order_id'] = ""
+                      new_item['phone'] = cur_item["phone"]
+                      new_item['tb_order_number'] = cur_item["tb_order_number"]
+                      new_item['user_wangwang_id'] = cur_item["buyer_nick"]
+                      let cur_item_order_goods_list = cur_item["order_goods"]
+                      let order_goods_list = []
+                      for(let g = 0;g<cur_item_order_goods_list.length;g++){
+                          let goods = {}
+                          let code = cur_item_order_goods_list[g]['code']
+                          goods['code'] = code
+                          goods['color'] = cur_item_order_goods_list[g]['color']
+                          goods['size'] = cur_item_order_goods_list[g]['size']
+                          goods['img'] = cur_item_order_goods_list[g]['goods_pic']
+                          goods['tb_goods_id'] = cur_item_order_goods_list[g]['goods_id']
+                          //用户编码
+                          goods['user_code'] = cur_item_order_goods_list[g]['goods_id']
+                          if(code!==undefined && code!==default_tb_code){
+                              goods['user_code'] = code
+                          }
+
+                          goods['count'] = cur_item_order_goods_list[g]['goods_counts']
+                          order_goods_list.push(goods)
+                      }
+                       new_item['order_goods_list'] = order_goods_list
+
+                     my_tb_wait_send_order_cache1.push(new_item)
+
+                 }
+                       chrome.storage.local.set({"my_tb_wait_send_order_cache1":my_tb_wait_send_order_cache1},function () {
+                            console.log("保存成功my_tb_wait_send_order_cache1，",my_tb_wait_send_order_cache1)
+                            Toast("my_tb_wait_send_order_cache1")
+
+
+
+                            })
+                 })
+
+
+
+
+                })
+
+         })
+       $("#go_to_place_order_to_17").click(function(){
+
+            chrome.storage.local.get({"my_tb_wait_send_order_cache1":[]},function (data0) {
+                // 用于下单到17网 列表
+                let my_tb_wait_send_order_cache1 = data0["my_tb_wait_send_order_cache1"]
+                let tb_order_number_list = []
+                //
+
+                for(let c = 0;c<my_tb_wait_send_order_cache1.length;c++){
+                    tb_order_number_list.push(my_tb_wait_send_order_cache1[c]['tb_order_number'])
+
+                }
+
+
+                let p1 = new Promise(function (resolve, reject) {
+
+                    chrome.runtime.sendMessage({order_number_list: JSON.stringify(tb_order_number_list),method: 'get_orders_from17'}, function (response) {
+                        let response_order_list = JSON.parse(response)
+                        resolve({"orders": response_order_list})
+                        });
+                })
+                let p2 = new Promise(function (resolve, reject) {
+
+                    chrome.runtime.sendMessage({order_number_list: JSON.stringify(tb_order_number_list),method: 'get_null_orders_from17'}, function (response) {
+                    let response_order_list = JSON.parse(response)
+                    resolve({"null_orders": response_order_list})
+
+                    });
+                });
+                Promise.all([p1, p2]).then(function (results) {
+
+                let null_orders_list_17 = {}
+                let orders_list_17 = {}
+                if (results[0].orders !== null) {
+                    orders_list_17 = Object(results[0].orders)
+                    null_orders_list_17 = Object(results[1].null_orders)
+                } else {
+                    orders_list_17 = Object(results[1].orders)
+                    null_orders_list_17 = Object(results[0].null_orders)
+                }
+
+                let my_tb_wait_send_order_cache = []
+
+                //不存在的订单才同步
+
+                for (let i = 0; i < my_tb_wait_send_order_cache1.length; i++) {
+                    let order = find_order(my_tb_wait_send_order_cache1[i].tb_order_number, orders_list_17)
+                    let null_order = find_order(my_tb_wait_send_order_cache1[i].tb_order_number, null_orders_list_17)
+                    if (order === null && null_order === null) {
+                        my_tb_wait_send_order_cache.push(my_tb_wait_send_order_cache1[i])
+
+                    }
+                }
+
+                let my_tb_wait_send_order_cache_str = JSON.stringify(my_tb_wait_send_order_cache)
+                chrome.storage.local.set({"my_tb_wait_send_order_cache":my_tb_wait_send_order_cache},function () {
+                    console.log("数据保存到谷歌插件成功my_tb_wait_send_order_cache",my_tb_wait_send_order_cache)
+
+
+                    if (!confirm("共 " + my_tb_wait_send_order_cache.length + " 单，确定跳转下单2？")) {
+                                return;
+                    }
+                    my_tb_wait_send_order_cache_str =  my_tb_wait_send_order_cache_str.replace(/#/g,"^^^")
+                    window.open(mcommon_get_base_vue_url_17() + "/#/pc/home/porder/?plug_order_data=" + my_tb_wait_send_order_cache_str);
+
+
+                })
+                chrome.storage.local.set({"my_tb_wait_send_order_cache1":[]},function () {
+
+
+                })
+
+
+
+
+
+
+                }).catch(function (r) {
+                   console.log(r);
+                    });
+            })
+
+
+
+       })
        $("#order_cache_btn").click(function () {
 
             let customer_set_page_count = 0
@@ -579,8 +831,13 @@ function apichuammei_wait_send_page_init(){
                     //同个用户同地址多订单
                     let order_item_list = result_data['list'][j]
                     for(let o = 0;o<order_item_list.length;o++){
+
                         let new_order_obj =  apichuanmei_order_item_replace(order_item_list[o])
                         let tb_order_number = new_order_obj['tb_order_number']
+                         if(order_item_list.length > 1){
+                             // 合并订单
+                            new_order_obj['merge_order']  = order_item_list.length + "-" +o
+                        }
                         order_data[tb_order_number] = new_order_obj
                         order_data_list.push(new_order_obj)
                     }
@@ -593,7 +850,7 @@ function apichuammei_wait_send_page_init(){
 
             console.log("所有订单:",order_data)
              chrome.storage.local.set({"chuanmei_order_cache":order_data},function () {
-                                console.log("保存成功，",order_data)
+                                console.log("chuanmei_order_cache保存成功，",order_data)
                                 Toast("缓存成功")
                             })
             chrome.storage.local.set({"chuanmei_order_list_cache":order_data_list},function () {
@@ -645,12 +902,25 @@ function apichuanmei_dump_page(dum_page,page_size,total_page,start_time,end_time
                         let new_order_obj =  apichuanmei_order_item_replace(order_item_list[o])
                         let tb_order_number = new_order_obj['tb_order_number']
                         order_data[tb_order_number] = new_order_obj
+                        if(order_item_list.length > 1){
+                             // 合并订单
+                            new_order_obj['merge_order']  = order_item_list.length + "-" + (o+1)
+                        }
                         order_data_list.push(new_order_obj)
                     }
 
                     // order_list.push(new_order_obj)
                 }
+                 chrome.storage.local.get({"chuanmei_order_cache":{}},function (local_data_obj) {
+                                console.log("local_data_obj缓存，",local_data_obj)
+                                let local_data  = local_data_obj["chuanmei_order_cache"]
+                                let new_obj = Object.assign(local_data,order_data)
 
+                                chrome.storage.local.set({"chuanmei_order_cache":new_obj},function () {
+                                 console.log("保存成功，",new_obj)
+
+                            })
+                            })
                 //实时页面数据缓存
                  chrome.storage.local.set({"chuanmei_curr_page_order_list_cache":order_data_list},function () {
                      console.log("保存成功，",order_data_list)
@@ -662,13 +932,28 @@ function apichuanmei_dump_page(dum_page,page_size,total_page,start_time,end_time
                  let wait_send_list = local_data["chuanmei_curr_page_order_list_cache"]
                  console.log("读取本地储存记录,",wait_send_list)
                  for(let i = 0 ;i<wait_send_list.length;i++){
+                      let chuammei_flag = wait_send_list[i]["cmFlag"]
+                      let seller_remarks = wait_send_list[i]["seller_remarks"]
+                      let chuammei_flag_label = "<label class='chuammei_flag_label' > 传美旗帜："+wait_send_list[i]['cmFlag']+" </label>"
+                      let seller_remarks_label = "<label class='chuammei_flag_label' >   </label>"
+                      if(chuammei_flag===1){
+                            chuammei_flag_label = "<label class='chuammei_flag_label'  style='color:red;background: yellow'> 传美旗帜："+wait_send_list[i]['cmFlag']+" </label>"
+                      }
+                      if(seller_remarks!==undefined && seller_remarks.trim() !==""){
+                            seller_remarks_label = "<label class='chuammei_flag_label' style='color:white;background: red' > 卖家留言："+wait_send_list[i]['seller_remarks']+"  </label>"
+                      }
+                      let merge_order = ""
+                      if(wait_send_list[i]["merge_order"] !== undefined){
+                          merge_order  =  '                   <label>'+wait_send_list[i]["merge_order"]+'</label> \n'
+                      }
                       let append_elems_str  =
                        '<div class="item_data_div17" style="margin-bottom: 0.5em">\n' +
 
                          '              <li style="margin-bottom: 1em">\n' +
-                         '                <div style=" background: gainsboro;padding-left: 1em;">\n' +
+                         '                <div style=" background: #79d7fa;padding: 1em;">\n' +
                          '                  <input style="width: 2em;height: 2em" class="check_box_17" type="checkbox"/>\n' +
-                         '                  <label>[买]：</label><label>'+wait_send_list[i]["buyer_nick"]+'</label><label> [卖]：</label><label>'+wait_send_list[i]["sellerNick"]+'</label><label> 订单编号：</label> <label class="tb_order_number_lb_17">'+wait_send_list[i]["tb_order_number"]+'</label><label> 地址：</label><label>'+wait_send_list[i]["name"]+','+wait_send_list[i]["phone"]+','+wait_send_list[i]["province"]+','+wait_send_list[i]["city"]+','+wait_send_list[i]["area"]+','+wait_send_list[i]["address"]+'</label>\n' +
+                          merge_order +
+                         '                  <label>[买]：</label><label>'+wait_send_list[i]["buyer_nick"]+'</label><label> [卖]：</label><label class="seller_wang_wang_id_17">'+wait_send_list[i]["sellerNick"]+'</label> '+seller_remarks_label + chuammei_flag_label+'<label> 订单编号：</label> <label class="tb_order_number_lb_17">'+wait_send_list[i]["tb_order_number"]+'</label><label> 地址：</label><label>'+wait_send_list[i]["name"]+','+wait_send_list[i]["phone"]+','+wait_send_list[i]["province"]+','+wait_send_list[i]["city"]+','+wait_send_list[i]["area"]+','+wait_send_list[i]["address"]+'</label>\n' +
                          '                </div>\n' +
                          '                <div  >'
 
@@ -682,14 +967,15 @@ function apichuanmei_dump_page(dum_page,page_size,total_page,start_time,end_time
                                let goods_str =
                                  '  <div style="background: white;padding-left: 2em">\n' +
                                  '    <img style="width: 5em;height: 5em;" src="https:'+goods_list[g]["goods_pic"]+'">\n' +
+                                     '    <label style="margin-left: 1em">'+goods_list[g]["goods_id"]+' <label>\n' +
                                  '    <label>商家编码：</label><label style="margin-left: 1em">'+goods_list[g]["code"]+'<label>\n' +
                                  '    <label style="'+goods_refund_tip+'">'+goods_list[g]["refund_status"]+'</label>'+
-                                 '    <label style="color:red;">'+goods_list[g]["status"]+'</label><label>  颜色尺码：</label><label>'+goods_list[g]["color"]+'</label><label>'+goods_list[g]["size"]+'</label>\n' +
+                                 '    <label style="color:red;">'+goods_list[g]["status"]+'</label><label>  颜色尺码：</label><label>'+goods_list[g]["color"]+'</label><label>'+goods_list[g]["size"]+'</label><label> x'+goods_list[g]["goods_counts"]+'件</label>\n' +
                                  '</div>\n'
                             append_elems_str = append_elems_str +goods_str
                           }
                            append_elems_str = append_elems_str+
-                           '  <label>'+wait_send_list[i]["pay_time"]+'</label>\n'+
+                           '  <label>'+wait_send_list[i]["pay_time"]+'</label> <label style="color: red"> 总价'+wait_send_list[i]["payFee"]+'元</label>\n'+
                          '   </div>\n' +
                          '  </li>\n' +
                          ' </div> '
@@ -712,6 +998,50 @@ function apichuanmei_dump_page(dum_page,page_size,total_page,start_time,end_time
 }
 
  
+function apichuanmei_add_tag_tb(tb_seller_wangwangid,tb_order_number,flag,memo){
+    let return_result = {
+        success:false,
+        message:"",
+    }
+     let  submit_data = {
+         shopTid: '{"tid":"'+tb_order_number+'","name":"'+tb_seller_wangwangid+'"}',
+         from: 0,
+         flag: 0,
+         cmFlag: flag,
+         memo:memo,
+         isFxFlag: 1
+     }
+     let url = CHUAMMEI_BASE_URL+"/tradeMulti/editMemo.do"
+    $.ajax({
+                async: false,
+                url: url,
+                type: "POST",
+                // dataType : 'json',
+                data: submit_data,
+                contentType:"application/x-www-form-urlencoded",
+                timeout: 5000,
+                success: function (result) {
 
+                console.log(" 传美备注标签结果:",result)
+
+                return_result['success'] =result.success
+                return_result['message'] =result.message
+
+
+
+
+        },
+            error: function (err) {
+            console.log("错了:" + err);
+            console.log("错了:" + JSON.stringify(err));
+              return_result['success'] = false
+             return_result['message'] = "访问错误"
+
+        }
+
+
+    });
+    return return_result
+}
 
 

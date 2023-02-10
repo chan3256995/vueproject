@@ -744,6 +744,7 @@ function tbapi_get_refund2_info(url){
             success : function(result) {
 
                     console.log("获取退款结信息...........")
+
                 let start_index = result.indexOf("disputeData =")
                 let tem_str = result.substring(start_index,result.length).replace("disputeData =","")
                 let end_index = tem_str.indexOf("</script>")
@@ -793,8 +794,47 @@ function tbapi_get_refund2_info(url){
                     }
                     return_data['send_info'] = sendInfo
                     return_data['return_info'] = return_info
+
                 }
                   
+
+
+            },
+            error:function (err) {
+                console.log("错了:" + err);
+                console.log("错了:" + JSON.stringify(err));
+
+            }
+        });
+
+
+
+     return return_data
+}
+function tbapi_get_refund_qianniu(url){
+
+
+    let request_url = url
+    request_url = "https://h5api.m.taobao.com/h5/mtop.alibaba.refundface2.disputeservice.qianniu.pc.disputedetail/1.0/?jsv=2.6.1&appKey=12574478&t=1672308083082&sign=94bd3e1dcdde70aec1d33fc69a48a5f4&api=mtop.alibaba.refundface2.disputeservice.qianniu.pc.disputedetail&v=1.0&ttid=11320%40taobao_WEB_9.9.99&type=originaljson&dataType=json"
+
+    let  return_data = {"send_info":null,"return_info":null}
+    $.ajax({
+            async : false,
+            url :request_url,
+            type : "POST",
+            dataType : 'json',
+            data: {"data":"{\"params\":\"{\\\"disputeId\\\":\\\"199391870665303585\\\",\\\"type\\\":\\\"3\\\",\\\"isQnNew\\\":true,\\\"isHideNick\\\":true}\"}"},
+            timeout : 5000,
+            complete: function(jqXHR){
+
+
+    },
+            success : function(result) {
+
+                    console.log("获取退款结信息...........",result)
+
+
+
 
 
             },

@@ -172,6 +172,11 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 	//       let order_number_list = request.order_number_list
     //        let result = api17_get_one_page_order(order_number_list)
     //        sendResponse(JSON.stringify(result));
+    }else if(method === "add_tag_to_chuanmei_tb"){
+	    let post_data = JSON.parse(request.post_data)
+        let result = apichuanmei_add_tag_tb(seller_id_choies[post_data['shop_name']],post_data['order_number'],4,post_data["my_money"]+"/"+post_data["platm_money"])
+        sendResponse(JSON.stringify(result))
+
     }else if (method === "get_null_orders_from17") {
 
             let page_size = 15
@@ -189,7 +194,45 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
             sendResponse(JSON.stringify(all_result_list));
 
-	}
+	}else if (method === "get_tb_refund_details") {
+            let request_refund_params_list = JSON.parse(request.request_refund_params_list)
+            let refund_result_infos = {}
+            for(let i = 0 ;i<request_refund_params_list.length;i++){
+                 let order_number =request_refund_params_list[i]['order_number']
+                 let refund_url =request_refund_params_list[i]['refund_url']
+                mcomon_thread_sleep(3000)
+                let result = tbapi_get_refund2_info(refund_url)
+
+
+               refund_result_infos[order_number]  = result
+
+            }
+
+            sendResponse(JSON.stringify(refund_result_infos));
+
+	}else if(method === "delivery_null_order_to17"){
+	    console.log("method",method)
+
+	    let send_order_list = JSON.parse(request.send_order_list)
+	    chrome.cookies.getAll({'url':mcommon_get_base_vue_url_17()}, function(cookie) {
+	        let cookies_obj = {}
+            let cookie_str = ""
+            let cookie_string = ""
+            for (let i in cookie) {
+                    let name = cookie[i].name;
+                    let value = cookie[i].value;
+                    cookies_obj[name] = value;
+                    cookie_str += (name + "=" + value + ";\n");
+                    cookie_string += (name + "=" + value +"&");
+                }
+
+
+           api17_delivery_null_package_to17(send_order_list,cookie_string,mcommon_get_base_server_url_17())
+
+            })
+
+
+    }
 
 });
 
@@ -247,6 +290,36 @@ function get_goods_details(goods_url) {
             return ret_result
 }
 
+
+
+//空包订单已发货同步到17网
+function api17_delivery_null_package_to17(order_list,cookies_str,url_17) {
+    let parms = {
+        "deliver_order_list":JSON.stringify(order_list),
+    }
+    let request_url = url_17+"/back/deliverNullOrder/"+"?"+cookies_str
+    $.ajax({
+        async: false,
+        url: request_url,
+        type: "POST",
+        // dataType : 'json',
+        data: parms,
+        timeout: 5000,
+        success: function (result) {
+            console.log("3333333333333333", result)
+
+
+        },
+        error: function (err) {
+            console.log("错了:" + err);
+            console.log("错了:" + JSON.stringify(err));
+
+
+        }
+
+    });
+}
+
 chrome.webRequest.onCompleted.addListener(
 
     function(details) {
@@ -260,7 +333,9 @@ chrome.webRequest.onCompleted.addListener(
 
           });
          });
-        }else if(details.url.indexOf("https://refund2.taobao.com/dispute/adjust/adjustSellerList.json")!== -1){
+        }else if(details.url.indexOf("alibaba.refundface2.disputeservice.qianniu.pc.disputelist")!== -1){
+            //https://h5api.m.taobao.com/h5/mtop.alibaba.refundface2.disputeservice.qianniu.pc.disputelist/1.0/?jsv=2.6.1&appKey=12574478&t=1672297035400&sign=3d640802cd7d29b8fce98f057e9d8360&api=mtop.alibaba.refundface2.disputeservice.qianniu.pc.disputelist&v=1.0&ttid=11320%40taobao_WEB_9.9.99&type=originaljson&dataType=json
+            //https://refund2.taobao.com/dispute/adjust/adjustSellerList.json
             console.log("插件监听到请求完：",details)
            chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
              console.log("tabs000",tabs)
@@ -284,7 +359,22 @@ chrome.webRequest.onCompleted.addListener(
              console.log("请求订单完成地质：",details)
              chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
 
-               //淘传美售后数据更新
+                //淘传美售后数据更新
+             chrome.tabs.sendMessage(tabs[0].id, {from:'background',method:'update_chuanmei_wait_send_page_data',to:'chuanmei_wait_send_page'}, function(response)
+                {
+
+          });
+
+         });
+        }else if(details.url.indexOf("woda.com/printSend.do?m=queryTrades")!==-1){
+             console.log("我打请求订单完成地质：",details)
+             chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
+
+               //我打数据更新
+                  chrome.tabs.sendMessage(tabs[0].id, {from:'background',method:'update_woda_order_page_data',to:'woda_wait_print_page'}, function(response)
+                {
+
+          });
 
          });
         }
