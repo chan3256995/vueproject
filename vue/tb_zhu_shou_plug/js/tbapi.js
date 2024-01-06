@@ -13,6 +13,22 @@ let logistics_choies2 = {
     "韵达纸巾":102,
     "韵达洗衣粉":102,
 }
+
+//千牛售后页面
+function tbapi_init_qianniu_refund2_page(){
+    console.log("千牛售后页面初始化....")
+setTimeout(function () {
+      console.log("千牛售后页面初始化2....")
+       let tmp_span = $('.refund-list_box-button-list__KBNuU')
+
+
+    console.log("tmp_span",$(tmp_span))
+    $(tmp_span).after("<button class='check_17refund_data_btn'>开始检查退款订单 </button>")
+    $(".check_17refund_data_btn").click(function(){
+        update_tbrefund_qianniu()
+    })
+},5000)
+}
 function get_utf_to_gbk_char(seria_str,server_url){
       chrome.cookies.getAll({'url':'https://trade.taobao.com'}, function(cookie) {
           let cookies_obj = {}
@@ -588,9 +604,9 @@ function websqlapi_delete_goods_comment(goods_id){
              db2.transaction(function (tx) {
              console.log("进入事务")
 
-             tx.executeSql('DELETE from TBCOMMONTS WHERE goods_id =?',[goods_id],function (tx,res) {
-                    console.log("sh删除结果:",res)
-             })
+             // tx.executeSql('DELETE from TBCOMMONTS WHERE goods_id =?',[goods_id],function (tx,res) {
+             //        console.log("sh删除结果:",res)
+             // })
          })
 }
 function websqlapi_delete_all_comment(){
@@ -598,7 +614,7 @@ function websqlapi_delete_all_comment(){
              db2.transaction(function (tx) {
              console.log("进入删除事务")
 
-             tx.executeSql('DELETE from TBCOMMONTS WHERE 1 = 1')
+             // tx.executeSql('DELETE from TBCOMMONTS WHERE 1 = 1')
          })
 }
 function websqlapi_save_tb_comment(comment_list){
@@ -619,33 +635,25 @@ function websqlapi_save_tb_comment(comment_list){
                     //      continue
                     //  }
                         db2.transaction(function (tx) {
-                             tx.executeSql('INSERT INTO   TBCOMMONTS (goods_id,comment_id,user_name,user_pic,level,comment_text,monment_date,color_size) VALUES (?,?,?,?,?,?,?,?) ',[comment_list[i]["goods_id"],comment_list[i]["comment_id"],comment_list[i]["user_name"],comment_list[i]["user_pic_img"],comment_list[i]["user_level"],comment_list[i]["comment_content"],comment_list[i]["comment_date"],comment_list[i]["sku_info"]],function (tx,res) {
-                             console.log("插入数据到表TBCOMMONTS成功:",res)
-                         })
-             })
+                    //          tx.executeSql('INSERT INTO   TBCOMMONTS (goods_id,comment_id,user_name,user_pic,level,comment_text,monment_date,color_size) VALUES (?,?,?,?,?,?,?,?) ',[comment_list[i]["goods_id"],comment_list[i]["comment_id"],comment_list[i]["user_name"],comment_list[i]["user_pic_img"],comment_list[i]["user_level"],comment_list[i]["comment_content"],comment_list[i]["comment_date"],comment_list[i]["sku_info"]],function (tx,res) {
+                    //          console.log("插入数据到表TBCOMMONTS成功:",res)
+                    //      })
+                    })
                  }
 
 
 
 
-             // db2.transaction(function (tx) {
-             //     console.log("1111:进入事务")
-             //      tx.executeSql("SELECT * FROM TBCOMMONTS",[],function (tx,results) {
-             //      console.log("goodslength:",results.rows.length)
-             //     for(let i = 0 ;i<results.rows.length;i++){
-             //         console.log("goodsid:",results.rows.item(i).goods_id)
-             //     }
-             // },null)
-             // })
-    
-    
+
+
+
  }
  function websqlapi_get_tb_comment2(confindent_obj){
         // confindent_obj = {
         //     "user_name":"f***h（匿名）",
         //      "goods_id":"652378353165"
         // }
-       
+
         let _str = ""
         let _str_arr = []
         for(let key in confindent_obj){
@@ -673,11 +681,11 @@ function websqlapi_save_tb_comment(comment_list){
                      })
                  }
 
-                 
+
              },null)
              })
-     
-    
+
+
  }
 function websqlapi_init_tb_comment_db(){
       let db2 = openDatabase('my_tb_db',"1.0","taobaoshuju",5*1024*1024)
@@ -709,7 +717,7 @@ function tbapi_get_goods_comments(request_url){
 
                     console.log("获取评论结果...........",result)
 
-                  
+
 
 
             },
@@ -947,3 +955,206 @@ function find_order_by_order_number(order_list,order_number){
     }
     return null;
 }
+
+// 保存页面链接追踪记录到本地
+function apitb_save_page_data(data,page_version){
+    let return_obj = {}
+                  // 把店铺商品信息缓存下来
+                  chrome.storage.local.get({"tb_shop_goods_record_cache":{}},function (local_data_obj) {
+                                console.log("tb_shop_goods_record_cache缓存，",local_data_obj)
+                                let local_data  = local_data_obj["tb_shop_goods_record_cache"]
+                                let curr_time =  Date.parse(new Date())
+
+                                let clean_time =  local_data['clean_time']
+                                if(clean_time ===undefined  ){
+                                    clean_time =  curr_time
+                                }
+                                 local_data['update_time'] = curr_time
+                                 local_data['clean_time'] = clean_time
+                                //45天
+                                let day_45 = 45 * 24 *60 *60 *1000
+                                 // day_45 =1 * 24 * 60 * 60 *1000
+                                if((curr_time  - clean_time ) > day_45){
+                                    local_data = {}
+                                }
+                                 console.log("原有数据",Object.getOwnPropertyNames(local_data).length)
+                              console.log("即将新增数据",Object.getOwnPropertyNames(data).length)
+
+                                for(let image_url_key in data){
+                                    if(local_data[image_url_key]===undefined){
+                                        local_data[image_url_key] = data[image_url_key]
+                                        return_obj[image_url_key]=data[image_url_key]
+                                    }
+
+                                    //  local_data[goods_id_key]['image'] = "6666666.."
+                                    // break
+                                }
+
+
+
+
+                                console.log("新增后数据",Object.getOwnPropertyNames(local_data).length)
+                      // new_obj={}
+
+                                chrome.storage.local.set({"tb_shop_goods_record_cache":local_data},function () {
+
+                                 console.log("tb_shop_goods_record_cache缓存成功，"+Object.getOwnPropertyNames(local_data).length)
+                                    if(page_version === "new_version_version"){
+                                        update_pc_shop_page_data_new_version(return_obj,local_data)
+                                    }else{
+                                        update_pc_shop_page_data_old_version(return_obj,local_data)
+                                    }
+
+
+                            })
+                            })
+
+}
+
+function tbapi_init_taobao_shop_page_data(){
+     let  goods_item_list_div = $(".shop-hesper-bd")
+
+    if(goods_item_list_div.length!==0){
+        apitb_get_shop_page_goods_data_old_version()
+    }
+}
+
+// 淘宝商品发布页面
+function tbapi_init_taobao_goods_edit_page(){
+    setTimeout(function () {
+            let div_temp =  $("span:contains(手机和电脑使用同一套描述)")
+    console.log("div_temp:",div_temp)
+    div_temp.after("<button class='clean_detail_img_btn'>清除详情图片 </button>")
+    $(".clean_detail_img_btn").click(function (){
+        //dragStream--Sa6Kj
+        $("div[class*=dragStream--]").find("div[class*=group--]").remove()
+    })
+    },10000)
+
+}
+
+
+//更新淘宝pc店铺页面数据
+function update_pc_shop_page_data_old_version(new_data,local_data){
+    //更新淘宝pc店铺页面数据 老版本页面
+    console.log("new_data:",new_data)
+  Toast("淘宝老版本pc页面更新...",JSON.stringify(new_data))
+    let all_goods_div = $(".shop-hesper-bd")
+    $(all_goods_div).before("<button class='clean_image_cache_btn17'>清除图片记录缓存 </button>")
+
+    let goods_img_list =  $(all_goods_div).find("img")
+    for(let i=0;i<goods_img_list.length;i++){
+        let img_src  = $(goods_img_list[i]).attr("src")
+        let new_img_data = new_data[img_src]
+
+        if(new_img_data!==undefined){
+            $(goods_img_list[i]).parent().parent().next().css("background","blue")
+            console.log("新图片："+img_src)
+        }
+
+    }
+    $(".clean_image_cache_btn17").click(function(){
+               let local_data = {}
+              chrome.storage.local.set({"tb_shop_goods_record_cache":local_data},function () {
+                                 console.log("tb_shop_goods_record_cache缓存成功，",local_data)
+                                 console.log("tb_shop_goods_record_cache缓存成功，"+Object.getOwnPropertyNames(local_data).length)
+
+
+
+                            })
+    })
+
+
+}
+//更新淘宝pc店铺页面数据
+function update_pc_shop_page_data_new_version(new_data,local_data){
+    //更新淘宝pc店铺页面数据 新版本页面
+    console.log("new_data:",new_data)
+  Toast("淘宝新版本pc页面更新...",JSON.stringify(new_data))
+    let all_goods_div = $("div:contains('本店全部宝贝')")
+
+    let goods_img_list =  $(all_goods_div).next().find("img")
+    for(let i=0;i<goods_img_list.length;i++){
+        let img_src  = $(goods_img_list[i]).attr("src")
+        let new_img_data = new_data[img_src]
+         console.log("new_img_data："+new_img_data)
+        if(new_img_data!==undefined){
+            $(goods_img_list[i]).parent().next().css("background","blue")
+            console.log("新图片："+img_src)
+        }
+
+    }
+
+}
+
+
+
+function apitb_get_shop_page_goods_data_old_version(){
+    //获取老版本店铺页面的商品嘻嘻  新版本在拦截接口获取数据
+        let  goods_item_list_div = $(".shop-hesper-bd")
+        console.log("goods_item_list_div:",goods_item_list_div)
+        let img_list = $(goods_item_list_div).find("img")
+
+        let data_obj = {}
+        let goods_list  = []
+        if(img_list!==undefined && img_list.length>0){
+            for(let i  = 0;i<img_list.length;i++){
+                let img_src  = $(img_list[i]).attr("src")
+                let item_id_a  = $(img_list[i]).parent().attr("href")
+                console.log('$(img_list[i]).parent(".item")',$(img_list[i]).parents(".item"))
+                $(img_list[i]).parents(".item").css({"position": "relative"});
+                let span_id = "my_17_"+i
+                $(img_list[i]).parents(".item").append("<span id='"+span_id+"' class='query_goods_record_17'   style='position: absolute;bottom: 0;right: 0; background: #0b97c4'>show</span>")
+                $("#"+span_id).click(function (){
+                    let curr_id = $(this).attr("id")
+                    console.log("curr_id",curr_id)
+                    websqlapi_query_tb_goods_update_data([{"goods_id":"760438828438","image":""}])
+                })
+                let goods_id = item_id_a.split("id=")[1]
+                console.log("item_id_a:",item_id_a)
+                let new_item  = {}
+                  new_item['image'] =img_src
+                  new_item['goods_id'] =goods_id
+                  data_obj[new_item['image']] = new_item
+                  goods_list.push(new_item)
+
+            }
+        }
+        console.log("goods_list:",goods_list)
+        // goods_list = [{"goods_id":"760438828438","image":"//img.alicdn.com/bao/uploaded/i3/2649659470/O1CN01l7JAoa2JpJepfURgX_!!2649659470.png"},{"goods_id":"760576398145","image":"//img.alicdn.com/bao/uploaded/i2/2649659470/O1CN01hIcwNB2JpJepdRUdR_!!2649659470.png_240x240.jpg"}]
+        websqlapi_open_db()
+        // websqlapi_drop_table("tb_goods_update_table")
+        websqlapi_init_tb_goods_update_table("tb_goods_update_table")
+        websqlapi_query_tb_goods_update_data([{"goods_id":"760438828438","image":""}])
+        websqlapi_insert_tb_goods_update_data(goods_list)
+
+        let retunr_data = apitb_save_page_data(data_obj,"old_version_page")
+}
+
+window.addEventListener("message",e=>{
+    // {"responseText":this.responseText,"url":this._url},"*"
+
+    if(e.data.url !==undefined && e.data.url.indexOf('taobao.com/getShopItemList.htm')!==-1 ){
+        console.log("传美js接收到消息",e.data.responseText)
+        let data_list  = JSON.parse(e.data.responseText).data.module
+        let data_obj = {}
+        if(data_list!==undefined && data_list.length>0){
+            for(let i  = 0;i<data_list.length;i++){
+
+                let new_item  = {}
+                  new_item['image'] =data_list[i]['image']
+                  new_item['itemId'] =data_list[i]['itemId']
+
+
+                data_obj[new_item['image']] = new_item
+
+            }
+        }
+        console.log("即将缓存的数据：",data_obj)
+        let retunr_data = apitb_save_page_data(data_obj,"new_version_version")
+        console.log("retunr_data222222:",retunr_data)
+        return
+    }
+
+
+})

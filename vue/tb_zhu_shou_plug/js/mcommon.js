@@ -8,25 +8,39 @@ let seller_id_choies = {
 
 // 需要取代的字符串列表
 let replace_art_no_str_list = [
+                    {"old":"真实有货","new":""},
+                    {"old":"真实现货","new":""},
+                    {"old":"优质版","new":""},
+                    {"old":"直接来拿","new":""},
+                    {"old":"好质量","new":""},
+                    {"old":"档口现货","new":""},
+                    {"old":"已出货","new":""},
                     {"old":"套装","new":""},
+                    {"old":"档口","new":""},
                     {"old":"现货","new":""},
                     {"old":"实拍","new":""},
                     {"old":"非","new":""},
                     {"old":"大量","new":""},
                     {"old":"优质","new":""},
+                    {"old":"##","new":""},
                     {"old":"#","new":""},
-                    {"old":"直接来拿","new":""},
+
                     {"old":"原版","new":""},
                     {"old":"质量","new":""},
                     {"old":"千件","new":""},
-                    {"old":"好质量","new":""},
+                    {"old":"品质","new":""},
+                    {"old":"天猫","new":""},
+                    {"old":"浙江","new":""},
+                    {"old":"优质","new":""},
+                    {"old":"一套","new":""},
+
                     {"old":"抖音","new":""},
                     {"old":"爆款","new":""},
 
                     {"old":"实价","new":""},
                     {"old":"不加绒","new":""},
                     {"old":"加绒","new":""},
-             {"old":"款","new":""},
+                    {"old":"款","new":""},
                     // {"old":"*","new":""},
                 ]
 function format_stmp_to_time(shijianchuo){
@@ -81,13 +95,16 @@ function mcommon_get_base_server_url_17(){
 // 取代商家编码一些字符
 function mcommon_replace_goods_code_str(code_str){
         let m_code =  code_str === "undefined" ? "" :code_str.trim()
-        
+        m_code = m_code.replace("＃","#")
         let new_code = m_code.replace(/#/g,"^^^").trim()
 
         if (new_code === default_tb_code2_youfei){
             return new_code
         }
         if (new_code === ""){
+            new_code = default_tb_code
+        }
+        if (!isNaN(new_code)){
             new_code = default_tb_code
         }
         // ***********************************************************去除搜款网编码的尾巴（id）
@@ -120,4 +137,50 @@ function mcommon_replace_all(replace_list,str){
     return str
     
 }
+function Toast(msg,duration,elem){
+      duration=isNaN(duration)?3000:duration;
+      var m = document.createElement('div');
+      // m = elem
+      m.innerHTML = msg;
+      m.style.cssText="max-width:60%;min-width: 150px;padding:0 14px;height: 40px;color: rgb(255, 255, 255);line-height: 40px;text-align: center;border-radius: 4px;position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);z-index: 999999;background: rgba(0, 0, 0,.7);font-size: 16px;";
+      document.body.appendChild(m);
+      setTimeout(function() {
+        var d = 0.5;
+        m.style.webkitTransition = '-webkit-transform ' + d + 's ease-in, opacity ' + d + 's ease-in';
+        m.style.opacity = '0';
+        setTimeout(function() { document.body.removeChild(m) }, d * 1000);
+      }, duration);
+    }
+
+//计算list相同值得数量
+function mcommon_clcle_list_same_value_counts(datalist){
+         // let arr = ['苹果','芒果 ','橘子','苹果']
+	     let newArr = [...new Set(datalist)]
+	     let lastArr = []
+	     newArr.forEach(item=>{
+
+	         let num = 0
+	         datalist.forEach(i=>{
+	             if(item==i){
+	               num++
+	             }
+	         })
+             lastArr.push({
+             name:item,
+             num
+	         })
+	     })
+
+    return lastArr
+
+}
+
+
+
+
+
+
+
+
+
 

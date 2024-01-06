@@ -1,5 +1,6 @@
 
-let zhangmenren_base_url = "http://www.zmr188.com/"
+// let zhangmenren_base_url = "http://www.zmr188.com/"
+let zhangmenren_base_url = "http://zmr.zdong321.com:8010/"
 
 let zhangmenren_progress_and_history_url = "member/Taskmanage/progressAndHistoricalOrders.html"
 //淘宝打标

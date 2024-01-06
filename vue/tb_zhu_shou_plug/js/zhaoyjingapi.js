@@ -1,4 +1,4 @@
-let zhaoyaojing_base_url = "http://106.13.166.248/"
+let zhaoyaojing_base_url = "http://139.9.106.136"
 let zhaoyaojing_query_url = zhaoyaojing_base_url+"/app/zyj/opQuery.jsp"
 let zhaoyaojing_login_url = zhaoyaojing_base_url+"/app/zyj/op.jsp"
 let zhaoyaojing_index_urll = zhaoyaojing_base_url+"/app/zyj/opIndex.jsp"

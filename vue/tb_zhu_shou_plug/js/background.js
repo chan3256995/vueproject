@@ -38,7 +38,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         }
 
     }else if(method === "get_zhangmenren_task_tb_link"){
-	    
+
         let result = {'tb_link':''}
         let order_id = request.order_id
          let req_result = zhangmenrenapi_get_order_tb_link(order_id)
@@ -72,7 +72,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     }else if(method === "login_17"){
 	    let result = api17_back_login()
         console.log("登录17后台结果:",result)
-        sendResponse(JSON.stringify(result)); 
+        sendResponse(JSON.stringify(result));
 
     }else if(method === "get_17return_package"){
 	      let req_list = JSON.parse(request.req_info_list)
@@ -83,7 +83,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             let order_number = req_list[i]["order_number"]
             if(order_number!==undefined){
                  let return_package_17resultt =  api17_back_get_return_package(request.token,return_logistics_number)
-                  
+
                 if(return_package_17resultt === null){
                     continue
                 }
@@ -102,7 +102,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             }
 
         }
-	      
+
         sendResponse(JSON.stringify(return_res));
 
     }else if(method === "get_315_tuikuan_package"){
@@ -123,7 +123,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
 
                 })
-       
+
 
     }else if(method === "get_315_order"){
 	    //search_field=goods_sn&q="+art_no+"&status=&do=&reserdate=
@@ -134,7 +134,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 	    let cookie_obj_315 =  mcommon_chrome_cookie_to_obj(cookie)
          let result = api315_query_order(parms_obj,cookie_obj_315)
          console.log("get 315 order result:",result)
-             
+
          chrome.tabs.sendMessage(sender.tab.id, {method:"result_315_order_query",to:from,result_data:JSON.stringify(result)}, function(response) {
 
                  });
@@ -146,8 +146,37 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
                 })
 
 
+    }else if(method === "get_skw_goods_details"){
+            console.log("获取搜款网商品详细信息")
+         let parms_obj =  JSON.parse(request.parms_str)
+         let result= apiskw_get_skw_goods_details(parms_obj["url"])
+        sendResponse(JSON.stringify(result));
+
+    }else if(method === "get_shop_recommend_goods_list"){
+	    let parms_obj =  JSON.parse(request.parms_str)
+        let skw_shop_url    = parms_obj ["skw_shop_url"]
+        let from = request.from;
+       chrome.cookies.getAll({'url':'https://www.vvic.com'}, function(cookie) {
+	      let cookie_obj_skw =  mcommon_chrome_cookie_to_obj(cookie)
+
+
+            let result = apiskw_get_shop_recommend_goods_list(skw_shop_url,cookie_obj_skw)
+            chrome.tabs.sendMessage(sender.tab.id, {method:"get_shop_recommend_goods_list_result",to:from,result_data:JSON.stringify(result)}, function(response) {
+
+                 });
+            // chrome.runtime.sendMessage({method:"result_315_tuikuan_package",to:"tb_refund2_page",result_data:JSON.stringify(returndata)},function (response) {
+            //     console.log("result_315_tuikuan_package,",response)
+            // })
+
+
+                // })
+
+            })
+
+
+
     }else if(method === "keep_web_cookies_alive"){
-	  
+
 // keep_web_cookies_alive()
 
     }else if(method === "get_orders_from17"){
@@ -174,7 +203,24 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     //        sendResponse(JSON.stringify(result));
     }else if(method === "add_tag_to_chuanmei_tb"){
 	    let post_data = JSON.parse(request.post_data)
-        let result = apichuanmei_add_tag_tb(seller_id_choies[post_data['shop_name']],post_data['order_number'],4,post_data["my_money"]+"/"+post_data["platm_money"])
+        let result  = apichuanmei_add_tag_tb(post_data['seller_wangwang_id'],post_data['order_number'],post_data['cmflag'],post_data['memo'],post_data['flag'],post_data['from'])//post_data["my_money"]+"/"+post_data["platm_money"]
+
+        sendResponse(JSON.stringify(result))
+
+    }else if(method === "batch_add_tag_to_chuanmei_tb"){
+	    let post_data = JSON.parse(request.post_data)
+
+        let result = apichuanmei_batch_add_tag_tb(post_data['tid_order_list'],post_data['cmflag'],post_data['memo'],post_data['flag'],post_data['from'],post_data['is_cover'])
+
+        sendResponse(JSON.stringify(result))
+
+    }else if(method === "query_chuammei_has_send_order"){
+	    let post_data = JSON.parse(request.post_data)
+        let seller_wangwang_id = post_data['seller_wangwang_id']
+        let tb_order_number = post_data['tb_order_number']
+        let start_time = post_data['start_time']
+        let end_time = post_data['end_time']
+        let result = apichuammei_query_sended_order(seller_wangwang_id,tb_order_number,start_time,end_time)
         sendResponse(JSON.stringify(result))
 
     }else if (method === "get_null_orders_from17") {
@@ -200,8 +246,12 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             for(let i = 0 ;i<request_refund_params_list.length;i++){
                  let order_number =request_refund_params_list[i]['order_number']
                  let refund_url =request_refund_params_list[i]['refund_url']
-                mcomon_thread_sleep(3000)
+                mcomon_thread_sleep(1000)
                 let result = tbapi_get_refund2_info(refund_url)
+                if(result["send_info"]==null && result["return_info"]==null){
+                    //得不到数据 需要手动过滑块验证码
+                    break
+                }
 
 
                refund_result_infos[order_number]  = result
@@ -323,7 +373,7 @@ function api17_delivery_null_package_to17(order_list,cookies_str,url_17) {
 chrome.webRequest.onCompleted.addListener(
 
     function(details) {
-        
+
         if(details.url.indexOf("s.taobao.com/search")!== -1){
             console.log("tabs000url",details.url)
          chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
@@ -356,7 +406,7 @@ chrome.webRequest.onCompleted.addListener(
           });
          });
         }else if(details.url.indexOf("chuanmeidayin.com/printMulti/searchMulti.do")!==-1){
-             console.log("请求订单完成地质：",details)
+             console.log("插件监听到传美请求订单完成：",details)
              chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
 
                 //淘传美售后数据更新
