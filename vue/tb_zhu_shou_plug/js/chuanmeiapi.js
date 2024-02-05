@@ -300,10 +300,27 @@ scene: 1004
     });
     return return_result
 }
+
+//把标题跟商品id记录到表里
+function apichuanmei_save_goods_title_change_record(all_goods_list){
+        let all_goods_obj = {}
+        let new_goods_list = []
+        for(let i = 0;i<all_goods_list.length;i++){
+            all_goods_obj[all_goods_list[i]['title']] = all_goods_list[i]
+        }
+        for(let key in all_goods_obj){
+            new_goods_list.push(all_goods_obj[key])
+        }
+        all_goods_list = new_goods_list
+        websqlapi_insert_tb_goods_title_update_table_data(all_goods_list)
+}
+
+
 // 传入传美对象，返回自定义对象
 function apichuanmei_order_item_replace(chuanmei_order_item){
             let  new_order_obj = {}
-             let tb_order_number = chuanmei_order_item['tid']
+            let all_goods_list = []
+            let tb_order_number = chuanmei_order_item['tid']
             new_order_obj['sellerNick'] =chuanmei_order_item['sellerNick']
             new_order_obj['tb_order_number'] = tb_order_number
             new_order_obj['buyer_nick'] = chuanmei_order_item['buyerNick']
@@ -362,9 +379,10 @@ function apichuanmei_order_item_replace(chuanmei_order_item){
                 new_goods_obj['title'] = goods_item['title']
                 new_goods_list.push(new_goods_obj)
             }
+            all_goods_list= all_goods_list.concat(new_goods_list)
             new_order_obj['order_goods'] = new_goods_list
-                    
-    return new_order_obj
+
+    return {"new_order_obj":new_order_obj,"item_goods_list":all_goods_list}
 }
 
 
@@ -389,6 +407,66 @@ function color_size_replace_string(old_string){
 
     return old_string
 }
+
+function apichuammei_wait_send_tab_init(){
+        console.log("apichuammei_wait_send_tab_init")
+        $("#daifa_page_span").remove()
+        $(".StatisticsTradeCount").prepend('<span id="daifa_page_span" class="StatisticsTradeTab StatisticsTradeTabCheck">代发页面订单</span>')
+        $("#daifa_page_span").click(function () {
+             $(".data_div17").remove()
+             let disp = $(".WaitPrintListHeight").css("display")
+             let chuanmei_data_show = "flex"
+             let data_show_17 = "None"
+             let data_show_curr_page_17 = "None"
+             if(disp === "flex"){
+                 chuanmei_data_show = "None"
+                 data_show_17 = "flex"
+             }else{
+                 chuanmei_data_show = "flex"
+                 data_show_17 = "None"
+             }
+
+             if(data_show_17 === "flex"){
+
+                 chrome.storage.local.get({"chuanmei_order_list_cache":{}},function (local_data) {
+
+                 let append_elems_str = '<div class="data_div17">\n'+
+                     '<div>' +
+                     '<button id="to_place_order_17"  style="margin: 1em; padding-left: 1em;padding-right: 1em">选中的获取地址去下单</button>' +
+                     '<button id="add_order_to17"  style="margin: 1em; padding-left: 1em;padding-right: 1em">选中的缓存到待下单缓存</button>' +
+                     '<button id="go_to_place_order_to_17"  style="margin: 1em; padding-left: 1em;padding-right: 1em">跳转到17下单页面</button>' +
+
+                     '<button   style="width: 6em" id="clean_table_17" >清除表数据(删表)</button>' +
+                     '<button id="ignore_order_btn">不显示已下单订单</button>' +
+                     '<span id="total_pages17"></span>' +
+                     '<input placeholder="第几页" style="width: 4em" id="dump_page_input17"  value="1"/>' +
+                     '<button  style="width: 4em" id="dump_page_btn17" >跳转</button>' +
+                     '<button  style="width: 4em" id="dump_pre_page_btn17" >上一页</button>' +
+                     '<button  style="width: 4em" id="dump_next_page_btn17" >下一页</button>' +
+
+
+                     '</div>'
+                 let wait_send_list = local_data["chuanmei_order_list_cache"]
+                 console.log("读取本地储存记录,",wait_send_list)
+                      $(".item_data_div17").remove()
+                     apichuammei_curr_page_ui_update()
+
+                 append_elems_str = append_elems_str + "</div>"
+                 $(".WaitPrintListHeight").after(append_elems_str)
+                  apichuammei_wait_send_page_init()
+                  update_chuammei_wait_send_page_data()
+
+                })
+             }
+             $(".WaitPrintListHeight").css("display",chuanmei_data_show)
+             $(".data_div17").css("display",data_show_17)
+
+
+         })
+
+
+}
+
 // 传美代发货页面
 function apichuammei_wait_send_page_init(){
         let dum_page = 0
@@ -400,10 +478,26 @@ function apichuammei_wait_send_page_init(){
         $("#to_place_order_17").unbind("click")
         $("#add_order_to17").unbind("click")
         $("#go_to_place_order_to_17").unbind("click")
-        $("#order_cache_btn").unbind("click")
+        $("#clean_table_17").unbind("click")
+        $(".show_goods_lb_17").unbind("click")
+        $(".show_goods_sku_lb_17").unbind("click")
+
         $("#ignore_order_btn").unbind("click")
         $("#dump_page_btn17").unbind("click")
         $(".tb_flag_label").unbind("click")
+        $(".show_goods_lb_17").click(function () {
+            let parent_div = $(this).parent()
+            let cur_item_goods_id = $(parent_div.find(".goods_id_lb")[0]).text().trim()
+            websqlapi_query_tb_refund_order_data("tb_refund_table",{"goods_id":cur_item_goods_id,"refund_address":"我仓地址","update_page":"待发货页面","click_button":$(this)})
+        })
+
+        $(".show_goods_sku_lb_17").click(function () {
+            let parent_div = $(this).parent()
+            let cur_item_goods_id = $(parent_div.find(".goods_id_lb")[0]).text().trim()
+            let goods_color_lb = $(parent_div.find(".goods_color_lb")[0]).text().trim()
+            let goods_size_lb = $(parent_div.find(".goods_size_lb")[0]).text().trim()
+            websqlapi_query_tb_refund_order_data("tb_refund_table",{"goods_id":cur_item_goods_id,"refund_address":"我仓地址","update_page":"待发货页面","color":goods_color_lb,"size":goods_size_lb,"click_button":$(this)})
+        })
          $(".tb_flag_label").click(function(){
             console.log("旺旺ID：", $(this).parent().find(".seller_wang_wang_id_17"))
             let tb_order_number = $($(this).parent().find(".tb_order_number_lb_17")[0]).text().trim()
@@ -753,6 +847,9 @@ function apichuammei_wait_send_page_init(){
                 })
 
          })
+       $("#clean_table_17").click(function (){
+           websqlapi_drop_table("tb_goods_title_update_table")
+       })
        $("#go_to_place_order_to_17").click(function(){
 
             chrome.storage.local.get({"my_tb_wait_send_order_cache1":[]},function (data0) {
@@ -838,71 +935,7 @@ function apichuammei_wait_send_page_init(){
 
 
        })
-       $("#order_cache_btn").click(function () {
 
-            let customer_set_page_count = 0
-            customer_set_page_count =  $("#order_cache_page_count")[0].value
-            let end_time_stm = new Date().getTime()
-            let dur_time_stm = 60*24*60*60*1000
-            let start_time_stm = end_time_stm  - dur_time_stm
-
-            let start_time = format_stmp_to_time(start_time_stm)
-            let end_time = format_stmp_to_time(end_time_stm)
-
-            let counts_result = apichuanmei_get_order_counts(start_time,end_time)
-            console.log("counts_result",counts_result)
-            let counts = 0
-            let total_page = 0
-            let page_size = 20
-            if(counts_result.success === true){
-                counts = counts_result["data"]['counts']
-            }
-
-            total_page  = Math.ceil(parseInt(counts,10)/page_size)// 向上去整
-           if(customer_set_page_count!==undefined && customer_set_page_count!=='' && customer_set_page_count!==0 && (!isNaN(customer_set_page_count)) && (customer_set_page_count < total_page || customer_set_page_count  === total_page)){
-               total_page =  customer_set_page_count
-            }
-            console.log("总页数："+total_page)
-            let order_list = []
-            let order_data = {}
-            let order_data_list = []
-
-            for(let i=0;i<total_page;i++){
-                let pageNo = i+1
-                let result_data = apichuanmei_get_order(start_time,end_time,pageNo,page_size)
-                for(let j = 0;j < result_data['list'].length;j++){
-
-                    //同个用户同地址多订单
-                    let order_item_list = result_data['list'][j]
-                    for(let o = 0;o<order_item_list.length;o++){
-
-                        let new_order_obj =  apichuanmei_order_item_replace(order_item_list[o])
-                        let tb_order_number = new_order_obj['tb_order_number']
-                         if(order_item_list.length > 1){
-                             // 合并订单
-                            new_order_obj['merge_order']  = order_item_list.length + "-" +o
-                        }
-                        order_data[tb_order_number] = new_order_obj
-                        order_data_list.push(new_order_obj)
-                    }
-
-                    // order_list.push(new_order_obj)
-                }
-
-            }
-
-
-            console.log("所有订单:",order_data)
-             chrome.storage.local.set({"chuanmei_order_cache":order_data},function () {
-                                console.log("chuanmei_order_cache保存成功，",order_data)
-                                Toast("缓存成功")
-                            })
-            chrome.storage.local.set({"chuanmei_order_list_cache":order_data_list},function () {
-                                console.log("保存成功，",order_data_list)
-                                Toast("缓存成功")
-                            })
-            console.log("总页数:",total_page)
-        })
        $("#ignore_order_btn").click(function () {
 
            $(".order_info_table_17").each(function(){
@@ -933,9 +966,10 @@ function apichuammei_wait_send_page_init(){
 //订单统计页面
 function apichuammei_beihuo_page_init(){
         console.log("传美备货页面初始化............")
-
+      websqlapi_open_db()
+      websqlapi_init_tb_refund_table()
      $(".StatisticsTradeCount").prepend('<span  id="return_packge_totel" class="">实时退件统计(已派件/签收)</span>')
-            $("#return_packge_totel").click(function () {
+      $("#return_packge_totel").click(function () {
              // $(".data_div17").remove()
              let disp = $(".StockUpList").css("display")
              let chuanmei_data_show = "flex"
@@ -967,6 +1001,10 @@ function apichuammei_beihuo_page_init(){
                          '<button  style="margin-left: 1em"  class="is_received_return_order">显示已签收退货sku</button>' +
                              '<button  style="margin-left: 1em"  class="is_received_long_time_order">显示已签收很久的sku</button>' +
                          '<button  style="margin-left: 1em"  class="has_logistics_log_return_order">显示有物流退货sku</button>' +
+                             '<select id="renfund_order_show_model_17">\n' +
+                          '<option value="统计模式">统计模式</option>\n' +
+                          '<option value="列表模式">列表模式</option>\n' +
+                          '</select>' +
                          '<select id="renfund_order_select_17">\n' +
                           '<option value="显示全部">显示全部</option>\n' +
                           '<option value="显示有物流的">显示有物流的</option>\n' +
@@ -978,7 +1016,7 @@ function apichuammei_beihuo_page_init(){
 
                           '</select>' +
                          '<button  style="margin-left: 1em"  id="query_refund_data_17_btn">查询</button>' +
-                         '<button  style="margin-left: 1em"  class="clean_all_data">清除数据</button>' +
+                         '<button  style="margin-left: 1em"  class="clean_all_data">清除数据(包括删表)</button>' +
                          '</div>'
                      append_elems_str = append_elems_str + "</div>"
 
@@ -1099,7 +1137,7 @@ function apichuammei_beihuo_page_init(){
                                 console.log("数据内容1：",persons);
                                 persons.shift()
                                 websqlapi_open_db()
-                                websqlapi_drop_table("tb_refund_table")
+                                websqlapi_delete_all_data_from_table("tb_refund_table")
                                 apichuammei_save_refun_data_to_db(persons)
                                 // websqlapi_query_tb_refund_order_data("",{"refund_address":"我仓地址"})
 
@@ -1115,12 +1153,13 @@ function apichuammei_beihuo_page_init(){
 
                          let value = $("#renfund_order_select_17").find("option:selected").val()
                          let address_value = $("#renfund_address_select_17").find("option:selected").val()
+                         let  show_model_17 = $("#renfund_order_show_model_17").find("option:selected").val()
 
 
                           console.log("value",value)
                           console.log("address_value",address_value)
                           websqlapi_open_db()
-                          websqlapi_query_tb_refund_order_data("",{"refund_address":address_value,"logistics_status":value})
+                          websqlapi_query_tb_refund_order_data("",{"refund_address":address_value,"logistics_status":value,"show_model":show_model_17,"update_page":"备货页面","order_by":[ " logistics_update_time asc"]})
                      });
                      $(".get_refund_orderr").click(function () {
                           let date = new Date()
@@ -1218,6 +1257,7 @@ function apichuammei_beihuo_page_init(){
                           $(".data_div17_all_content").remove()
                           $(".data_div17_received_content").remove()
                           $(".has_logistics_log_content").remove()
+                            websqlapi_drop_table("tb_refund_table")
 
                      })
                      $(".is_received_return_order").click(function () {
@@ -1268,7 +1308,7 @@ function apichuammei_beihuo_page_init(){
                       })
                  }
 
-                
+
 
 
              }
@@ -1317,7 +1357,9 @@ function apichuammei_save_update_page_data_refund_order(chuanmei_excel_data_list
    $(".is_received_return_order").attr("value",JSON.stringify(is_received_data))
    $(".is_received_long_time_order").attr("value",JSON.stringify(is_received_long_time_list))
    $(".has_logistics_log_return_order").attr("value",JSON.stringify(has_logistics_log_data))
+
     let append_elems_str = apichuammei_return_refund_table(all_data)
+    $(".data_div17_all_content").remove()
     $(".data_div17_top").after(append_elems_str)
 
 }
@@ -1361,12 +1403,14 @@ function apichuammei_is_recived_long_time_table(all_data_list){
 
               for(let i = 0;i<all_data_list.length;i++){
 
-                    append_elems_str = append_elems_str +'<li>' +
+                    append_elems_str = append_elems_str +'<li style="float: left;">' +
+                        '<img src="'+all_data_list[i]["img_url"]+'" style="width: 3em; height: 3em"/>'+
                         all_data_list[i]["goods_name"] +"  "+
                         all_data_list[i]["logistics_update_time"] +"  "+
                         all_data_list[i]["return_logistics_number"] +"  "+
-                        all_data_list[i]["return_logistics_info"].substring(0,30) +"  "+
-                '</li><text style="display: block">---------------------</text>'
+
+                        // all_data_list[i]["return_logistics_info"].substring(0,30) +"  "+
+                '</li> '
               }
                // let goods_img = "https://"+all_data[key]['img']
 
@@ -1417,11 +1461,11 @@ function apichuammei_save_refun_data_to_db(data_list){
 // 14: "回退单号最新物流"
 // 15: "卖家备注"
 // 16: "卖家旗帜"
-    let tableName = "tb_refund_table"
 
 
-      websqlapi_init_tb_refund_table()
-        console.log("data_list111111",data_list)
+
+
+    console.log("data_list111111",data_list)
     for(let i=0;i<data_list.length;i++){
         let item_data = data_list[i]
         // let save_data_item = [item_data[0],item_data[1],item_data[2],item_data[3],item_data[4],item_data[5],item_data[6],item_data[7],item_data[8],item_data[10],item_data[11],item_data[12],item_data[13],item_data[14],item_data[15],item_data[16],]
@@ -1505,7 +1549,7 @@ function apichuanmei_analysis_beihuo_data(data_list){
             }
         }
 
-        if(item_data['return_logistics_info']!==undefined && item_data['return_logistics_info']!==""){
+        if(item_data['return_logistics_number']!==undefined && item_data['return_logistics_number']!==""){
             //已签收
             if(has_logistics_log_obj[item_data['goods_name']]!== undefined && has_logistics_log_obj[item_data['goods_name']]!==""){
                 has_logistics_log_obj[item_data['goods_name']]["color_size_list"].push(item_data['sku_name'])
@@ -1617,7 +1661,7 @@ function apichuammei_get_excel_refund_item_data(item_list){
 
 //淘宝导出的售后订单数据
 function apichuammei_get_excel_refund_taobao_item_data(item_list){
-    //0订单编号	1退款编号	2支付宝交易号	3订单付款时间	4商品编码	5退款完结时间	6买家实际支付金额	7宝贝标题	8买家退款金额	9手工退款/系统退款	10是否需要退货	11退款的申请时间	12超时时间	13退款状态	14货物状态	15退货物流信息	16发货物流信息	17客服介入状态	18卖家真实姓名	19卖家退货地址	20卖家邮编	21卖家电话	22卖家手机	23退货物流单号	24退货物流公司	25买家退款原因	26买家退款说明	27买家退货时间	28责任方	29售中或售后	30商家备注	31完结时间	32部分退款/全部退款	33审核操作人	34举证超时	35是否零秒响应	36退款操作人	37退款原因标签	38业务类型	39是否帮他退款	40帮他退款操作账号
+    //0订单编号	1退款编号	2支付宝交易号	3订单付款时间	4商品编码	5退款完结时间	6买家实际支付金额	7宝贝标题	8买家退款金额	9手工退款/系统退款	10是否需要退货	11退款的申请时间	12超时时间	13退款状态	14货物状态	15退货物流信息	16发货物流信息	17客服介入状态	18卖家真实姓名 19卖家真实姓名新	20卖家退货地址	21卖家邮编	22卖家电话	23卖家手机	24退货物流单号	25退货物流公司	26买家退款原因	27买家退款说明	28买家退货时间	29责任方	30售中或售后	31商家备注	32完结时间	33部分退款/全部退款	34审核操作人	35举证超时	36是否零秒响应	37退款操作人	38退款原因标签	39业务类型	40是否帮他退款	41帮他退款操作账号
 
     let return_data = {}
     let return_data_obj = {}
@@ -1629,12 +1673,12 @@ function apichuammei_get_excel_refund_taobao_item_data(item_list){
 
 
 
-        new_item_obj['return_logistic_number_tb'] = item_list[i][23]
+        new_item_obj['return_logistic_number_tb'] = item_list[i][24]
 
         new_item_obj['seller_wangwang_id_tb'] = item_list[i][18]
-        new_item_obj['refund_address_tb'] = item_list[i][19]
-        new_item_obj['seller_phone_tb'] = item_list[i][21]
-        new_item_obj['seller_mobile_tb'] = item_list[i][22]
+        new_item_obj['refund_address_tb'] = item_list[i][20]
+        new_item_obj['seller_phone_tb'] = item_list[i][22]
+        new_item_obj['seller_mobile_tb'] = item_list[i][23]
         return_data_obj[new_item_obj['order_number_tb']] = new_item_obj
         return_data_list.push(new_item_obj)
     }
@@ -1706,7 +1750,7 @@ function apichuanmei_dump_page(dum_page,page_size,total_page,start_time,end_time
 // 保存一个页面的数据到缓存
 function apichuammei_save_page_data(result_data,dum_page){
                      console.log("一页数据：",result_data)
-                let order_list = []
+                let all_goods_list = []
                 let order_data = {}
                 let order_data_list = []
 
@@ -1717,7 +1761,11 @@ function apichuammei_save_page_data(result_data,dum_page){
                     let tem_order_data_list = []
                     let mul_order_tb_order_number_str = "【多订单"
                     for(let o = 0;o<order_item_list.length;o++){
-                        let new_order_obj =  apichuanmei_order_item_replace(order_item_list[o])
+                        let return_obj =  apichuanmei_order_item_replace(order_item_list[o])
+                        let new_order_obj =  return_obj["new_order_obj"]
+                        let item_goods_list =  return_obj["item_goods_list"]
+                        all_goods_list  = all_goods_list.concat(item_goods_list)
+
                         let tb_order_number = new_order_obj['tb_order_number']
                         order_data[tb_order_number] = new_order_obj
                         if(order_item_list.length > 1){
@@ -1738,16 +1786,8 @@ function apichuammei_save_page_data(result_data,dum_page){
                     order_data_list = order_data_list.concat(tem_order_data_list)
                     // order_list.push(new_order_obj)
                 }
-                 chrome.storage.local.get({"chuanmei_order_cache":{}},function (local_data_obj) {
-                                console.log("local_data_obj缓存，",local_data_obj)
-                                let local_data  = local_data_obj["chuanmei_order_cache"]
-                                let new_obj = Object.assign(local_data,order_data)
+                apichuanmei_save_goods_title_change_record(all_goods_list)
 
-                                chrome.storage.local.set({"chuanmei_order_cache":new_obj},function () {
-                                 console.log("保存成功，",new_obj)
-
-                            })
-                            })
                 //实时页面数据缓存
                  chrome.storage.local.set({"chuanmei_curr_page_order_list_cache":order_data_list},function () {
                      console.log("实时页面数据缓存保存成功，",order_data_list)
@@ -1874,16 +1914,21 @@ function apichuammei_curr_page_ui_update(dum_page){
                                if(goods_list[g]["refund_status"] !== "无退款"){
                                    goods_refund_tip = "background:#b83400"
                                }
+
                                let goods_str =
                                  '  <div style="background: white;padding-left: 2em">\n' +
                                  '    <img style="width: 5em;height: 5em;" src="https:'+goods_list[g]["goods_pic"]+'">\n' +
-                                     '    <label style="margin-left: 1em">'+goods_list[g]["goods_id"]+' <label>\n' +
-                                 '    <label>商家编码：</label><label style="margin-left: 1em">'+goods_list[g]["code"]+'<label>\n' +
+                                    '        <label class="show_goods_lb_17" style="background: #0b97c4">show </label> \n' +
+                                     '    <label class="goods_id_lb" style="margin-left: 1em">'+goods_list[g]["goods_id"]+' </label>\n' +
+                                     '    <label  class="goods_title_lb" style="margin-left: 1em;display: none">'+goods_list[g]["title"]+' </label>\n' +
+
+                                 '    <label>商家编码：</label><label style="margin-left: 1em">'+goods_list[g]["code"]+'</label>\n' +
                                  '    <label style="'+goods_refund_tip+'">'+goods_list[g]["refund_status"]+'</label>'+
-                                 '    <label style="color:red;">'+goods_list[g]["status"]+'</label><label>  颜色尺码：</label><label>'+goods_list[g]["color"]+'</label><label>'+goods_list[g]["size"]+'</label><label> x'+goods_list[g]["goods_counts"]+'件</label>\n' +
+                                 '    <label style="color:red;">'+goods_list[g]["status"]+'</label><label>  颜色尺码：</label><label class="goods_color_lb">'+goods_list[g]["color"]+'</label><label class="goods_size_lb">'+goods_list[g]["size"]+'</label><label> x'+goods_list[g]["goods_counts"]+'件</label>       <label class="show_goods_sku_lb_17" style="background: #0b97c4">show </label>    \n' +
                                  '</div>\n'
                             append_elems_str = append_elems_str +goods_str
                           }
+
                            append_elems_str = append_elems_str+
                            '  <label>'+wait_send_list[i]["pay_time"]+'</label> <label style="color: red"> 总价'+wait_send_list[i]["payFee"]+'元</label>\n'+
                          '   </div>\n' +
@@ -1902,6 +1947,10 @@ function apichuammei_curr_page_ui_update(dum_page){
                   update_chuammei_wait_send_page_data()
 
                 })
+}
+
+function show_goods_refund(elem,params){
+ console.log("this:",elem)
 }
 
 // 获取售后订单
@@ -2133,7 +2182,7 @@ function apichuanmei_start_listen_jin_tuikuan(){
                             console.log("chuanmei_listen_jin_tuikuan get成功1，",local_data_obj["chuanmei_listen_jin_tuikuan"])
                              let chuanmei_listen_jin_tuikuan  = local_data_obj["chuanmei_listen_jin_tuikuan"]
                              let listen_is_run  = chuanmei_listen_jin_tuikuan["chuanmei_listen_is_run"]
-                           
+
                              if(listen_is_run === undefined || listen_is_run === false){
                                   listen_is_run = true
                              }else{
@@ -2209,6 +2258,55 @@ function apichuanmei_media_tip_jin_tuikuan_order(){
 
 
 }
+// 传美待发货上面记录页面
+function apichuanmei_show_refund_goods_log_dailog(goods_log_list,click_button){
+console.log("click_button:",click_button)
+    let m_postion = $(click_button).offset();
+    console.log("m_postion:",m_postion)
+    let parent_height = $(click_button).parent().height()
+    let goods_list_data = goods_log_list
+
+    let div_str  = " <div class='refund_goods_log_div_17' style='padding:10px;background: #bbbbbb; position: absolute;display: block;left:0px ;top: 0px'>" +
+     "<span class='close_refund_goods_log_div_17' style='display: block'>close</span>"
+        for(let i=0;i<goods_list_data.length;i++){
+            div_str = div_str+
+            "<li style='display: block'>"+
+                "<img style='width: 3em; height: 3em' src='"+goods_list_data[i]["img_url"]+"'>" +
+                "<label>"+goods_list_data[i]["sku_name"]+"</label>  "+
+                "<label class='return_logistics_number_dialog_17'>"+goods_list_data[i]["return_logistics_number"]+"</label>  "+
+
+                "<label>"+goods_list_data[i]["logistics_update_time"]+"</label>  "+
+                "<label class='query_logistics_dialog_17'>查询物流</label>  "+
+
+            " </li>"
+
+        }
+
+        "</div>"
+    $(".refund_goods_log_div_17").remove()
+
+    $(".data_div17").append(div_str)
+     $(".refund_goods_log_div_17").offset(m_postion)
+    $(".close_refund_goods_log_div_17").click(function () {
+        $(".refund_goods_log_div_17").remove()
+    })
+    $(".query_logistics_dialog_17").click(function () {
+
+        let logistics_number_lb =   $(this).parent().find(".return_logistics_number_dialog_17")
+        console.log("logistics_number_lb",logistics_number_lb)
+        let logistics_number  = $( $(this).parent().find(".return_logistics_number_dialog_17")[0]).text().trim()
+        let params = {"logistics_number":logistics_number}
+         // $(".kuaid100_last_message_show").remove()
+         $(".kuaid100_last_message_show").barcode("1234567890128", "ean13");
+        chrome.runtime.sendMessage({method:'get_kuaid100_logistics' ,"params":JSON.stringify(params)},function(response) {
+
+
+            console.log(response)
+        });
+    })
+
+}
+
 
 //查询已发货订单
 function apichuammei_query_sended_order(seller_wangwang_id,tb_order_number,start_time,end_time){
@@ -2296,13 +2394,20 @@ function apichuammei_query_sended_order(seller_wangwang_id,tb_order_number,start
 
 
 
-
 window.addEventListener("message",e=>{
     // {"responseText":this.responseText,"url":this._url},"*"
 
     if(e.data.url !==undefined && e.data.url.indexOf('printMulti/searchMulti.do')!==-1 ){
         console.log("传美js接收到消息",e.data.responseText)
-        apichuammei_save_page_data(JSON.parse(e.data.responseText).data.listhb)
+         websqlapi_open_db()
+         websqlapi_init_tb_goods_title_update_table()
+         apichuammei_save_page_data(JSON.parse(e.data.responseText).data.listhb)
+        if(main_is_return() === false){
+            setTimeout(function () {
+                apichuammei_wait_send_tab_init()
+            },2000)
+
+        }
         return
     }
 
@@ -2321,7 +2426,7 @@ window.addEventListener("message",e=>{
             if(sellerMemo!=="" && (sellerMemo.indexOf("质量问题")!==-1 || sellerMemo.indexOf("jjjj")!==-1)){
                  Toast("质量问题")
                  alert("质量问题")
-
+                 return
             }
             let result_ = apichuanmei_add_tag_tb(tb_seller_wangwangid,tb_order_number,null,sellerMemo,sellerFlag)
             if(result_["success"] === false){
@@ -2335,6 +2440,33 @@ window.addEventListener("message",e=>{
         let content = $(".el-input__inner").select()
 
         return
+    }
+})
+
+
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+    var method = request.method;
+    var to = request.to;
+    console.log("chuanmei_api_addListener:",request)
+
+    if(to ==="chuammei" && method ==="update_kuaid100_logistics_data"){
+         let data = JSON.parse(request.kuaidi100_data)
+         if(data["success"] !=="success"){
+             Toast(data["message"],5000)
+             return
+         }
+         let logistics_data =data["logistics_data"]
+
+        if(logistics_data["data"]!==undefined && logistics_data["data"].length !==0){
+            let content  = logistics_data["data"][0]["ftime"]+" " +logistics_data["data"][0]["context"]
+            console.log(content)
+
+
+             $(".refund_goods_log_div_17").prepend("<div class='kuaid100_last_message_show'>"+content+"</div>")
+
+        }
+        console.log(data)
+
     }
 })
 

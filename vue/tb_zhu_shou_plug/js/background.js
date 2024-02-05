@@ -282,6 +282,33 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             })
 
 
+    }else if(method === "get_kuaid100_logistics"){
+	    console.log("method",method)
+        let url = "https://www.kuaidi100.com/ "
+	    let m_params = JSON.parse(request.params)
+        console.log("m_params",m_params)
+	    chrome.cookies.getAll({'url':url}, function(cookie) {
+	        let cookies_obj = {}
+            let cookie_str = ""
+            let cookie_string = ""
+            for (let i in cookie) {
+                    let name = cookie[i].name;
+                    let value = cookie[i].value;
+                    cookies_obj[name] = value;
+                    cookie_str += (name + "=" + value + ";\n");
+                    cookie_string += (name + "=" + value +"&");
+                }
+
+                let  query_result = kuaid100_get_logistics_info2(cookies_obj,m_params)
+                console.log("query_result",query_result)
+                chrome.tabs.sendMessage(sender.tab.id, {method:"update_kuaid100_logistics_data",to:"chuammei",kuaidi100_data:JSON.stringify(query_result)}, function(response) {
+
+                 });
+
+
+            })
+
+
     }
 
 });
