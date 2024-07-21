@@ -1,4 +1,5 @@
-let BASE_URL_315 ="https://www.315df.com"
+// let BASE_URL_315 ="https://www.315df.com"
+let BASE_URL_315 ="http://315df.com"
 let logistics_choies_315 = {
     "圆通[菜鸟]":19,
     "圆通-【菜鸟】":19,
@@ -12,6 +13,7 @@ let logistics_choies_315 = {
 
 let logistics_name_string_315 = {
     "圆通[菜鸟]": "圆通-【菜鸟】",
+    "圆通": "圆通-【菜鸟】",
     "韵达": "韵达-菜鸟",
     "EMS": "EMS特快",
 
@@ -39,7 +41,7 @@ function api315_check_address_is_ok(logistics_name,privince,address){
         let area = privince
         let adr = address
         // let url_ = "https://www.315df.com"+"/ajax/kuaidi?kdid="+logistics_value+"&area="+privince+"&adr="+address
-        let url_ = "https://www.315df.com/ajax/kuaidi?kdid="+kdid+"&area="+privince+"&adr="+address
+        let url_ = BASE_URL_315+"/ajax/kuaidi?kdid="+kdid+"&area="+privince+"&adr="+address
 
   
     $.ajax({
@@ -166,6 +168,13 @@ function api315_add_order_17to315(submit_order_list){
                                      let lipin_value = lipin_315[order.gift_315]
                                     $($(order_item_elems[i]).find("input[name='liping'][value='"+lipin_value+"']")[0]).attr("checked",'true')
                                   }
+
+                                  if( order.order_remarks!== undefined && order.order_remarks.remarks_text!== undefined &&  order.order_remarks.remarks_text!== ""){
+                                     let order_remarks = order.order_remarks.remarks_text
+                                    // $($(order_item_elems[i]).find("input[name='mark']")[0].setAttribute("value",order_remarks))
+                                    $($(order_item_elems[i]).find("input[name='tb_orderid']")[0].setAttribute("value",order_remarks))
+
+                                  }
                              }
                          }
 
@@ -236,71 +245,90 @@ function api315_get_order_from315(params){
                         cur_page =  paginator_text.match(cur_page_reg)[0].replace("第",'').replace("页",'').trim()
                         page_counts = paginator_text.match(page_counts_reg)[0].replace("共",'').replace("页",'').trim()
                     }
-
                     if(order_list_div.length !==0){
-
-                          let ul_elems = $(order_list_div[0]).find("ul")
-                         for(let i = 0 ;i<ul_elems.length;i++){
-                             let logistics_name = ""
-                             let logistics_number = ""
-                             let tb_order_number = ""
-                             console.log("ul_elems",i)
-                             // let tb_order_number_td_elems0 = $(ul_elems[i]).find("td:contains(同步淘宝订单)")
-                             let tb_order_number_td_elems = $($(ul_elems[i]).find("tbody").find("tr")[1]).find("td:contains(备注：)")
-                             console.log("tb_order_number_td_elems:",tb_order_number_td_elems)
-
-                             let logistics_td_elems = $(ul_elems[i]).find("td:contains(单号：)")
-
-                             if(tb_order_number_td_elems.length !==0){
-                                 let order_number_str  =  $(tb_order_number_td_elems[0]).text()
-                                 if(order_number_str.indexOf("第三方订单")!==-1){
-                                     order_number_str = order_number_str.substring(0,order_number_str.indexOf("第三方订单"))
-                                 }
-                                 order_number_str = order_number_str.replace("插件同步淘宝订单：","").replace("备注：" ,"")
-                                 // let tem_arr = order_number_str.split("：")
-                                 // let length = tem_arr.length
-                                 // let order_number = tem_arr[length-1]
-                                 console.log("tb_order_number",order_number_str)
-                                 tb_order_number = "os"+order_number_str
-                                 if(mcommon_get_base_url_remote_server_address_17() === mcommon_get_base_url_remote_server_address_17()){
-                                     tb_order_number = "r"+tb_order_number
-                                 }
-
-                             }
-                             if(logistics_td_elems.length !==0){
-                                 console.log("物流元素:",logistics_td_elems)
-                                 let text_arr = $(logistics_td_elems[0]).text().split("名称：")
-
-                                 let name_number_arr = text_arr[1].split("单号：")
-
-                                 if(name_number_arr.length===2){
-                                     let logistics_name1 = name_number_arr[0].trim()
-                                     let logistics_number1 = name_number_arr[1].trim()
-                                     if(logistics_name1 !=="" && logistics_number1!=="" ){
-                                         if(logistics_name1==="圆通-【菜鸟】"){
-                                             logistics_name1 = logistics_name1.replace("圆通-【菜鸟】","圆通[菜鸟]")
-                                         }
-                                        logistics_name = logistics_name1
-                                        logistics_number = logistics_number1
-                                     }
-                                 }
-
-                             }
-                              console.log("logistics_number1",logistics_number)
-                             if(logistics_name !=="" && logistics_number!=="" &&  tb_order_number !==""){
-                                 logistics_number = logistics_number.replace("上传PDF","").trim()
-                                let obj = {"logistics_name":logistics_name,"logistics_number":logistics_number,"order_number":tb_order_number}
-                                console.log("logistics_number2",logistics_number)
-                                order_list.push(obj)
-                         }
-
-
-
-                     }
-                     
-
+                        order_list = api315_get_curr_page_order_info(order_list_div)
                     }
-
+                    // ***********************api315_get_curr_page_order_info开始***************************
+                    // if(order_list_div.length !==0){
+                    //
+                    //       let ul_elems = $(order_list_div[0]).find("ul")
+                    //      for(let i = 0 ;i<ul_elems.length;i++){
+                    //          let logistics_name = ""
+                    //          let logistics_number = ""
+                    //          let tb_order_number = ""
+                    //          console.log("ul_elems",i)
+                    //          // let tb_order_number_td_elems0 = $(ul_elems[i]).find("td:contains(同步淘宝订单)")
+                    //          let tb_order_number_td_elems = $($(ul_elems[i]).find("tbody").find("tr")[1]).find("td:contains(备注：)")
+                    //          console.log("tb_order_number_td_elems:",tb_order_number_td_elems)
+                    //
+                    //          let logistics_td_elems = $(ul_elems[i]).find("td:contains(单号：)")
+                    //
+                    //          if(tb_order_number_td_elems.length !==0){
+                    //              let order_number_str  =  $(tb_order_number_td_elems[0]).text()
+                    //              if(order_number_str.indexOf("第三方订单")!==-1){
+                    //                  order_number_str = order_number_str.substring(0,order_number_str.indexOf("第三方订单"))
+                    //              }
+                    //              order_number_str = order_number_str.replace("插件同步淘宝订单：","").replace("备注：" ,"")
+                    //              // order_number_str = "12345678-12345689-012345678"
+                    //              // let tem_arr = order_number_str.split("：")
+                    //              // let length = tem_arr.length
+                    //              // let order_number = tem_arr[length-1]
+                    //              console.log("tb_order_number",order_number_str)
+                    //              tb_order_number = "os"+order_number_str
+                    //              if(mcommon_get_base_url_remote_server_address_17() === mcommon_get_base_url_remote_server_address_17()){
+                    //                  tb_order_number = "r"+tb_order_number
+                    //              }
+                    //
+                    //          }
+                    //          if(logistics_td_elems.length !==0){
+                    //              console.log("物流元素:",logistics_td_elems)
+                    //              let text_arr = $(logistics_td_elems[0]).text().split("名称：")
+                    //
+                    //              let name_number_arr = text_arr[1].split("单号：")
+                    //
+                    //              if(name_number_arr.length===2){
+                    //                  let logistics_name1 = name_number_arr[0].trim()
+                    //                  let logistics_number1 = name_number_arr[1].trim()
+                    //                  if(logistics_name1 !=="" && logistics_number1!=="" ){
+                    //                      if(logistics_name1==="圆通-【菜鸟】"){
+                    //                          logistics_name1 = logistics_name1.replace("圆通-【菜鸟】","圆通[菜鸟]")
+                    //                      }
+                    //                     logistics_name = logistics_name1
+                    //                     logistics_number = logistics_number1
+                    //                  }
+                    //              }
+                    //
+                    //          }
+                    //
+                    //          if(logistics_name !=="" && logistics_number!=="" &&  tb_order_number !==""){
+                    //              logistics_number = logistics_number.replace("上传PDF","").trim()
+                    //             let obj = {"logistics_name":logistics_name,"logistics_number":logistics_number,"order_number":tb_order_number}
+                    //             console.log("logistics_number2",logistics_number)
+                    //              if(obj['order_number'].indexOf("-")!==-1){
+                    //                  let pre_str  = obj['order_number'].substring(0,obj['order_number'].indexOf("os")+2)
+                    //                  let content_str = obj['order_number'].replace(pre_str,"")
+                    //
+                    //
+                    //                   let content_arr = content_str.split("-")
+                    //                   for(let o = 0 ;o<content_arr.length;o++ ){
+                    //                       let obj_ = {"logistics_name":logistics_name,"logistics_number":logistics_number,"order_number":pre_str+content_arr[o]}
+                    //
+                    //                       order_list.push(obj_)
+                    //                   }
+                    //              }else{
+                    //                  order_list.push(obj)
+                    //              }
+                    //
+                    //
+                    //      }
+                    //
+                    //
+                    //
+                    //  }
+                    //
+                    //
+                    // }
+                    // ***********************api315_get_curr_page_order_info结束***************************
                     page_info = {
                     "cur_page":cur_page,
                     "page_counts":page_counts,
@@ -332,6 +360,122 @@ function api315_get_order_from315(params){
    return ret
 }
 
+//新版本获取数据
+function api315_get_curr_page_order_info(order_list_div){
+
+                     // let html = html_str.substring(html_str.indexOf("<html"),html_str.indexOf("</html>")+7)
+                     // let dom = $.parseHTML(html)
+                     // let order_list_div = $(dom).find("div[class='orderlist']")
+
+                     let tb_order_list = []
+
+                    if(order_list_div.length !==0){
+
+                          let ul_elems = $(order_list_div[0]).find("ul")
+                         for(let i = 0 ;i<ul_elems.length;i++){
+                             let logistics_name = ""
+                             let logistics_number = ""
+                             let tb_order_number = ""
+
+                             // let tb_order_number_td_elems0 = $(ul_elems[i]).find("td:contains(同步淘宝订单)")
+                             let tb_order_number_td_elems = $($(ul_elems[i]).find("tbody").find("tr")[1]).find("td:contains(备注：)")
+                             let goods_ul_elems =           $($($(ul_elems[i]).find("tbody").find("tr")[0]).find("td")[0]).find("ul")
+                             let goods_item_list = []
+
+                             for(let g=0;g<goods_ul_elems.length;g++){
+
+                                      let goods_info_text = $(goods_ul_elems[g]).text().trim()
+
+                                    let match_reg  = /\[货号：(.*?)]/
+                                     let match_text = goods_info_text.match(match_reg)
+
+                                     let goods_status =  ""
+                                     console.log("goods_info_text",goods_info_text)
+                                     if(goods_info_text.indexOf("已拿货")!==-1){
+                                         goods_status = "已拿货"
+                                         let goods_item = {
+                                             "goods_no":match_text[0],
+                                             "goods_status":goods_status,
+                                         }
+                                         goods_item_list.push(goods_item)
+                                     }
+
+                             }
+
+
+
+
+                             let logistics_td_elems = $(ul_elems[i]).find("td:contains(单号：)")
+
+
+
+                             if(tb_order_number_td_elems.length !==0){
+                                 let order_number_str  =  $(tb_order_number_td_elems[0]).text()
+                                 if(order_number_str.indexOf("第三方订单")!==-1){
+                                     order_number_str = order_number_str.substring(0,order_number_str.indexOf("第三方订单"))
+                                 }
+                                 order_number_str = order_number_str.replace("插件同步淘宝订单：","").replace("备注：" ,"")
+
+                                 console.log("tb_order_number",order_number_str)
+                                 tb_order_number = "os"+order_number_str
+                                 if(mcommon_get_base_url_remote_server_address_17() === mcommon_get_base_url_remote_server_address_17()){
+                                     tb_order_number = "r"+tb_order_number
+                                 }
+
+                             }
+                             if(logistics_td_elems.length !==0){
+                                 console.log("物流元素:",logistics_td_elems)
+                                 let text_arr = $(logistics_td_elems[0]).text().split("名称：")
+
+                                 let name_number_arr = text_arr[1].split("单号：")
+
+                                 if(name_number_arr.length===2){
+                                     let logistics_name1 = name_number_arr[0].trim()
+                                     let logistics_number1 = name_number_arr[1].trim()
+                                     if(logistics_name1 !=="" && logistics_number1!=="" ){
+                                         if(logistics_name1==="圆通-【菜鸟】"){
+                                             logistics_name1 = logistics_name1.replace("圆通-【菜鸟】","圆通[菜鸟]")
+                                         }
+                                        logistics_name = logistics_name1
+                                        logistics_number = logistics_number1
+                                     }
+                                 }
+                             }
+
+                             if(logistics_name !=="" && logistics_number!=="" &&  tb_order_number !=="" && goods_item_list.length!==0){
+                                 logistics_number = logistics_number.replace("上传PDF","").trim()
+                                let obj = {"logistics_name":logistics_name,"logistics_number":logistics_number,"order_number":tb_order_number,"goods_item_list":goods_item_list,}
+
+                                 if(obj['order_number'].indexOf("-")!==-1){
+                                     let pre_str  = obj['order_number'].substring(0,obj['order_number'].indexOf("os")+2)
+                                     let content_str = obj['order_number'].replace(pre_str,"")
+
+
+                                      let content_arr = content_str.split("-")
+                                      for(let o = 0 ;o<content_arr.length;o++ ){
+                                          let obj_ = {"goods_item_list":goods_item_list,"logistics_name":logistics_name,"logistics_number":logistics_number,"order_number":pre_str+content_arr[o]}
+
+                                          tb_order_list.push(obj_)
+                                          console.log("添加对象obj_：",obj_)
+                                      }
+                                 }else{
+                                        tb_order_list.push(obj)
+                                     console.log("添加对象obj：",obj)
+                                 }
+
+
+                         }
+
+
+
+                     }
+
+
+                    }
+                    console.log("tb_order_list:",tb_order_list)
+                    return tb_order_list
+
+}
 function find_order_by_order_number(order_list,order_number){
     for(let i = 0 ; i<order_list.length;i++){
         if(order_list[i].order_number === order_number){
@@ -558,3 +702,4 @@ function changeOrder(form_elem){
         });
         return goodsItem;
     }
+

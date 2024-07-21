@@ -63,37 +63,47 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
                     cookie_string += (name + "=" + value +"&");
                 }
             let url = mcommon_get_base_url_17()+"/back/outputNullOrder/?access_token_bk="+cookies_obj['access_token_bk']
+            let order_list_all = []
             let order_list = []
             let success_counts = 0;
             let start_time_stmp = new Date().getTime()
+
             do{
                 let cur_time_stamp = new Date().getTime();
                 if ((cur_time_stamp - start_time_stmp) > 3 * 60 * 1000){
                          break
                      }
                 order_list = load_null_order_from17(url,{'for':"logistics_print"});
-                let res = apibl_init_add_null_order_page_parms(mcommon_get_null_package_base_url_bl(web_site_name))
+                if(order_list.length!==0){
+                    order_list_all = [].concat(order_list_all,order_list)
 
-                if(res.is_success){
-
-                     let ret = start_add_null_package_order_tobl(order_list,mcommon_get_null_package_base_url_bl(web_site_name),res.parms)
-                    success_counts = success_counts + ret['success_counts']
-                    if(ret['message']==="未登录"){
-                         window.open(mcommon_get_null_package_base_url_bl(web_site_name)+"/Login.aspx/");
-                         break
-                    }else if(ret['message']==='stop_task'){
-                        console.log("stop_task")
-                        break
-                    }
-                }else{
-                    if(res.message==="未登录"){
-                         window.open(mcommon_get_null_package_base_url_bl(web_site_name)+"/Login.aspx/");
-                    }
                 }
 
 
+                //*************************************下单到空包代发网**************
+                // let res = apibl_init_add_null_order_page_parms(mcommon_get_null_package_base_url_bl(web_site_name))
+                //
+                // if(res.is_success){
+                //
+                //      let ret = start_add_null_package_order_tobl(order_list,mcommon_get_null_package_base_url_bl(web_site_name),res.parms)
+                //     success_counts = success_counts + ret['success_counts']
+                //     if(ret['message']==="未登录"){
+                //          window.open(mcommon_get_null_package_base_url_bl(web_site_name)+"/Login.aspx/");
+                //          break
+                //     }else if(ret['message']==='stop_task'){
+                //         console.log("stop_task")
+                //         break
+                //     }
+                // }else{
+                //     if(res.message==="未登录"){
+                //          window.open(mcommon_get_null_package_base_url_bl(web_site_name)+"/Login.aspx/");
+                //     }
+                // }
+                //*************************************下单到空包代发网**************
+
             }while(order_list.length>0)
-             chrome.tabs.sendMessage(sender.tab.id, {"method":"add_null_order_tobl_compeleted","success_counts":success_counts}, function(response) {
+console.log("order_list_all",order_list_all)
+             chrome.tabs.sendMessage(sender.tab.id, {"method":"add_null_order_tobl_compeleted","success_counts":success_counts,"sended_order_list":order_list_all}, function(response) {
 
              });
         })
@@ -152,6 +162,27 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
             }
         })
+
+
+    }else if(method === "delivery_null_order_jsonto17"){
+	    console.log("method",method)
+
+	    chrome.cookies.getAll({'url':mcommon_get_base_vue_url_17()}, function(cookie) {
+	        let cookies_obj = {}
+            let cookie_str = ""
+            let cookie_string = ""
+            for (let i in cookie) {
+                    let name = cookie[i].name;
+                    let value = cookie[i].value;
+                    cookies_obj[name] = value;
+                    cookie_str += (name + "=" + value + ";\n");
+                    cookie_string += (name + "=" + value +"&");
+                }
+
+            api17_delivery_null_package_to17(JSON.parse(request.order_list),cookie_string,mcommon_get_base_url_17())
+
+
+             })
 
 
     }else if(method === "delivery_order_blto17"){
@@ -249,7 +280,11 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
                         }
                         let result  = api315_get_order_from315(data)
                         console.log("api315_get_order_from315--->result",result)
+
                         if(result.data!==null && result.data.order_list !==null){
+                             let order_number_list  = [order_list[i]['order_number']]
+                            // let order_17_result = api17_get_one_page_order(JSON.stringify(order_number_list))
+                            // let batch_add_chuammei_tag_result = api17_batch_add_chuammei_tab_by_17order(order_17_result['results'])
                             api17_delivery_order_to17(result.data.order_list,mcommon_get_base_url_17(),cookies_obj)
                         }
 
@@ -300,8 +335,12 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
                   console.log("获取17 cookies：，",cookies_obj)
                  do{
                         let result  = api315_get_order_from315(data)
+                        let order_number_list = []
+                        for(let l = 0;l<result.data.order_list.length;l++){order_number_list.push(result.data.order_list[l]['order_number'].replace("ros",""))}
                         console.log("api315_get_order_from315--->result",result)
-
+                        // let order_17_result = api17_get_one_page_order(JSON.stringify(order_number_list))
+                        // console.log("api17_get_one_page_order--->result",order_17_result)
+                        // let batch_add_chuammei_tag_result = api17_batch_add_chuammei_tab_by_17order(result.data.order_list,order_17_result['results'])
                         api17_delivery_order_to17(result.data.order_list,mcommon_get_base_url_17(),cookies_obj)
                         page_info = result.data.page_info
                         data['page'] = parseInt(page_info.cur_page) +1
@@ -359,6 +398,9 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
              let send_obj = {"method":"api17_get_order_to_tag_print_to315_compeleted","order_list":order_list,from_btn:request.btn_tag,"web_site_name":request.web_site_name}
              if(request.gift_315 !== undefined){
                  send_obj['gift_315'] = request.gift_315
+             }
+             if(request.is_hebing_order !== undefined){
+                 send_obj['is_hebing_order'] = request.is_hebing_order
              }
              chrome.tabs.sendMessage(sender.tab.id,send_obj , function(response) {
 
@@ -590,7 +632,7 @@ function start_add_null_package_order_tobl(order_list,url_base,page_parms){
                     name = name.substring(0,4)
                 }
                 order_text = order_text+ name+" ",
-                order_text = order_text+ order_list[i].consignee_phone+" ",
+                order_text = order_text+ order_list[i].consignee_phone.split("-")[0]+" ",
                 order_text = order_text+ order_list[i].consignee_address
                 let null_package_logistics_type_choise = mcommon_get_null_package_logistics_type_choise_bl()
                 let logistics_type = null_package_logistics_type_choise[order_list[i].logistics_name]
@@ -644,7 +686,7 @@ function init_base_data(){
 
 // 加载已付款订单
 function  load_null_order_from17(url,query_data){
-    let order_list = {}
+    let order_list = []
 
  $.ajax({
             async : false,

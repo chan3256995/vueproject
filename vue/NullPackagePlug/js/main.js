@@ -379,7 +379,7 @@ function  loadOrderPage(url,query_data){
 function init_order_page(){
 
                 if($("#delivery_order_button_from_315").length !==0){return}
-                $("#query_div2").after(" <div style='margin-top: 1em;position: fixed;bottom: 0px;background: gainsboro'><div style=' padding:2px;border: #adadad solid 1px'><input type='button' id='add_order_button_to315'   value='已付款订单下单到315'><select id='gift_select_315'><option value='请选择'>请选择</option><option value='2元好评卡'>2元好评卡</option><option value='3元好评卡'>3元好评卡</option><option value='5元好评卡'>5元好评卡</option></select></div></div>");
+                $("#query_div2").after(" <div style='margin-top: 1em;position: fixed;bottom: 0px;background: gainsboro'><div style=' padding:2px;border: #adadad solid 1px'><input type='button' id='add_order_button_to315'   value='已付款订单下单到315'><select id='gift_select_315'><option value='请选择'>请选择</option><option value='2元好评卡'>2元好评卡</option><option value='3元好评卡'>3元好评卡</option><option value='5元好评卡'>5元好评卡</option></select><input id='hebing_fahuo' style='width:1.5em;height:1.5em' type='checkbox' />同地址合并发货</div></div>");
                 $("#query_div2").after(" <div>" +
                "<select id='daifa_select_bl'><option value='请选择代发'>请选择代发</option><option value='光速代发'>光速代发</option><option value='海鸥代发'>海鸥代发</option></select>" +
                "<input type='button' id='delivery_order_button_blto17'    value='bl已发货订单同步到17'>" +
@@ -416,6 +416,18 @@ function init_order_page(){
                      let order_item = {
                          order_number :select_order_item_list[i]["order_number"].replace("os","")
                      }
+
+                      let remarks_text = select_order_item_list[i]["order_remarks"]
+                      if(remarks_text!==null){
+                          let match_text = remarks_text.match(/【多订单(.*?)】/)
+                          console.log("多订单字符串匹配:",match_text)
+                          if(match_text !== null && match_text.length !==0){
+                              match_text = match_text[0].replace("【多订单","").replace("】","")
+                              order_item = {
+                              order_number :match_text.trim()
+                            }
+                      }
+                      }
                      order_list.push(order_item)
 
                  }
@@ -521,6 +533,12 @@ function init_order_page(){
 
                  let new_order_number_list = []
                  console.log("select_order_item_list缓存：",select_order_item_list)
+                 let more_order_remarks_text = ""
+                 let is_hebing_checkbox_selected = $("#hebing_fahuo")[0].checked
+
+
+
+
                  for(let i = 0 ; i<select_order_item_list.length ;i++){
                      for(let g = 0; g < select_order_item_list[i].orderGoods.length ; g++){
                          let goods_item  = select_order_item_list[i].orderGoods[g]
@@ -529,7 +547,29 @@ function init_order_page(){
                               Toast("只能选择已付款和标签打印状态的订单")
                               return;
                           }
+
                      }
+
+                      if(select_order_item_list[i].order_remarks !== null && select_order_item_list[i].order_remarks !== undefined && select_order_item_list[i].order_remarks.remarks_text !==""){
+
+                          let remarks_text =  select_order_item_list[i].order_remarks.remarks_text
+
+                          if(more_order_remarks_text !=="" && more_order_remarks_text!==remarks_text && is_hebing_checkbox_selected===true){
+                              // 合并订单数据异常
+                              Toast("合并订单数据异常")
+                              return
+                          }
+
+                          more_order_remarks_text = remarks_text
+
+
+                          let match_text = remarks_text.match(/【多订单(.*?)】/)
+                          console.log("多订单字符串匹配:",match_text)
+                          if(match_text !== null && match_text.length !==0){
+                              match_text = match_text[0].replace("【多订单","").replace("】","")
+
+                          }
+                      }
 
                      new_order_number_list.push(select_order_item_list[i].order_number)
                  }
@@ -537,6 +577,9 @@ function init_order_page(){
                  let send_obj = {"method":"api17_get_order_to_tag_print_to315","new_order_number_list":JSON.stringify(new_order_number_list), "url":mcommon_get_base_vue_url_17(),"btn_tag":"17to315_btn"}
                  if(gift_315!=="请选择"){
                      send_obj['gift_315'] = gift_315
+                 }
+                 if(is_hebing_checkbox_selected===true){
+                     send_obj['is_hebing_order'] = is_hebing_checkbox_selected
                  }
                  chrome.runtime.sendMessage(send_obj,function (response) {
 
@@ -640,7 +683,7 @@ function init_order_page(){
 function init_null_package_page(){
 
          if($("#gs_delivery_button").length !==0){return}
-          $("#query_div2").after(" <input type='button' id='gs_delivery_button'   value='gs空包发货到17'>");
+          $("#query_div2").after(" <input type='button' id='gs_delivery_button'   value='gs空包发货到17'> <input type='file' id='delivery_null_package_excel_17'>");
          $("#gs_delivery_button").click(function () {
             chrome.runtime.sendMessage({"method":"delivery_null_order_blto17","web_site_name":"光速代发"},function (response) {
            })
@@ -656,16 +699,70 @@ function init_null_package_page(){
 
              chrome.runtime.sendMessage({"method":"get_tab_id" },function (response) {
                     chrome.runtime.sendMessage({"method":"add_null_order_tobl","url":cookies_url ,"web_site_name":"光速代发"},function (response) {
-                    })
+                            console.log("空包下单结果",response)
+                        })
              })
 
          })
+         $('#delivery_null_package_excel_17').change(function (e) {
+                        let files = e.target.files;
+                        let fileReader = new FileReader();
+                         let workbook ;
+                         let sheet_json_list = []
+                         fileReader.onload = function(ev) {
+                                try {
+                                    let data = ev.target.result
+                                    workbook = XLSX.read(data, {
+                                            type: 'binary'
+                                        }) // 以二进制流方式读取得到整份excel表格对象
+                                     // persons = []; // 存储获取到的数据
+                                } catch (e) {
+                                    console.log('文件类型不正确');
+                                    return;
+                                }
+
+                                // 表格的表格范围，可用于判断表头是否数量是否正确
+                                let fromTo = '';
+                                // 遍历每张表读取
+                                for (let sheet in workbook.Sheets) {
+                                    if (workbook.Sheets.hasOwnProperty(sheet)) {
+                                        fromTo = workbook.Sheets[sheet]['!ref'];//读取的全部数据 A1:AN203
+                                        console.log(fromTo);
+                                        // persons = persons.concat(XLSX.utils.sheet_to_json(workbook.Sheets[sheet], {defval:''}));//合并数据
+                                         sheet_json_list = sheet_json_list.concat(XLSX.utils.sheet_to_json(workbook.Sheets[sheet], {defval:''}))
+                                        console.log("sheet_json_list",sheet_json_list)
+                                        break; // 如果只取第一张表，就取消注释这行
+                                    }
+                                }
+                                //在控制台打印出来表格中的数据
+                                console.log("数据内容1：",sheet_json_list);
+
+                                let new_data_list = api17_get_excel_null_package_sended_data(sheet_json_list)
+                                 console.log("读取excel数据：",new_data_list)
+                             chrome.runtime.sendMessage({"method":"delivery_null_order_jsonto17","order_list":JSON.stringify(new_data_list)},function (response) {
+           })
+
+
+
+                        };
+                        // 以二进制方式打开文件
+                        fileReader.readAsBinaryString(files[0]);
+                     })
 }
 chrome.runtime.onMessage.addListener( function(request, sender, sendResponse){
 
     if(request.method ==="add_null_order_tobl_compeleted"){
-         alert(request.success_counts +"个订单成功")
+        let  sended_order_list = request.sended_order_list
+         // alert(request.success_counts +"个订单成功")
          $("#gs_add_null_order_button").attr("disabled",false)
+        console.log("sended_order_list6666",sended_order_list)
+        let excel_list_data =[ ["订单编号", "收件人", "固话","手机","地址","发货信息","备注","代收金额","保价金额","业务类型"],]
+        for(let i=0;i<sended_order_list.length;i++){
+            let item_list =  [ "r"+sended_order_list[i]['id'], sended_order_list[i]['consignee_name'], "",sended_order_list[i]['consignee_phone'],sended_order_list[i]['consignee_address'],"","","","",""]
+            excel_list_data.push(item_list)
+        }
+
+         api17_null_package_to_excel(excel_list_data)
     }else  if(request.method ==="update_null_package_plugs"){
          init_null_package_page()
     }else if(request.method ==="update_order_page_plugs"){
@@ -676,11 +773,40 @@ chrome.runtime.onMessage.addListener( function(request, sender, sendResponse){
 
                     if(request.from_btn === "17to315_btn"){
                         let gift_315 = request.gift_315
-                        if(gift_315!==undefined){
-                            add_order_17to315(order_list,gift_315)
-                        }else{
-                             add_order_17to315(order_list)
+                        let is_hebing_order = request.is_hebing_order
+                        console.log("is_hebing_order:",is_hebing_order)
+                         let hebing_obj = {}
+                        if(is_hebing_order){
+
+                            let hebing_remarks_text = ""
+                            for(let i = 0; i < order_list.length;i++){
+
+
+                                if(order_list[i]['order_remarks'] !==undefined && order_list[i]['order_remarks']['remarks_text']!==""){
+                                    if(hebing_remarks_text !=="" && hebing_remarks_text !== order_list[i]['order_remarks']['remarks_text']){
+                                        Toast("合并订单备注信息不一样！")
+                                        return
+                                    }
+                                }
+                                console.log("order_list[i]:",order_list[i])
+                                console.log("hebing_obj:",hebing_obj)
+                                hebing_remarks_text = order_list[i]['order_remarks']['remarks_text']
+                                if(i === 0){
+                                    hebing_obj = order_list[i]
+                                }else{
+                                    hebing_obj["order_goods"] = hebing_obj["order_goods"].concat(order_list[i]["order_goods"])
+                                }
+                            }
+                            order_list= []
+                            order_list.push(hebing_obj)
+                            order_list[0]['order_remarks']['remarks_text'] = order_list[0]['order_remarks']['remarks_text'].replace("【多订单-","").replace("】","")
+                            console.log("合并后订单：",order_list)
                         }
+
+
+
+                        add_order_17to315(order_list,gift_315,is_hebing_order)
+
 
                         // add_order_17to315(order_list,"5元好评卡")
                     }else if(request.from_btn === "17tobl_btn"){
@@ -826,7 +952,7 @@ function add_order_17tobl(order_list,web_site_name){
 
 
 }
-function add_order_17to315(order_list,gift_315) {
+function add_order_17to315(order_list,gift_315,is_hebing_order) {
     console.log("批量下单到315的订单数据：",order_list)
      let submit_order_list = []
                      for(let i = 0;i<order_list.length;i++){
@@ -839,7 +965,10 @@ function add_order_17to315(order_list,gift_315) {
                          order_object['logistics_name'] = logistics_name_string_315[order_list[i].logistics_name]
 
                          order_object['testing_name'] = order_list[i].quality_testing_name
-                         order_object['gift_315'] = gift_315
+                         if(gift_315!==undefined){
+                              order_object['gift_315'] = gift_315
+                         }
+
 
                          let goodsinfo = []
                          let goodcs = []
@@ -870,6 +999,11 @@ function add_order_17to315(order_list,gift_315) {
                          order_object['goodnum'] = goodnum
                          order_object['goodimg'] = goodimg
                          order_object['goodcustomize'] = goodcustomize
+                         console.log("is_hebing_order:",is_hebing_order)
+                         if(is_hebing_order){
+                             order_object['order_remarks'] = order_list[i]["order_remarks"]
+                         }
+
 
                          submit_order_list.push(order_object)
                      }

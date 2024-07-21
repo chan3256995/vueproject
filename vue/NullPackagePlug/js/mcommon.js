@@ -26,7 +26,7 @@ function mcommon_get_null_package_base_url_bl(web_site_name){
 
         let base_url_bl = "http://www.17to17.vip"
     let site_name = {
-        "光速代发":"http://www.17to17.vip",
+        "光速代发":"http://17to17.tkttt.com/",
         "海鸥代发":"http://haiou.xuanhuoba.com",
 
     }
@@ -49,7 +49,7 @@ function mcommon_replace_all(replace_list,str){
 function mcommon_get_base_url_bl(web_site_name){
     let base_url_bl = "http://www.17to17.vip"
     let site_name = {
-        "光速代发":"http://www.17to17.vip",
+        "光速代发":"http://17to17.tkttt.com",
         "海鸥代发":"http://haiou.xuanhuoba.com",
 
     }
@@ -58,17 +58,18 @@ function mcommon_get_base_url_bl(web_site_name){
 }
 function mcommon_get_base_url_315(){
 
-    let base_url_bl = "https://www.315df.com"
+    // let base_url_bl = "https://www.315df.com"
+    let base_url_bl =BASE_URL_315
     return base_url_bl
 }
 function mcommon_get_base_url_17(){
-    // let base_url_bl = "http://192.168.1.102:8009"
+    // let base_url_bl = "http://192.168.0.108:8009"
     let base_url_bl = "http://39.96.69.115:8089"
     return base_url_bl
 }
 function mcommon_get_base_vue_url_17(){
     let base_url_bl = "http://39.96.69.115:8080"
-    // let base_url_bl = "http://192.168.1.102:8088"
+    // let base_url_bl = "http://192.168.0.108:8088"
     return base_url_bl
 }
 
@@ -155,3 +156,76 @@ function mcommon_form_serialize_data_to_obj(serialize_data){
          }
         return data_obj
 }
+// 网页表格数据导出到excel
+function common_exportExcel_table_data(table_element){
+
+    // 创建工作簿
+        const workbook = XLSX.utils.book_new();
+
+        var worksheet = XLSX.utils.table_to_sheet($(table_element));
+        // 将工作表添加到工作簿中
+        XLSX.utils.book_append_sheet(workbook, worksheet, "ddddd");
+        // 导出 Excel 文件
+            const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'binary' });
+
+            // 字符串转ArrayBuffer
+
+
+            const blob = new Blob([s2ab(wbout)], { type: 'application/octet-stream' });
+            function s2ab(s) {
+                var buf = new ArrayBuffer(s.length);
+                var view = new Uint8Array(buf);
+                for (var i=0; i!=s.length; ++i) view[i] = s.charCodeAt(i) & 0xFF;
+                return buf;
+            }
+            // 生成一个下载链接并模拟点击进行下载
+            const downloadLink = document.createElement('a');
+            downloadLink.href = URL.createObjectURL(blob);
+            downloadLink.download = 'data.xlsx';
+            downloadLink.click();
+}
+
+//list 列表数据导出到excel
+function common_exportExcel_list_data(data,file_name) {
+    console.log("exportExcel................",data)
+    // 模拟一些数据，用于导出到 Excel
+    //      data = [
+    //         ["订单编号", "收件人", "固话","手机","地址","发货信息","备注","代收金额","保价金额","业务类型"],
+    //         ["1r", "李晓珊 ", "","13825862259 ","山东省,潍坊市,奎文区,清池街道樱前街8088号十地金隅园北区高层702","","","","",""],
+    //         ["12r", "于云香 ", "","18764734204-5830 ","广东省,汕头市,金平区,岐山街道下岐报本路48号401","","","","",""],
+    //
+    //     ];
+         let tem_file_name = "data"
+        if(file_name !== undefined && file_name !==""){
+            tem_file_name = file_name
+        }
+        // 创建工作簿
+        const workbook = XLSX.utils.book_new();
+
+        // 创建一个工作表
+        const worksheet = XLSX.utils.aoa_to_sheet(data);
+
+        // 将工作表添加到工作簿中
+        XLSX.utils.book_append_sheet(workbook, worksheet, "sheet1");
+
+        // 导出 Excel 文件
+            const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'binary' });
+
+            // 字符串转ArrayBuffer
+
+
+            const blob = new Blob([s2ab(wbout)], { type: 'application/octet-stream' });
+            function s2ab(s) {
+                var buf = new ArrayBuffer(s.length);
+                var view = new Uint8Array(buf);
+                for (var i=0; i!=s.length; ++i) view[i] = s.charCodeAt(i) & 0xFF;
+                return buf;
+            }
+            // 生成一个下载链接并模拟点击进行下载
+            const downloadLink = document.createElement('a');
+            downloadLink.href = URL.createObjectURL(blob);
+            downloadLink.download = tem_file_name +'.xlsx';
+            downloadLink.click();
+        }
+
+
