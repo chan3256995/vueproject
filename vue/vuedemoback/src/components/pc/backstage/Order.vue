@@ -47,8 +47,8 @@
             <label>包裹状态：{{order_status[item.order_status]}}</label>
               <label> {{item.consignee_name}} {{item.consignee_phone}} {{item.consignee_address}}</label>
           </div>
-          <div style="display: inline-block;width: 100%" ><button @click="blUtil.get_order_info_bl({'order_number':item.order_number,'order_goods_list':JSON.stringify([])})" style="float: right">bl 获取订单信息</button></div>
-          <div style="display: inline-block;width: 100%" ><button @click="item_detail_show(index,item)" style="float: right">显示/隐藏</button></div>
+<!--          <div style="display: inline-block;width: 100%" ><button @click="blUtil.get_order_info_bl({'order_number':item.order_number,'order_goods_list':JSON.stringify([])})" style="float: right">bl 获取订单信息</button></div>-->
+<!--          <div style="display: inline-block;width: 100%" ><button @click="item_detail_show(index,item)" style="float: right">显示/隐藏</button></div>-->
           <div :class="{'refunded_style': goods.status === goods_status2['已退款'],'refunded_style input':goods.status === goods_status2['已退款'],'refunded_style button':goods.status === goods_status2['已退款'],'refunded_style select':goods.status === goods_status2['已退款']}"  class="item_goods"  v-for="(goods,index2) in item.orderGoods" v-if="item.show">
           <div   class="order_goods_div" >
           <table class="" >
@@ -86,8 +86,17 @@
             </div>
            <div style="float:right;margin-right: 4em">
                          <label>{{goods.refund_apply.value}}</label>
-                         <label>{{goods.goods_price}} x {{goods.goods_count}} =  {{goods.goods_price * goods.goods_count}}元 </label>
+
            </div>
+              <div style="float:right;margin-right: 1em" >
+                  <label :class="{'color_red':goods.status !==goods_status2['已退款']}">   下单备注： </label>
+                  <input :class="{'color_red':goods.status !==goods_status2['已退款']}" v-model="goods.customer_message"   />
+
+                  <button  @click="alter_order_goods_info(goods.id,{'customer_message':goods.customer_message})" >确定修改</button>
+                 <label :class="{'color_red':goods.status !==goods_status2['已退款']}">   客服留言：{{goods.customer_service_message}}</label>
+                 <input   v-model="goods.customer_service_message"/>
+                 <button  @click="alter_order_goods_info(goods.id,{'customer_service_message':goods.customer_service_message})" >确定修改</button>
+               </div>
            <div>   商品状态：
                        <select class="" v-model="goods.status">
                             <option :value="option.value" v-for="(option,index) in goods_status_options" :key="index">{{option.text}}</option>
@@ -101,19 +110,13 @@
                        </select>
                         <button @click="alter_order_goods_info(goods.id,{'refund_apply_status':goods.refund_apply_status})">确定修改</button>
                 </div>
-                <label :class="{'color_red':goods.status !==goods_status2['已退款']}">   下单备注： </label>
-                <input :class="{'color_red':goods.status !==goods_status2['已退款']}" v-model="goods.customer_message"   />
-
-                <button  @click="alter_order_goods_info(goods.id,{'customer_message':goods.customer_message})" >确定修改</button>
-                 <label :class="{'color_red':goods.status !==goods_status2['已退款']}">   客服留言：{{goods.customer_service_message}}</label>
-                 <input   v-model="goods.customer_service_message"/>
-                 <button  @click="alter_order_goods_info(goods.id,{'customer_service_message':goods.customer_service_message})" >确定修改</button>
+  <label>{{goods.goods_price}} x {{goods.goods_count}} =  {{goods.goods_price * goods.goods_count}}元 </label>
            </div>
 
 
 
               <div>
-                <label>订单总价：{{item.orderGoodsTotalMoney}}+ {{item.logistics_fee}} + {{item.agency_fee}} + {{item.quality_testing_fee}}  =
+                <label style="padding-left: 0.5em">订单总价：{{item.orderGoodsTotalMoney}}+ {{item.logistics_fee}} + {{item.agency_fee}} + {{item.quality_testing_fee}}  =
                               {{item.logistics_fee + item.agency_fee + item.orderGoodsTotalMoney + item.quality_testing_fee}}
                 </label>
               </div>
@@ -580,7 +583,7 @@
       color: #878d99;
     }
   .container{
-    width: 960px;
+    width: 1024px;
     height: 1000px;
     margin: 0 auto;
     text-align: left;

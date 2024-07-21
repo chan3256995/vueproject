@@ -8,29 +8,47 @@
             <td><input placeholder="物流单号"  v-model="add_logistics_number"></td>
 
 
-            <td><button @click="add_return_package({'return_logistics_name':add_logistics_name,'return_logistics_number':add_logistics_number})">添加退件</button></td>
+             <select  style="width: 5em"  v-model="add_logistics_inbounded_selected">
+              <option :value="option" v-for="(option,index) in add_logistics_inbound_options" :key="index">{{option.text}}</option>
+            </select>
+            <td><button @click="add_return_package()">添加退件</button></td>
           </tr>
       </table>
       <div style="text-align: left">
 
-        <input placeholder="快递单号" v-model="logistics_name">
-        <button @click="load_return_package_info(logistics_name)">查询</button>
+        <input placeholder="快递单号" v-model="logistics_number">
+        <button @click="load_return_package_info({'logistics_number':logistics_number,'logistics_inbound':logistics_inbound_selected,'logistics_status':logistics_status_selected})">查询</button>
         <button @click="all_data">全部</button>
+         <select  style="width: 5em"  v-model="logistics_status_selected">
+          <option :value="option" v-for="(option,index) in logistics_status_options" :key="index">{{option.text}}</option>
+         </select>
+         <select  style="width: 5em"  v-model="logistics_inbound_selected">
+          <option :value="option" v-for="(option,index) in logistics_inbound_options" :key="index">{{option.text}}</option>
+         </select>
       </div>
 
       <table class = "list_table">
           <tr  >
             <td>物流名</td>
             <td>物流单号</td>
+            <td>送达</td>
+            <td>最新物流信息</td>
             <td>入库时间</td>
+            <td>送达更新时间</td>
+            <td>平台</td>
+
 
 
           </tr>
           <tr v-for="(item,index) in return_package_info_list" :key="index">
             <td>{{item.return_logistics_name}}</td>
             <td>{{item.return_logistics_number}}</td>
-            <td>{{time_format(item.add_time)}}</td>
-            <td>{{item.id}}</td>
+              <td>{{item.logistics_status}}</td>
+            <td>{{item.logistics_info}}</td>
+            <td>{{time_format(item.inbound_time)}}</td>
+            <td>{{time_format(item.update_time)}}</td>
+            <td>{{item.data_source}}</td>
+
 
 
             <td><button @click = delete_return_package(item.id)>删除</button></td>
@@ -43,6 +61,7 @@
             <td style=" cursor:pointer;"><a >首页</a></td>
             <td style=" cursor:pointer;" v-if="prePageShow"><a  @click="prePage" style="">上一页</a></td>
             <td  style=" cursor:pointer;" v-if="nextPageShow"><a @click="nextPage">下一页</a></td>
+            <td   > 共{{count}}条</td>
       </tr>
       </table>
     </div>
@@ -63,12 +82,31 @@
            prePageShow:true,
             nextPageShow:true,
             add_user_name:"",
-            logistics_name:"",
+            logistics_number:"",
             add_logistics_name:'',
             add_logistics_number:'',
             prePageUrl:"",
             nextPageUrl:"",
+            count:0,
             return_package_info_list:[],
+            add_logistics_inbounded_selected: {value:true,text:"入库"},
+            logistics_inbound_selected: {value:false,text:"未入库"},
+
+            logistics_status_selected: {value:"已送达",text:"已送达"},
+            add_logistics_inbound_options :[
+              {value:true,text:"入库"},
+              {value:false,text:"未入库"},
+            ],
+            logistics_inbound_options :[
+              {value:true,text:"已入库"},
+              {value:false,text:"未入库"},
+              {value:"全部",text:"全部"},
+            ],
+
+           logistics_status_options :[
+              {value:"全部",text:"全部"},
+              {value:"已送达",text:"已送达"},
+            ],
         }
       },
       methods:{
@@ -76,12 +114,16 @@
            const url = mGlobal.DJANGO_SERVER_BASE_URL+"/back/returnPackageInfo/"
            this.load_return_package_info_page(url)
         },
-        add_return_package(package_obj){
-//
+        add_return_package(){
+          let package_obj  = {
+            'return_logistics_name':this.add_logistics_name,
+            'return_logistics_number':this.add_logistics_number,
+            'is_inbound':this.add_logistics_inbounded_selected.value
+          }
 
-         let package_list = []
+          let package_list = []
           package_list.push(package_obj)
-         const url = mGlobal.DJANGO_SERVER_BASE_URL+"/back/addReturnPackages/"
+          const url = mGlobal.DJANGO_SERVER_BASE_URL+"/back/addReturnPackages/"
           axios.post(url,{
             "return_package_list":JSON.stringify(package_list)
           }
@@ -97,6 +139,9 @@
            })
         },
         time_format(time_stmp){
+          if(time_stmp === "" || time_stmp === undefined){
+            return ""
+          }
          return mtime.formatDateStrFromTimeSt(time_stmp)
         },
 
@@ -118,11 +163,19 @@
             this.$toast("访问错误")
            })
         },
-        load_return_package_info(logistics_number){
+        load_return_package_info(params_obj){
+          console.log("params_obj:",params_obj)
           const url = mGlobal.DJANGO_SERVER_BASE_URL+"/back/returnPackageInfo/"
           let params = {
-            'logistics_number': logistics_number
+            'logistics_number': params_obj['logistics_number'],
+
           }
+          if(params_obj['logistics_status']['value']!== "全部"){
+            params['logistics_status'] = params_obj['logistics_status']['value']
+          }
+
+          params['logistics_inbound'] = params_obj['logistics_inbound']['value']
+
           this.load_return_package_info_page(url,params)
         },
 
@@ -153,7 +206,7 @@
            })
        },
        load_return_package_info_page(url, query_data){
-
+        console.log("query_data:",query_data)
            axios.defaults.withCredentials=true;
            axios.get(url,{
               params:query_data,
@@ -161,6 +214,7 @@
         ).then((res)=>{
           console.log(res.data)
           this.return_package_info_list = res.data.results;
+          this.count = res.data.count;
 
 
           if(res.data.previous == null){
