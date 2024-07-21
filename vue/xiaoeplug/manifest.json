@@ -1,0 +1,25 @@
+{
+  "manifest_version": 2,
+
+  "name": "tb_helper",
+  "description": "17代拿发用户插件",
+  "version": "2.0",
+
+  "permissions": [
+    "https://*/*", "http://*/" , "webRequest", "webRequestBlocking","cookies","webNavigation","storage"
+  ],
+"background": {
+      "scripts": ["js/jquery-2.0.3.min.js", "js/jquery.json-2.4.js", "js/background.js","js/jquery-form.js","js/tbapi.js","js/mcommon.js","js/encoding.js","js/encoding-indexes.js"]
+   },
+   "content_scripts": [{
+      "exclude_matches": [ "http://member1.taobao.com/*" ],
+      "matches": ["https://*.taobao.com/*", "http://*.tmall.com/*", "https://*.taobao.com/*","https://wuliu.taobao.com/user/*","http://192.168.0.108:8088/*","http://17daina.com/*"],
+      "run_at": "document_end",
+      "js": [ "js/version.js","js/jquery-2.0.3.min.js", "js/jquery.json-2.4.js", "js/main.js","js/jquery-form.js","js/tbapi.js","js/chuanmeiapi.js","js/mcommon.js"]
+   }],
+
+  "browser_action": {
+    "default_icon": "icon.png",
+    "default_popup": "html/popup.html"
+  }
+}
