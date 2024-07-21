@@ -1,0 +1,116 @@
+ // The Vue build version to load with the `import` command
+// (runtime-only or standalone) has been set in webpack.base.conf with an alias.
+import Vue from 'vue'
+import App from './App'
+ import router from './router'
+ import jquery from 'jquery'
+ import '../config/axios'
+import m_global from './utils/mGlobal'
+ import Video from 'video.js'
+ import 'video.js/dist/video-js.css'
+ Vue.prototype.$video = Video
+ import "babel-polyfill" //这个插件是用来把es6语法转为es5  为了兼容ie等问题
+ Vue.prototype.mGLOBAL = m_global
+ Vue.config.devtools = true
+import MessageBox from './utils/messagebox/messagbox';
+Vue.use(MessageBox);
+import MessageBox2 from './utils/qrbox/qrbox';
+Vue.use(MessageBox2);
+import AlterAddDouYinShopbox from './utils/AlterAddDouYinShopbox/AddDouYinShop'
+ Vue.use(AlterAddDouYinShopbox);
+
+import AlterAddDouYinZhuBobox from './utils/AlterAddDouYinZhuBobox/AddDouYinZhuBo'
+ Vue.use(AlterAddDouYinZhuBobox);
+
+import DouYinGoodsCollectLogBox from './utils/DouYinGoodsCollectLogbox/DouYinGoodsCollectLogBox'
+ Vue.use(DouYinGoodsCollectLogBox);
+
+
+import AlterGoodsBox from './utils/AlterOrderGoodsbox/OrderGoodsBox'
+ Vue.use(AlterGoodsBox);
+
+import AlterOrderAddress from './utils/AlterOrderAddressbox/OrderAddressBox'
+ Vue.use(AlterOrderAddress);
+
+import AlterOrderRemarks from './utils/AlterOrderRemarksBox/OrderRemarksBox'
+ Vue.use(AlterOrderRemarks);
+
+import AlterMyGoods from './utils/AlterMyGoodsbox/MyGoodsBox'
+ Vue.use(AlterMyGoods);
+
+import AlterGoodsColorSizeStringbox from './utils/AlterGoodsColorSizeStringbox/GoodsColorSizeString'
+ Vue.use(AlterGoodsColorSizeStringbox);
+
+import VueJsonp from 'vue-jsonp'
+ Vue.use(VueJsonp)
+//复制到粘贴板插件
+import VueClipboard from 'vue-clipboard2'
+VueClipboard.config.autoSetContainer = true
+Vue.use(VueClipboard)
+
+ // 日历组件
+import Calendar from 'vue-mobile-calendar'
+Vue.use(Calendar);
+
+import Axios from 'axios'
+Vue.prototype.$axios = Axios
+
+Axios.defaults.headers.get['Content-Type'] = 'application/json';
+Axios.defaults.withCredentials = true
+// Axios.defaults.headers.common['token'] = "6666"
+
+ import NProgress from 'nprogress' // 进度条
+import 'nprogress/nprogress.css' //这个样式必须引入
+Vue.prototype.$nprogress = NProgress
+
+ //使用vue-cookies
+ import VueCookies from 'vue-cookies'
+ Vue.use(VueCookies)
+ Vue.prototype.$cookies2 = VueCookies
+
+import toastRegistry from './utils/toast/index'
+// 这里也可以直接执行 toastRegistry()
+Vue.use(toastRegistry)
+
+ //页面滚动
+ import VueScroller from 'vue-scroller'
+Vue.use(VueScroller)
+  Vue.prototype.$scroller = VueScroller
+
+
+/* eslint-disable no-new */
+ Vue.prototype.setLocalValue = function(name, value) {
+    if (window.localStorage) {
+        localStorage.setItem(name, value);
+    } else {
+        alert('This browser does NOT support localStorage');
+    }
+};
+Vue.prototype.getLocalValue = function (name) {
+    const value = localStorage.getItem(name);
+    if (value) {
+        return value;
+    } else {
+        return '';
+    }
+};
+
+Vue.prototype.$ = jquery
+
+// Vue.http.interceptors.push((request, next)  =>{
+//
+//
+//     console.log("request",request)
+//
+//     next((response) => {
+//         console.log("response",response)
+//         return response
+//     });
+//
+// });
+new Vue({
+  el: '#app',
+  components: { App },
+  template: '<App/>',
+  router
+})
