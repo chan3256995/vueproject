@@ -57,6 +57,53 @@ return y+'-'+add0(m)+'-'+add0(d)+' '+add0(h)+':'+add0(mm)+':'+add0(s);
 }
 
 
+//判断是否已经签收的包裹订单
+function mcommon_is_recieved(return_logistic_str){
+    // console.log("return_logistic_str:",return_logistic_str)
+    //根据物流判断是否签收
+    let keys_list = [
+        // '送达',
+        '已签收',
+        '代收',
+        '签收',
+        '暂存',
+        '待取件',
+
+        '取件地址',
+        '请及时取件',
+        // '派件中',
+        // '派送中',
+        // '正在派件',
+        // '正在为您派件',
+        // '正在为您派送',
+        // '到达,兴宁',
+    ]
+    if(return_logistic_str === undefined || return_logistic_str===""){
+        return false
+    }
+    for(let i = 0 ;i<keys_list.length;i++){
+        let keys_arry = keys_list[i].split(",")
+
+        let is_item_true = true
+        for(let k = 0;k<keys_arry.length;k++){
+            if(return_logistic_str.indexOf(keys_arry[k]) === -1){
+
+               is_item_true = false
+                break
+        }
+
+        }
+        if(is_item_true){
+            return is_item_true
+        }
+
+
+    }
+
+ return false
+}
+
+
  function add0(m){return m<10?'0'+m:m }
 
 

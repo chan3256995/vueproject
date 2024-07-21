@@ -65,6 +65,7 @@ function kuaid100_get_logistics_info2(cookie_obj,params){
           "success":"success",
 
           "logistics_data":[],
+          "logistics_number":params['logistics_number'],
           "message":"",
 
       }

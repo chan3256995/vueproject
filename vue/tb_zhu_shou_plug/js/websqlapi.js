@@ -32,7 +32,8 @@ const base_db_conf = {
  */
  function websqlapi_init_tb_refund_table(tableName) {
      tableName = "tb_refund_table"
-    var creatTableSQL = 'CREATE TABLE IF  NOT EXISTS ' + tableName + ' (rowid INTEGER PRIMARY KEY AUTOINCREMENT,shop_name text,refund_order_id text,goods_name text,goods_code text,sku_name text,sku_code text,goods_counts text,send_logistics_number text,return_logistics_number text,logistics_update_time text,order_number text,send_logistics_info text,return_logistics_info text,seller_memo text,seller_flag text,refund_address_tb text,seller_phone_tb text,seller_mobile_tb text,seller_wangwang_id_tb text,img_url text,goods_id text)';
+
+    var creatTableSQL = 'CREATE TABLE IF  NOT EXISTS ' + tableName + ' (rowid INTEGER PRIMARY KEY AUTOINCREMENT,shop_name text,refund_order_id text,goods_name text,goods_code text,sku_name text,sku_code text,goods_counts text,send_logistics_number text,return_logistics_number text,logistics_update_time text,order_number text,send_logistics_info text,return_logistics_info text,seller_memo text,seller_flag text,refund_address_tb text,seller_phone_tb text,seller_mobile_tb text,seller_wangwang_id_tb text,img_url text,goods_id text,return_logistics_name)';
     WEBSQL_DB.transaction(function(ctx, result) {
         ctx.executeSql(creatTableSQL, [], function(ctx, result) {
             alert("表创建成功 " + tableName);
@@ -109,9 +110,9 @@ const base_db_conf = {
         }else if(data_from==="taobao"){
             for(let i=0;i<refund_list.length;i++){
             let item_data = refund_list[i]
-            let item_data_list=[item_data['seller_wangwang_id_tb'],item_data['refund_address_tb'],item_data['seller_phone_tb'],item_data['seller_mobile_tb'],item_data['order_number_tb']]
+            let item_data_list=[item_data['seller_wangwang_id_tb'],item_data['refund_address_tb'],item_data['seller_phone_tb'],item_data['seller_mobile_tb'],item_data['return_logistics_name'],item_data['order_number_tb']]
             // let insterTableSQL = 'INSERT INTO ' + tableName + ' ( seller_wangwang_id_tb,refund_address_tb,seller_phone_tb, seller_mobile_tb) VALUES (?,?,?,?)';
-            let updateDataSQL = 'UPDATE ' + tableName + ' SET seller_wangwang_id_tb = ?,refund_address_tb = ?, seller_phone_tb = ?,seller_mobile_tb = ? WHERE order_number = ?';
+            let updateDataSQL = 'UPDATE ' + tableName + ' SET seller_wangwang_id_tb = ?,refund_address_tb = ?, seller_phone_tb = ?,seller_mobile_tb = ?,return_logistics_name = ? WHERE order_number = ?';
             console.log("insert_tb_item_data_list",item_data_list)
             console.log("insterTableSQL",insterTableSQL)
             ctx.executeSql(updateDataSQL, item_data_list, function(ctx, result) {
@@ -271,6 +272,7 @@ function websqlapi_query_tb_refund_order_data(tableName,params_obj) {
                     "goods_counts": db_cur_item.goods_counts,
                     "send_logistics_number": db_cur_item.send_logistics_number,
                     "return_logistics_number": db_cur_item.return_logistics_number,
+                    "return_logistics_name": db_cur_item.return_logistics_name,
                     "logistics_update_time": db_cur_item.logistics_update_time,
                     "order_number": db_cur_item.order_number,
                     "send_logistics_info": db_cur_item.send_logistics_info,
@@ -292,11 +294,13 @@ function websqlapi_query_tb_refund_order_data(tableName,params_obj) {
             if(params_obj["update_page"] ==="备货页面" && params_obj["show_model"]==="统计模式"){
                  apichuammei_save_update_page_data_refund_order(refund_list_data)
             }else if(params_obj["update_page"] ==="备货页面" && params_obj["show_model"]==="列表模式"){
-                 let append_elems_str = apichuammei_is_recived_long_time_table(refund_list_data)
+                 let append_elems_str = apichuammei_is_list_model(refund_list_data)
                  $(".data_div17_all_content").remove()
                  $(".data_div17_top").after(append_elems_str)
             }else if(params_obj["update_page"] ==="待发货页面" ){
                 apichuanmei_show_refund_goods_log_dailog(refund_list_data, params_obj["click_button"])
+            }else if(params_obj["submit_data"] ==="提交售后物流信息" ){
+                apichuanmei_submit_logistic(refund_list_data )
             }
 
         },

@@ -23,7 +23,7 @@ injectedjs.onload=function(){
 
 console.log("curLocation",curLocation)
 
-if(curLocation.indexOf("shop")!==-1 && curLocation.indexOf("taobao.com")!==-1){
+if(curLocation.indexOf("taobao.com/search.htm")!==-1){
 
     console.log("pc 淘宝店铺页面.....")
 //get_shop_recommend_goods_list_result

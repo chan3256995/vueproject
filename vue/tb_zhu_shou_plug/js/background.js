@@ -150,6 +150,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             console.log("获取搜款网商品详细信息")
          let parms_obj =  JSON.parse(request.parms_str)
          let result= apiskw_get_skw_goods_details(parms_obj["url"])
+
         sendResponse(JSON.stringify(result));
 
     }else if(method === "get_shop_recommend_goods_list"){
@@ -309,6 +310,10 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             })
 
 
+    }else if(method === "submit_return_package_data_to_17"){
+         let params = JSON.parse(request.params)
+         let submit_list = params['submit_list']
+         let submit_result = api17_submit_logistics_data(submit_list)
     }
 
 });

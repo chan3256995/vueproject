@@ -2,6 +2,7 @@
  let user_name = "root"
  let password = "a123a123a"
  let base_url = "http://39.96.69.115:8089"
+ // let base_url = "http://192.168.2.33:8009"
 
  function api17_back_login() {
     let url = "/user/login/?access_token=null"
@@ -131,6 +132,44 @@ function get_one_page_null_order(order_number_list) {
             }
         });
             return ret_result
+}
+
+//提交物流信息到退货记录
+function api17_submit_logistics_data(data_list){
+     let url = base_url+"/back/addReturnPackages/"
+    console.log("url--->",url)
+     let params = {"return_package_list":JSON.stringify(data_list)}
+     let return_result ={}
+     $.ajax({
+                async: false,
+                url: url,
+                type: "POST",
+                // dataType : 'json',
+                data: params,
+                contentType:"application/x-www-form-urlencoded",
+                timeout: 5000,
+                success: function (result) {
+
+                console.log(" 提交结果结果:",JSON.stringify(result))
+
+                return_result['success'] =result.success
+                return_result['message'] =result.message
+                return_result['result'] =result
+
+
+        },
+            error: function (err) {
+            console.log("错了:" + err);
+            console.log("错了:" + JSON.stringify(err));
+              return_result['success'] = false
+             return_result['message'] = "访问错误"
+
+        }
+
+
+    });
+
+     return return_result
 }
 
 

@@ -127,10 +127,12 @@
                     let item_add_time = parseInt(db_cur_item.add_time)
                      console.log("item_add_time--666>",item_add_time)
                      let day_3 = 3 *24 * 60 * 60 *1000
-                     if((item_add_time - cur_time)>day_3){
+                     if((cur_time - item_add_time )>day_3){
+
                             is_insert   = true
                      }
                 }
+                 console.log("is_insert--666>",is_insert)
                 if(is_insert){
                     ctx.executeSql(insterTableSQL, item_data_list, function(ctx, result) {
                                 console.log("插入" + tableName + item_data['goods_id'] + "成功");

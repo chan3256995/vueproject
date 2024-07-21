@@ -13,6 +13,7 @@
             // Overwrite native methods
             // Collect data:
                 XHR.open = function(method, url) {
+                    console.log("xhrRrlopen------");
                     this._method = method;
                     this._url = url;
                     return open.apply(this, arguments);
@@ -20,6 +21,7 @@
 
             // Implement "ajaxSuccess" functionality
                 XHR.send = function(postData) {
+                     console.log("xhrRrlsend------");
                     this.addEventListener('load', function() {
                         //这里是监听获取以后的操作
                         console.log("xhrRrl:  "+this._url);
@@ -29,6 +31,7 @@
 
                         // /* Request y  */ postData
                     });
+
                     return send.apply(this, arguments);
                 };
             })();

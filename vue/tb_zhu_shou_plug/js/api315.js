@@ -1,5 +1,5 @@
-// let BASE_URL_315 ="https://www.315df.com"
-let BASE_URL_315 ="http://315df.com"
+let BASE_URL_315 ="https://www.315df.com"
+// let BASE_URL_315 ="http://315df.com"
 let logistics_choies = {
     "圆通[菜鸟]":19,
     "圆通[拼多多]":27,
