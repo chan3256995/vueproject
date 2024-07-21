@@ -283,6 +283,7 @@ class OutPutOrdersView(APIView):
                 sheet.write(1, 9, "备注")
                 sheet.write(1, 10, "自定义编码")
                 sheet.write(1, 11, "详细地址")
+                sheet.write(1, 12, "订单备注")
                 cur_row = 1
                 excel_name = str(today_date) + 'tag315.xls'
                 # 保存json格式数据的文件名
@@ -335,6 +336,7 @@ class OutPutOrdersView(APIView):
                     new_order['logistics_name'] = order.logistics_name
                     new_order['order_number'] = order_number
                     new_order['quality_testing_name'] = order.quality_testing_name
+                    new_order['order_remarks'] = order.order_remarks
                     for j in range(len(goods_query)):
                         cur_row = cur_row + 1
                         order_goods = goods_query[j]
@@ -376,6 +378,7 @@ class OutPutOrdersView(APIView):
 
                         sheet.write(cur_row, 10, id_)
                         sheet.write(cur_row, 11, consignee_address)
+                        sheet.write(cur_row, 12, "")
                         # 合并第1行到第2行的第0列到第3列。
                         sheet.write_merge(cur_order_row, cur_row, 11, 11, order.consignee_name + "，" + str(order.consignee_phone) + "，" + consignee_address)
 
@@ -451,6 +454,7 @@ class OutPutOrdersView(APIView):
                 sheet.write(1, 9, "备注")
                 sheet.write(1, 10, "自定义编码")
                 sheet.write(1, 11, "详细地址")
+                sheet.write(1, 13, "订单备注")
                 cur_row = 1
                 excel_name = str(today_date) + 'tag315.xls'
                 # 保存json格式数据的文件名
@@ -503,6 +507,9 @@ class OutPutOrdersView(APIView):
                     new_order['logistics_name'] = order.logistics_name
                     new_order['order_number'] = order_number
                     new_order['quality_testing_name'] = order.quality_testing_name
+                    if order.order_remarks is not None:
+
+                        new_order['order_remarks'] = {"remarks_type":order.order_remarks.remarks_type,"remarks_text":order.order_remarks.remarks_text}
                     for j in range(len(goods_query)):
                         cur_row = cur_row + 1
                         order_goods = goods_query[j]
@@ -514,6 +521,7 @@ class OutPutOrdersView(APIView):
                         sheet.write(cur_row, 1, order_goods.shop_market_name)
 
                         floor = order_goods.shop_floor
+                        shop_market_name = order_goods.shop_market_name
                         stall_no = order_goods.shop_stalls_no
                         print("floor_befor:",floor)
                         while floor.find("楼") !=-1:
@@ -528,8 +536,13 @@ class OutPutOrdersView(APIView):
                         reg_ = '^[0-9]F'
                         result = re.match(reg_, stall_no)
                         print("floor_after:", floor)
+                        if shop_market_name.find("女人街") != -1:
+                            while floor.find("C区") != -1:
+                                floor = floor.replace("C区", "")
+
                         if result is not  None:
                             stall_no = stall_no.replace(result[0],"")
+                         
                         sheet.write(cur_row, 2, floor)
                         sheet.write(cur_row, 3, stall_no)
                         sheet.write(cur_row, 4, order_goods.art_no)
@@ -551,6 +564,7 @@ class OutPutOrdersView(APIView):
                         sheet.write(cur_row, 10, id_)
                         sheet.write(cur_row, 11, consignee_address)
                         sheet.write(cur_row, 12, order_goods.tb_goods_id)
+                        sheet.write(cur_row, 13, "")
                         # 合并第1行到第2行的第0列到第3列。
                         sheet.write_merge(cur_order_row, cur_row, 11, 11, order.consignee_name + "，" + str(order.consignee_phone) + "，" + consignee_address)
 
@@ -1516,12 +1530,32 @@ class ReturnPackageInfoViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin,mi
         print(self.request.query_params)
 
         logistics_number = self.request.query_params.get("logistics_number")
-        print("query_keys")
-        print(logistics_number)
-        if logistics_number is not None:
-            return trade_models.ReturnPackageInfo.objects.filter(return_logistics_number=logistics_number).order_by('-add_time')
+        # 物流状态  未知 送达 等
+        logistics_status = self.request.query_params.get("logistics_status")
+        logistics_inbound = self.request.query_params.get("logistics_inbound")
+        req_order_by = self.request.query_params.get("order_by")
+        order_by = ['-inbound_time']
+        if logistics_inbound =="true":
+            logistics_inbound = True
+        elif logistics_inbound =="false":
+            logistics_inbound = False
         else:
-            return trade_models.ReturnPackageInfo.objects.all().order_by('-add_time')
+            logistics_inbound = None
+        if req_order_by == "-update_time":
+            order_by = ['-update_time']
+        print("query_keys")
+        print(logistics_status)
+        print(logistics_inbound)
+        query_args = Q()
+        if logistics_status is not None and logistics_status != '':
+            query_args = query_args & Q(logistics_status=logistics_status)
+        if logistics_number is not None and logistics_number !='':
+            query_args = query_args & Q(return_logistics_number=logistics_number)
+        if logistics_inbound is not None and logistics_inbound !='':
+            query_args = query_args & Q(is_inbounded=logistics_inbound)
+        return trade_models.ReturnPackageInfo.objects.filter(query_args).order_by(*order_by)
+
+
 
     def destroy(self, request, *args, **kwargs):
         ret = {"code": "1000", "message": ""}

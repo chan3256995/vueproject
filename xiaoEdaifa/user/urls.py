@@ -145,6 +145,8 @@ urlpatterns = [
     #  用户自己保存的商品删除
     url('userGoodsDelete/', user_views.DeleteUserGoodsView.as_view()),
 
+
+
     #  用户自己保存的修改
     url('userGoodsEdit/', user_views.EditUserGoodsView.as_view()),
 

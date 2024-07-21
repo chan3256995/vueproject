@@ -407,11 +407,11 @@ class AddOrderToChuanMeiView(APIView):
                 'receiver_state': '陕西省' ,
                 'receiver_city': '西安市' ,
                 'receiver_district': '雁塔区' ,
-                'receiver_address': '电子城街道太白南路191号1栋2707室' ,
+                'receiver_address': '电子城街道太白南路' ,
                 'receiver_phone': '',
-                'receiver_mobile': 15514388713,
+                'receiver_mobile': 11,
                 'receiver_zip': 450000,
-                'expTempId': 1580533562274,
+                'expTempId': 111,
                 'seller_memo': '',
                 'expOrderId': '',
                 'orders': '{"orders":[{"title":"简易仰卧起坐女辅助器宿舍床上家用固定脚压脚器做健身器材学生男","outid":"","skuname":"颜色分类:[黑色]加长款","num":1,"price":49.2,"discountfee":0,"payment":25.51,"outerskuid":"","outeriid":"Y1001","weight":0.01}]}',
@@ -420,8 +420,8 @@ class AddOrderToChuanMeiView(APIView):
                 'sendInfoProvince': '广东省' ,
                 'sendInfoCity': '梅州市' ,
                 'sendInfoCountry': '兴宁市' ,
-                'sendCompany': '青火龙健身' ,
-                'sendInfoAddr': '鸿达花园 兴鸿一街（金河湾车库入口对面）。'
+                'sendCompany': '22' ,
+                'sendInfoAddr': '22'
             }
             for key, value in data.items():
                 data[key] = str(value).encode("gbk")
@@ -493,44 +493,82 @@ class SaveDouYinGoods(APIView):
 
 class AddReturnPackages(APIView):
 
-    authentication_classes = [BackStageAuthentication, BackStageNahuoAuthentication]
-    permission_classes = [NahuoUserpermission]
+    # authentication_classes = [BackStageAuthentication, BackStageNahuoAuthentication]
+    authentication_classes = []
+    # permission_classes = [NahuoUserpermission]
+    permission_classes = []
 
     def post(self, request, *args, **kwargs):
         try:
-            with transaction.atomic():
-                ret = {'code': "1000", 'message': ""}
-                return_package_list = json.loads(request.data.get("return_package_list"))
-                new_return_package_list = []
-                exits_return_package_list = []
 
-                for returnPackage in return_package_list:
-                    pacakge_obj = trade_models.ReturnPackageInfo.objects.filter(return_logistics_number=returnPackage.get('return_logistics_number')).first()
-                    if pacakge_obj is  None:
-                        new_return_package_list.append(returnPackage)
-                        return_logistics_name = returnPackage.get('return_logistics_name')
-                        return_logistics_number = returnPackage.get('return_logistics_number')
-                        obj = trade_models.ReturnPackageInfo.objects.create( return_logistics_number=return_logistics_number,return_logistics_name=return_logistics_name, add_time=time.time() * 1000)
-                        if obj is not None:
-                            refund_apply = trade_models.RefundApply.objects.select_for_update().filter(
-                                return_logistics_number=return_logistics_number).first()
-                            if refund_apply is not None and refund_apply.refund_apply_progress == \
-                                    mcommon.refund_apply_progress_choices2['未处理']:
+            ret = {'code': "1000", 'message': ""}
+            return_package_list = json.loads(request.data.get("return_package_list"))
+            new_return_package_list = []
+            exits_return_package_list = []
+
+            for returnPackage in return_package_list:
+                pacakge_obj = trade_models.ReturnPackageInfo.objects.filter(return_logistics_number=returnPackage.get('return_logistics_number')).first()
+                if pacakge_obj is  None:
+                    new_return_package_list.append(returnPackage)
+                    return_logistics_name = returnPackage.get('return_logistics_name')
+                    return_logistics_number = returnPackage.get('return_logistics_number')
+                    data_source = returnPackage.get('data_source')
+                    logistics_info = returnPackage.get('logistics_info')
+                    account = returnPackage.get('account')
+                    logistics_status = returnPackage.get('logistics_status_type_desc')
+                    is_inbound = returnPackage.get('is_inbound')
+                    logistics_info2 = logistics_info
+                    if logistics_info2 is None:
+                        logistics_info2 = ""
+                    print(is_inbound)
+                    data = {
+
+                        "logistics_status": logistics_status,
+                        "account": account,
+                        "logistics_info":  mtime.stamp_to_time(time.time(),None) + " "+logistics_info2,
+                        "data_source": data_source,
+                        "return_logistics_name": return_logistics_name,
+                        "return_logistics_number": return_logistics_number,
+                        "add_time": time.time() * 1000,
+
+                    }
+                    if is_inbound is True:
+                        data['is_inbounded'] = True
+                        data['inbound_time'] = time.time() * 1000
+                    if logistics_status == back_utils.back_return_package_logistics_status_choise["已送达"]:
+                        data['update_time'] = time.time() * 1000
+                    obj = trade_models.ReturnPackageInfo.objects.create(**data)
+                    if obj is not None:
+                        with transaction.atomic():
+                            refund_apply = trade_models.RefundApply.objects.select_for_update().filter(return_logistics_number=return_logistics_number).first()
+                            if refund_apply is not None and refund_apply.refund_apply_progress == mcommon.refund_apply_progress_choices2['未处理']:
                                 refund_apply.refund_apply_progress = mcommon.refund_apply_progress_choices2['仓库已收到退件']
                                 refund_apply.save()
-                    else:
-                        exits_return_package_list.append(returnPackage)
+                else:
+                    if returnPackage.get('logistics_info') != None and returnPackage.get('logistics_info') != "":
 
-                # for new_return_package in new_return_package_list:
-                #     return_logistics_name = new_return_package.get('return_logistics_name')
-                #     return_logistics_number = new_return_package.get('return_logistics_number')
-                #     obj = trade_models.ReturnPackageInfo.objects.create(return_logistics_number=return_logistics_number,return_logistics_name=return_logistics_name,add_time=time.time()*1000)
-                #     if obj is not None:
-                #         refund_apply = trade_models.RefundApply.objects.select_for_update().filter(return_logistics_number=return_logistics_number).first()
-                #         if refund_apply is not None and refund_apply.refund_apply_progress == mcommon.refund_apply_progress_choices2['未处理']:
-                #             refund_apply.refund_apply_progress = mcommon.refund_apply_progress_choices2['仓库已收到退件']
-                #             refund_apply.save()
-                ret['exits_list'] = exits_return_package_list
+                        pacakge_obj.logistics_info = mtime.stamp_to_time(time.time(),None) + " "+returnPackage.get('logistics_info')
+                    if returnPackage.get('is_inbound') is True and pacakge_obj.is_inbounded is not True:
+                        pacakge_obj.is_inbounded = True
+                        pacakge_obj.inbound_time = time.time() * 1000
+                    if pacakge_obj.logistics_status != back_utils.back_return_package_logistics_status_choise["已送达"] and returnPackage.get('logistics_status_type_desc')==back_utils.back_return_package_logistics_status_choise["已送达"]:
+                        #记录未送达 最新为送达
+                        pacakge_obj.logistics_status = back_utils.back_return_package_logistics_status_choise["已送达"]
+                        pacakge_obj.update_time = time.time()*1000
+
+                    pacakge_obj.save()
+                    exits_return_package_list.append(returnPackage)
+
+            # for new_return_package in new_return_package_list:
+            #     return_logistics_name = new_return_package.get('return_logistics_name')
+            #     return_logistics_number = new_return_package.get('return_logistics_number')
+            #     obj = trade_models.ReturnPackageInfo.objects.create(return_logistics_number=return_logistics_number,return_logistics_name=return_logistics_name,add_time=time.time()*1000)
+            #     if obj is not None:
+            #         refund_apply = trade_models.RefundApply.objects.select_for_update().filter(return_logistics_number=return_logistics_number).first()
+            #         if refund_apply is not None and refund_apply.refund_apply_progress == mcommon.refund_apply_progress_choices2['未处理']:
+            #             refund_apply.refund_apply_progress = mcommon.refund_apply_progress_choices2['仓库已收到退件']
+            #             refund_apply.save()
+            ret['exits_list'] = exits_return_package_list
         except:
             traceback.print_exc()
             ret['code'] = "1001"

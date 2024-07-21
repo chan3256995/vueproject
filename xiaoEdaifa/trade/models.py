@@ -43,7 +43,7 @@ class UserGoods(models.Model):
     # 用户自定义唯一标识
     user_code = models.CharField(max_length=120, null=True)
     # 替换字符规则  比如颜色字符替换  价格替换等
-    replace_string = models.CharField(max_length=120, null=True)
+    replace_string = models.CharField(max_length=1200, null=True)
     # 店铺市场名 女人街
     shop_market_name = models.CharField(max_length=120, null=False)
     # 店铺楼层 2楼
@@ -58,6 +58,7 @@ class UserGoods(models.Model):
     goods_color = models.CharField(max_length=50, null=False)
     goods_size = models.CharField(max_length=50, null=False,default="")
     goods_title = models.CharField(max_length=200, null=True)
+
     # 备注
     remarks = models.CharField(max_length=200, null=True)
     add_time = models.BigIntegerField(null=False)
@@ -265,6 +266,7 @@ class Order(models.Model):
     tag_type = models.SmallIntegerField(null=True)
     # 收件人信息
     consignee_address = models.CharField(null=False,max_length=140)
+
     consignee_name = models.CharField(max_length=30,null=False)
     consignee_phone = models.CharField(max_length=30,null=False)
 
@@ -305,7 +307,7 @@ class Order(models.Model):
 class OrderRemarks(models.Model):
     order = models.ForeignKey(Order,on_delete=models.CASCADE)
     remarks_type = models.CharField(choices=mcommon.remarks_type_choices, null=False, max_length=10 )
-    remarks_text = models.CharField(null=True ,max_length=40)
+    remarks_text = models.CharField(null=True ,max_length=400)
 
 
 # 空包订单
@@ -454,10 +456,24 @@ class RefundInfo(models.Model):
 
 # 退回的包裹信息
 class ReturnPackageInfo(models.Model):
+    #是否入库
+    is_inbounded = models.BooleanField(default=False, null=False)
     return_logistics_name = models.CharField(null=True, max_length=30)
     # 退货物流单号
     return_logistics_number = models.CharField(null=False, max_length=40,unique=True)
+    logistics_info = models.CharField(null=True, max_length=300)
+    #数据来源  如拼多多 淘宝
+    data_source = models.CharField(null=True, max_length=20)
+    # 物流状态 如 未知 途中 已送达
+    logistics_status = models.CharField(null=True, max_length=20)
+    # 数据来源的平台账号
+    account = models.CharField(null=True, max_length=50)
+
     add_time = models.BigIntegerField(null=False)
+    # 送达更新时间
+    update_time = models.BigIntegerField(null=True)
+    #入库时间
+    inbound_time = models.BigIntegerField(null=True)
 
 
 # 退回包裹的操作日志

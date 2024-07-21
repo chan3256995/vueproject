@@ -37,6 +37,14 @@ back_null_package_logistic_choices = {
 
 
 }
+# 退货包括物流状态
+back_return_package_logistics_status_choise = {
+    "已送达":"已送达",
+    "未知":"未知",
+    "途中":"途中",
+}
+
+
 
 # 充值订单审核
 def recharge_pass(trade_number):

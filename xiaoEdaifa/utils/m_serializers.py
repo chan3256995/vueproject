@@ -392,6 +392,8 @@ class TradeAddNullPackageOrdersSerializer(serializers.ModelSerializer):
     consignee_name = serializers.CharField(required=True, max_length=30)
     consignee_phone = serializers.CharField(max_length=30,required=True)
 
+
+
     # 寄件人信息
     sender_address = serializers.CharField(max_length=140,default="广东省，广州市，天河区风刀霜剑法律的精神")
     sender_name = serializers.CharField(max_length=30,default="小刘")

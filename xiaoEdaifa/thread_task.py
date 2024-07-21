@@ -78,6 +78,9 @@ def write_file_data(str):
 
 
 try:
+    start_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    # 无商品店铺
+    zero_goods_shop = []
     # params_obj  = get_url_params("https://lianmengapi.snssdk.com/aweme/v1/store/product/list/?sec_shop_id=QYJcazLw&goods_type=1&sort_type=3&sort=0&cursor=0&size=20&iid=3364954170996542&device_id=2995518243341992&channel=juyouliang_douyin_and15&aid=1128&app_name=aweme&version_code=200300&version_name=20.3.0&device_platform=android&os=android&device_type=MI+6s&device_brand=Xiaomi&os_api=23&os_version=6.0.1")
 
     server_base_url   = "http://39.96.69.115:8089"
@@ -156,7 +159,7 @@ try:
                         params_obj['device_id'] =1174740423166814
                         params_obj['channel'] = "wandoujia_1128_0413"
 
-                        params_obj['sort_type'] = 2    # sort_type   0综合排序 1销量排序  2新品 3价格
+                        params_obj['sort_type'] = 2     # sort_type   0综合排序 1销量排序  2新品 3价格
                         str_  = ""
                         for key in params_obj.keys():
                             str_ = str_+str(key) + "=" + str(params_obj[key])+"&"
@@ -176,7 +179,7 @@ try:
                         douyin_params = get_douyin_params2(new_monitor_url)
                         mheader = dict(mheader, **douyin_params)
                         print("访问地址:"+new_monitor_url)
-                        range_sleep_time = random.randint(1,3)
+                        range_sleep_time = random.randint(0,1)
                         print("休眠"+str(range_sleep_time)+"秒")
                         time.sleep(range_sleep_time)
 
@@ -195,6 +198,8 @@ try:
                         post_shop_data = {}
                         raw_goods_list = []
                         print("共有" + str(len(douyin_goods_list)) + "条商品")
+                        if len(douyin_goods_list) == 0:
+                            zero_goods_shop.append(shop_id)
                         if douyin_goods_list is not None and len(douyin_goods_list) > 0:
                             for goods_item in douyin_goods_list:
                                 m_goods_obj = {}
@@ -234,13 +239,15 @@ try:
 
 
                             print("提交数据："+json.dumps(post_shop_data))
-                            r = requests.post(post_url, json=post_shop_data, headers=payloadHeader, timeout=50)
+                            r = requests.post(post_url, json=post_shop_data, headers=payloadHeader, timeout=80)
                             print(r.text)
                         print("end-----------")
 
         else:
             is_run = False
+    print("开始:"+start_time)
     print("结束:"+time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
+    print("没有商品的店铺ID:"+json.dumps(zero_goods_shop))
 except:
     traceback.print_exc()
     print()

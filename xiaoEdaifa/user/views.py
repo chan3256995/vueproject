@@ -204,6 +204,9 @@ class UserMulOrderSaveViewSet(CreateModelMixin,GenericViewSet):
                     serializer.is_valid(raise_exception=True)
                     serializer.validated_data['order_number'] = self.generate_order_sn()
                     serializer.validated_data['add_time'] = time.time()*1000
+                    if item_order.get('tb_order_number') is not None and item_order.get('logistics_name') !='':
+                        serializer.validated_data['order_number'] = "os"+ str(item_order.get('tb_order_number'))
+
                     order = self.perform_create(serializer)
                     orderGoodsList = item_order['orderGoods']
                     order_agency_fee = 0  # 代拿费用
@@ -227,7 +230,7 @@ class UserMulOrderSaveViewSet(CreateModelMixin,GenericViewSet):
                     for orderGoods in orderGoodsList:
                         # ---------------------- 传来用户编码就进行地替换商品--------------------------------
                         user_code = orderGoods.get('user_code')
-                        print("user_code:" + user_code)
+
                         if user_code is not None:
                             try:
                                 user_code_goods_query = trade_models.UserGoods.objects.filter(user_code=user_code)
@@ -238,6 +241,13 @@ class UserMulOrderSaveViewSet(CreateModelMixin,GenericViewSet):
                                         orderGoods['shop_stalls_no'] = user_code_goods.shop_stalls_no
                                         orderGoods['art_no'] = user_code_goods.art_no
                                         orderGoods['goods_price'] = user_code_goods.goods_price
+                                        # goods_color = serializers.CharField(required=True, max_length=50)
+                                        # goods_size
+                                        if user_code_goods.replace_string is not None and user_code_goods.replace_string !="":
+                                            color_size_replace_string_list = json.loads(user_code_goods.replace_string)
+                                            for replace_string_item in color_size_replace_string_list:
+                                                orderGoods['goods_color'] = orderGoods['goods_color'].replace(replace_string_item.get("old"),replace_string_item.get("new"))
+
                                         break
                             except:
                                 traceback.print_exc()
@@ -275,12 +285,32 @@ class UserMulOrderSaveViewSet(CreateModelMixin,GenericViewSet):
                     order.agency_fee = order_agency_fee
                     total_fee = Decimal(str(order_goods_fee)) + Decimal(str(logistics_fee)) + Decimal(str(order_agency_fee)) + Decimal(str(quality_testing_fee))
                     order.total_price = total_fee
+                    # 添加备注***********************************
+
+                    remarks_type = item_order.get("remarks_type")
+                    remarks_text = item_order.get("remarks_text")
+
+                    if order is not None and remarks_type is not None:
+                        remarks_type = mcommon.remarks_type_choices2[remarks_type]
+                        data = {
+                            "order": order,
+                            "remarks_text": remarks_text,
+                            "remarks_type": remarks_type,
+                        }
+                        if remarks_type is None:
+                            order.order_remarks = None
+                        else:
+                            remarks = trade_models.OrderRemarks.objects.update_or_create(order=order, defaults=data)
+                            order.order_remarks = remarks[0]
+                    # 添加备注***********************************
                     order.save()
 
         except:
             traceback.print_exc()
             ret['code']="1001"
-            ret['message'] = "保存数据失败"
+            ret['message'] = "保存数据失败"+'%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method)
+
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
             return Response(ret)
         headers = self.get_success_headers(serializer.data)
         if len(exception_order_list) != 0:
@@ -3234,12 +3264,16 @@ class UserGoodsInfoViewSet(ListModelMixin, GenericViewSet):
         try:
             print(self.request.query_params)
             query_keys = self.request.query_params.get("keys")
+            id_list = self.request.query_params.get("id_list")
             order_by = ["-add_time"]
+            args = Q()
+            if id_list is not None:
+                id_list = json.loads(id_list)
+                args =  Q(id__in= id_list) & args
             if query_keys is not None:
-                args = Q(user_code=query_keys) | Q(art_no=query_keys)
-                return trade_models.UserGoods.objects.filter(Q(goods_owner=self.request.user) & args).order_by(*order_by)
-            else:
-                return trade_models.UserGoods.objects.filter(goods_owner=self.request.user).order_by(*order_by)
+                args = Q(user_code=query_keys) | Q(art_no=query_keys) & args
+
+            return trade_models.UserGoods.objects.filter(Q(goods_owner=self.request.user) & args).order_by(*order_by)
         except:
             traceback.print_exc()
 
