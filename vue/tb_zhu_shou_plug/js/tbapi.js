@@ -1187,10 +1187,47 @@ function apitb_show_goods_log_dailog(goods_log_list,click_button){
 }
 
 
+// 淘宝卖家千牛商品列表数据
+function apitb_get_seller_shop_goods_data(data_list){
+    console.log("data_list>",data_list)
+    let return_list = []
+    for(let i=0;i<data_list.length;i++){
+        let curr_item = data_list[i]
+        let goods_obj = {}
+
+        goods_obj['goods_id']= curr_item['itemId']
+        goods_obj['img_url']= "https:"+curr_item['itemDesc']['img']
+        goods_obj['goods_price']= curr_item['managerPrice']['currentPrice']
+        goods_obj['goods_name']= curr_item['itemDesc']['desc'][0]['text']
+        return_list.push(goods_obj)
+    }
+    return return_list
+}
+
 
 window.addEventListener("message",e=>{
     // {"responseText":this.responseText,"url":this._url},"*"
+    //taobao.com/h5/mtop.taobao.sell.pc.manage.async
+    if(e.data.url !==undefined && e.data.url.indexOf('taobao.com/h5/mtop.taobao.sell.pc.manage.async')!==-1 ){
+        //淘宝商品列表数据接口
+        let data = JSON.parse(e.data.responseText)
+        let data_result = JSON.parse(data['data']['result'])
+        let goods_list = []
+        if(data_result['data']['table']!==undefined){
+            goods_list = data_result['data']['table']['dataSource']
+        }
+         console.log("淘宝商品列表数据接口:",data)
+         console.log("淘宝商品列表数据接口:",JSON.parse(data['data']['result']))
+        let goods_list_result = apitb_get_seller_shop_goods_data(goods_list)
+        console.log('goods_list_result>',goods_list_result)
 
+        chrome.runtime.sendMessage({method:"submit_tb_seller_qianniu_goods_data_to_17",goods_list:JSON.stringify(goods_list_result)}, function(response) {
+
+        });
+
+
+        return
+    }
     if(e.data.url !==undefined && e.data.url.indexOf('taobao.com/getShopItemList.htm')!==-1 ){
         //淘宝店铺新版本商品接口数据
         return
@@ -1215,7 +1252,7 @@ window.addEventListener("message",e=>{
 
 
         let retunr_data = apitb_save_page_data(data_obj,"new_version_version")
-
+        return
 
     }
 

@@ -1,22 +1,38 @@
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 	var method = request.method;
     console.log("method---",method)
+    if(method === "submit_tb_seller_qianniu_goods_data_to_17"){
+          chrome.cookies.getAll({'url':'https://myseller.taobao.com'}, function(cookie) {
+	          let cookie_obj  =  mcommon_chrome_cookie_to_obj(cookie)
+              let seller_id = cookie_obj['tracknick']
+              if(seller_id === undefined){
+                  seller_id = cookie_obj['sn']
+                  console.log("seller_id111",seller_id)
+                  seller_id = decodeURIComponent(seller_id)
+                   console.log("seller_id2222",seller_id)
+              }
+              let goods_list = JSON.parse(request.goods_list)
+              api17_submit_tb_seller_qianniu_goods_data(goods_list,seller_id)
+            })
+        return
+    }
 	if (method === "get_goods_time") {
+       let goods_url = request.goods_url
+       console.log("goods_url")
+       console.log(goods_url)
+       let result = get_goods_details(goods_url)
+       let res_arr =  result.match("dbst             : \\d+")
+       let match_time = 0
+       if(res_arr.length>0){
+           console.log("match_time:",res_arr[0].replace("dbst             :"))
+           match_time = res_arr[0].replace("dbst             :","").trim()
+           match_time = format(match_time)
 
-           let goods_url = request.goods_url
-        console.log("goods_url")
-        console.log(goods_url)
-           let result = get_goods_details(goods_url)
-           let res_arr =  result.match("dbst             : \\d+")
-           let match_time = 0
-           if(res_arr.length>0){
-                              console.log("match_time:",res_arr[0].replace("dbst             :"))
-               match_time = res_arr[0].replace("dbst             :","").trim()
-               match_time = format(match_time)
-
-                         }
-           sendResponse(JSON.stringify(match_time));
-	}else if(method === "zhaoyaojing_query"){
+       }
+       sendResponse(JSON.stringify(match_time));
+        return
+	}
+    if(method === "zhaoyaojing_query"){
 	    console.log("zhaoyaojing_query",request.query_data)
 	     let req_data = JSON.parse(request.query_data)
 	     let user_name = req_data["user_name"]
@@ -36,8 +52,9 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
              }
 
         }
-
-    }else if(method === "get_zhangmenren_task_tb_link"){
+        return
+    }
+    if(method === "get_zhangmenren_task_tb_link"){
 
         let result = {'tb_link':''}
         let order_id = request.order_id
@@ -310,10 +327,18 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             })
 
 
-    }else if(method === "submit_return_package_data_to_17"){
+    }
+    if(method === "submit_return_package_data_to_17"){
          let params = JSON.parse(request.params)
          let submit_list = params['submit_list']
          let submit_result = api17_submit_logistics_data(submit_list)
+        return
+    }
+    if(method === "submit_pdd_buyer_order_data_to_17"){
+         let params = JSON.parse(request.params)
+         let submit_list = params['submit_list']
+         let submit_result = api17_submit_PlatformOrder_data(submit_list)
+        return
     }
 
 });

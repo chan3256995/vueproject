@@ -34,15 +34,15 @@ function mcommon_chrome_cookie_to_obj(chrome_cookie){
                 }
 
 
-                console.log("result88888",cookies_obj)
+                console.log("result111111",cookies_obj)
                  
 	 return cookies_obj
 }
 
-function mcommon_get_base_server_url_17(){
-    // let base_url_bl = "http://192.168.1.102:8009"
-     let base_url_bl = "http://39.96.69.115:8089"
-
-    return base_url_bl
-}
+// function mcommon_get_base_server_url_17(){
+//     // let base_url_bl = "http://192.168.1.102:8009"
+//      let base_url_bl = "http://39.96.69.115:8089"
+//
+//     return base_url_bl
+// }
 
