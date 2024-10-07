@@ -448,6 +448,12 @@
                    orderItem['wangwang_id']=wangwang_id
 
                  }
+                 if(orderItem['remarks_text']!==undefined && orderItem['remarks_text'] !==""){
+                    orderItem['remarks_type']="红"
+
+                 }
+
+
                   console.log("orderItem-------------------------------------------",orderItem)
                   this.order_obj.order_list.unshift(orderItem);
                }
@@ -842,11 +848,15 @@
                 let consignee_name =order_list[i].address.name;
                 let consignee_phone =order_list[i].address.phone;
                 let tb_order_number =order_list[i].tb_order_number;
+                let remarks_type =order_list[i].remarks_type;
+                let remarks_text =order_list[i].remarks_text;
                 let wangwang_id =order_list[i].wangwang_id;
 
                 let orderGoods = order_list[i].orderGoods;
                 news_list.push(
                   {
+                    "remarks_text":remarks_text,
+                    "remarks_type":remarks_type,
                     "tb_order_number":tb_order_number,
                     "wangwang_id":wangwang_id,
                     "consignee_address":consignee_address,"consignee_name":consignee_name,'logistics_name':order_list[i].logistics.logistics_name,

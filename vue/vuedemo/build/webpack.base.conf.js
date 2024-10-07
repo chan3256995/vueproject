@@ -39,8 +39,19 @@ module.exports = {
       '@': resolve('src'),
     }
   },
+  optimization: {
+  splitChunks: {
+    cacheGroups: {
+      commons: {
+        name: 'commons',
+        chunks: 'initial',
+        minChunks: 2
+      }
+    }
+  }
+},
   plugins:[
-    new webpack.optimize.CommonsChunkPlugin('common.js'),
+    // new webpack.optimize.CommonsChunkPlugin('common.js'),
     new webpack.ProvidePlugin({
       jQuery:'jquery',
       $:'jquery'

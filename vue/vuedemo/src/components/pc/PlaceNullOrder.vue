@@ -42,6 +42,7 @@
          <div class = "order_div global_background ">
             <label style="color:black">订单:{{index+1}}</label>
             <label   v-if="item.tb_order_number!==undefined && item.tb_order_number!==''" style="color:black;margin-left: 1em">淘宝订单号:{{item.tb_order_number}}</label>
+            <label   v-if="item.seller_wangwang_id!==undefined && item.seller_wangwang_id!==''" style="color:red;margin-left: 1em">淘宝订单号:{{item.seller_wangwang_id}}</label>
             <label   v-if="item.return_message!==undefined && item.return_message!==''" style="color:red;margin-left: 1em"> {{item.return_message}}</label>
           <button style=" width:4em;height:2em;float: right; margin-right: 2em" @click="onDeleteRawGoods(index,order_obj['order_list'])">删除</button>
          </div>
@@ -222,13 +223,14 @@
                       "name":null_order_tem_list[i].consignee_name,
                       "phone":null_order_tem_list[i].consignee_phone,
 
+
                       "province":province_city_area_array[0],
                       "city":province_city_area_array[1],
                       "area":province_city_area_array[2],
                       "address_detail":adddress_detail,
 
                     }
-                    new_order_list_data.push({"address":addressObj, "tb_order_number":null_order_tem_list[i].tb_order_number,"logistics":  this.selected_logistics,"null_order_tem_id":null_order_tem_id})
+                    new_order_list_data.push({"tb_seller_wangwang_id":null_order_tem_list[i].wangwang_id,"address":addressObj, "tb_order_number":null_order_tem_list[i].tb_order_number,"logistics":  this.selected_logistics,"null_order_tem_id":null_order_tem_id})
 
                  }
                }
@@ -346,6 +348,7 @@
                 let consignee_name =order_list[i].address.name;
                 let consignee_phone =order_list[i].address.phone;
                 let tb_order_number =order_list[i].tb_order_number;
+                let seller_wangwang_id =order_list[i].tb_seller_wangwang_id;
 
 
                 news_list.push(
@@ -353,6 +356,7 @@
                     "consignee_address":consignee_address,
                     "consignee_name":consignee_name,
                     "consignee_phone":consignee_phone,
+                    "tb_seller_wangwang_id":seller_wangwang_id,
                     'logistics_name':order_list[i].logistics.logistics_name,
                     'logistics_id':order_list[i].logistics.logistics_id,
                     'null_order_tem_id':order_list[i].null_order_tem_id,

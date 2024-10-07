@@ -43,7 +43,7 @@ export default {
     alert("复制成功！");
    }
   },
-  
+
    copy_to_clipboard(copyTxt)
         {
             let createInput = document.createElement('input');
@@ -55,8 +55,8 @@ export default {
             createInput.style.display='none';
             alert("复制成功");//没有layui的可以改为alert
         },
-  
-  
+
+
 
 methods: {
 
