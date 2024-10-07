@@ -44,7 +44,9 @@ chrome.tabs.onUpdated.addListener(function (id, info, tab) {
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 	let method = request.method;
-
+    if(method === "submit_tb_seller_qianniu_goods_data_to_17"){
+        return
+    }
 	if (method === "add_null_order_tobl"){
 	    let web_site_name = request.web_site_name;
          let base_url = mcommon_get_null_package_base_url_bl(web_site_name)
@@ -107,7 +109,10 @@ console.log("order_list_all",order_list_all)
 
              });
         })
-    }else if(method === "delivery_null_order_blto17"){
+        return
+    }
+
+    if(method === "delivery_null_order_blto17"){
 	    console.log("method",method)
 	    let web_site_name = request.web_site_name
 	    chrome.cookies.getAll({'url':mcommon_get_base_vue_url_17()}, function(cookie) {
