@@ -93,6 +93,50 @@ class InviteRegisterInfoQuerySerializer(serializers.ModelSerializer):
         depth = 0
 
 
+
+
+
+# 记录的电商平台买家的订单信息
+class TradePlatformOrderGoodsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = back_models.PlatformGoods
+
+        fields = '__all__'
+        # fields = ("shop_floor", "shop_market_name", "status")
+        # 查表深度  关联表的数据也会查处出来  深度值官方推荐 0-10
+        depth = 0
+
+class PlatformGoodsInfoQuerySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = back_models.PlatformGoods
+        fields = '__all__'
+        # 查表深度  关联表（父表）的数据也会查处出来  深度值官方推荐 0-10
+        depth = 0
+class PlatformOrderGoodsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = back_models.PlatformOrderGoods
+        fields = '__all__'
+        # 查表深度  关联表（父表）的数据也会查处出来  深度值官方推荐 0-10
+        depth = 2
+class PlatformOrderInfoQuerySerializer(serializers.ModelSerializer):
+    # 反向序列化  要在model.PlatformOrderGoods 理的对应指向Order的字段 设置 related_name 为 ‘platformOrderGoods’
+    platformOrderGoods = PlatformOrderGoodsSerializer(many=True, read_only=True)
+    class Meta:
+        model = back_models.PlatformOrder
+        # fields = '__all__'
+        fields = ('platformOrderGoods','account', 'add_time', 'data_source', 'id', 'logistics_info', 'logistics_is_inbounded', 'logistics_number', 'order_number', 'shop_id', 'shop_name')
+        # 查表深度  关联表（父表）的数据也会查处出来  深度值官方推荐 0-10
+        depth = 2
+
+
+
+
+
+
+
+
 # 退回包裹
 class ReturnPackageInfoQuerySerializer(serializers.ModelSerializer):
 

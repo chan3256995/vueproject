@@ -43,3 +43,61 @@ class TroubleOrders(models.Model):
 
     add_time = models.BigIntegerField(null=False,default=0)
 
+
+# 电商平台订单信息
+class PlatformOrder(models.Model):
+    add_time = models.BigIntegerField(null=False)
+    # 店铺名
+    shop_name = models.CharField(max_length=80)
+    shop_id = models.CharField(null=True,max_length=80)
+    # 账户
+    account = models.CharField(max_length=80)
+    # 订单号
+    order_number = models.CharField(unique=True, max_length=80)
+    # 物流信息
+
+    logistics_info = models.CharField(null=True, max_length=500)
+    # 物流单号
+    logistics_number = models.CharField(null=False, max_length=40)
+    # 物流是否已入库
+    logistics_is_inbounded =  models.BooleanField(default=False)
+    # 数据来源  如拼多多 淘宝
+    data_source = models.CharField(null=True, max_length=20)
+
+
+# 电商平台订单信息
+class PlatformOrderGoods(models.Model):
+    # 属于那个订单
+    platformOrder = models.ForeignKey(PlatformOrder, related_name="platformOrderGoods", on_delete=models.CASCADE)
+
+    # 商品图片
+    image_src =  models.CharField(max_length=300)
+    goods_name =  models.CharField(max_length=150)
+    goods_id =  models.CharField(max_length=30)
+    # 尺码颜色
+    color_size = models.CharField( max_length=200)
+    # 数量
+    goods_count = models.SmallIntegerField(null=False)
+    # 单价
+    goods_price = models.IntegerField(null=True)
+
+    add_time = models.BigIntegerField(null=False)
+
+
+# 电商平台的商品信息
+class PlatformGoods(models.Model):
+
+    # 数据来源  如拼多多 淘宝
+    data_source = models.CharField(null=True, max_length=20)
+    shop_unique_id =  models.CharField(null=True,max_length=80)
+    # 商品图片
+    image_src = models.CharField(max_length=300)
+    goods_name = models.CharField(max_length=150)
+    goods_id = models.CharField(max_length=30)
+    goods_id_md5 = models.CharField(max_length=30)
+    # 商品编码
+    goods_code = models.CharField(null=True,max_length=60)
+    # 单价
+    goods_price = models.IntegerField(null=True)
+    remarks = models.CharField(max_length=1000,null=True)
+    add_time = models.BigIntegerField(null=False)

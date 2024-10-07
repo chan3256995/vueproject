@@ -1571,6 +1571,172 @@ class ReturnPackageInfoViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin,mi
         return Response(ret)
 
 
+class PlatformOrderInfoViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin,mixins.DestroyModelMixin, GenericViewSet):
+    authentication_classes = [BackStageAuthentication, ]
+    permission_classes = [permission.Superpermission, ]
+    serializer_class = bserializers.PlatformOrderInfoQuerySerializer
+    # 设置分页的class
+    pagination_class = CommonPagination
+
+    def list(self, request, *args, **kwargs):
+        ret = {"code": 1000, "message": ""}
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        except:
+            traceback.print_exc()
+            ret = {"code": "1001", "message": "获取数据失败"}
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return Response(ret)
+
+    def get_queryset(self):
+        print(self.request.query_params)
+
+        args_and = self.request.query_params.get("args_and")
+        args_or =  self.request.query_params.get("args_or")
+        print(args_and)
+        print(args_or)
+
+        query_args1 = Q()
+        query_args2 = Q()
+
+        if args_and is not None:
+            args_and = json.loads(args_and)
+            logistics_number_and = args_and.get('logistics_number')
+            logistics_is_inbounded_and = args_and.get('logistics_is_inbounded')
+            if logistics_number_and is not None and logistics_number_and != "":
+                query_args1 = query_args1 & Q(logistics_number=logistics_number_and)
+            if logistics_is_inbounded_and is not None and logistics_is_inbounded_and != '全部':
+                query_args1 = query_args1 & Q(logistics_is_inbounded=logistics_is_inbounded_and)
+        if args_or is not None:
+            args_or = json.loads(args_or)
+            goods_name_or = args_or.get('goods_name')
+
+            shop_name_or = args_or.get('shop_name')
+            if goods_name_or is not None and goods_name_or != '':
+                query_args2 = query_args2 | Q(platformOrderGoods__goods_name__contains=goods_name_or)
+            if goods_name_or is not None and goods_name_or != '':
+                query_args2 = query_args2 | Q(shop_name__contains=shop_name_or)
+
+        query_args = query_args1 & query_args2
+        print(query_args)
+        return back_models.PlatformOrder.objects.filter(query_args).order_by('-order_number')
+        # return back_models.PlatformOrder.objects.filter().order_by('-order_number')
+
+
+    def destroy(self, request, *args, **kwargs):
+        ret = {"code": "1000", "message": ""}
+        print(kwargs.get("pk"))
+        try:
+            ret = {"code": "1000", "message": ""}
+            id_ = kwargs.get("pk")
+            back_models.PlatformOrder.objects.filter(id=id_).delete()
+        except:
+            print(traceback.print_exc())
+            ret['code'] = "1001"
+            ret['message'] = "删除失败"
+        return Response(ret)
+
+
+
+# 记录电商平台商品信息
+class PlatformGoodsInfoViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin,mixins.DestroyModelMixin, GenericViewSet):
+    authentication_classes = [BackStageAuthentication, ]
+    permission_classes = [permission.Superpermission, ]
+    serializer_class = bserializers.PlatformGoodsInfoQuerySerializer
+    # 设置分页的class
+    pagination_class = CommonPagination
+
+    def list(self, request, *args, **kwargs):
+        ret = {"code": 1000, "message": ""}
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        except:
+            traceback.print_exc()
+            ret = {"code": "1001", "message": "获取数据失败"+traceback.format_exc()}
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return Response(ret)
+
+    def get_queryset(self):
+        print(self.request.query_params)
+
+        args_and = self.request.query_params.get("args_and")
+        args_or = self.request.query_params.get("args_or")
+        goods_id_or = None
+        goods_name_or = None
+        id_or = None
+        query_args = Q()
+
+        if args_and is not None:
+            args_and = json.loads(args_and)
+
+        if args_or is not None:
+            args_or = json.loads(args_or)
+            goods_id_or = args_or.get('goods_id')
+            goods_name_or = args_or.get('goods_name')
+            id_or = args_or.get('id')
+            goods_code_or = args_or.get('goods_code')
+        if id_or is not None and id_or !="":
+            query_args = query_args  | Q(id__contains =id_or)
+        if goods_id_or is not None and goods_id_or !="":
+            query_args = query_args  | Q(goods_id__contains =goods_id_or)
+        if goods_name_or is not None and goods_name_or != "":
+            query_args = query_args | Q(goods_name__contains=goods_name_or)
+        if goods_code_or is not None and goods_code_or != "":
+            query_args = query_args | Q(goods_code__contains=goods_code_or)
+         
+        print(query_args)
+        return back_models.PlatformGoods.objects.filter(query_args).order_by('-add_time')
+
+    def destroy(self, request, *args, **kwargs):
+        ret = {"code": "1000", "message": ""}
+        print(kwargs.get("pk"))
+        try:
+            ret = {"code": "1000", "message": ""}
+            id_ = kwargs.get("pk")
+            back_models.PlatformGoods.objects.filter(id=id_).delete()
+        except:
+            print(traceback.print_exc())
+            ret['code'] = "1001"
+            ret['message'] = "删除失败"
+        return Response(ret)
+
+    def update(self, request, *args, **kwargs):
+            ret = {"code": "1000", "message": ""}
+            try:
+                id_ = kwargs.get("pk")
+                print("id->"+id_)
+                partial = True
+                instance = back_models.PlatformGoods.objects.filter(id=id_).first()
+
+                serializer = self.get_serializer(instance, data=request.data, partial=partial)
+                serializer.is_valid(raise_exception=True)
+                self.perform_update(serializer)
+                
+            except:
+                print(traceback.print_exc())
+                print(serializer.error)
+
+                ret = {"code": "1001", "message": "更改失败"}
+                logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+                return Response(ret)
+
+            ret['code'] = "1000"
+            ret['message'] = "更新成功"
+            ret['data'] = serializer.data
+            return Response(ret)
+
 class TaskThreadViewSet(mixins.CreateModelMixin,mixins.ListModelMixin, mixins.UpdateModelMixin,mixins.DestroyModelMixin, GenericViewSet):
     authentication_classes = [BackStageAuthentication, ]
     permission_classes = [permission.Superpermission, ]

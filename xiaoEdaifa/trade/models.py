@@ -454,6 +454,7 @@ class RefundInfo(models.Model):
     add_time = models.BigIntegerField(null=False)
 
 
+
 # 退回的包裹信息
 class ReturnPackageInfo(models.Model):
     #是否入库
@@ -461,7 +462,7 @@ class ReturnPackageInfo(models.Model):
     return_logistics_name = models.CharField(null=True, max_length=30)
     # 退货物流单号
     return_logistics_number = models.CharField(null=False, max_length=40,unique=True)
-    logistics_info = models.CharField(null=True, max_length=300)
+    logistics_info = models.CharField(null=True, max_length=500)
     #数据来源  如拼多多 淘宝
     data_source = models.CharField(null=True, max_length=20)
     # 物流状态 如 未知 途中 已送达

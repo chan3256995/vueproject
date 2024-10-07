@@ -190,6 +190,9 @@ class UserOrderGoodsRefundApplyLanjieSerializer(serializers.ModelSerializer):
         fields = ("orderGoods","goods_counts","refund_apply_type")
         depth = 0
 
+
+
+
 class TradeOrderGoodsSerializer(serializers.ModelSerializer):
     """
     订单商品
@@ -248,6 +251,8 @@ class TradeOrderGoodsSerializer(serializers.ModelSerializer):
         # fields = ("shop_floor", "shop_market_name", "status")
         # 查表深度  关联表的数据也会查处出来  深度值官方推荐 0-10
         depth = 0
+
+
 
 
 class TradeOrderCreateSerializer(serializers.ModelSerializer):
@@ -310,6 +315,8 @@ class OrderGoodsSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.OrderGoods
         fields = "__all__"
+
+
 
 
 class TradeAddOrdersSerializer(serializers.ModelSerializer):

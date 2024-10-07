@@ -32,7 +32,12 @@ router.register(r'users', views.UserViewSet, base_name='users')
 router.register(r'alipayAccountInfo', views.AlipayAccountInfoViewSet, base_name='alipayAccountInfo')
 # 邀请注册信息
 router.register(r'inviteRegInfo', views.InviteRegisterInfoViewSet, base_name='inviteRegInfo')
+# 退货包裹
 router.register(r'returnPackageInfo', views.ReturnPackageInfoViewSet, base_name='returnPackageInfo')
+#电商平台订单信息
+router.register(r'platformOrderInfo', views.PlatformOrderInfoViewSet, base_name='platformOrderInfo')
+#电商平台商品信息
+router.register(r'platformGoodsInfo', views.PlatformGoodsInfoViewSet, base_name='platformGoodsInfo')
 router.register(r'taskThread', views.TaskThreadViewSet, base_name='taskThread')
 router.register(r'goodsRefund', views.OrderGoodsRefundViewSet, base_name='goodsRefund')
 router.register(r'tradeInfo', trade_views.TradeInfoViewSet, base_name='tradeInfo')
@@ -114,6 +119,10 @@ urlpatterns = [
     url('addOrderToChuanMei/', trade_views.AddOrderToChuanMeiView.as_view()),
     # 退包入库
     url('addReturnPackages/', trade_views.AddReturnPackages.as_view()),
+    # 添加电商平台订单信息
+    url('addPlatformOrderInfo/', trade_views.AddPlatformOrderInfo.as_view()),
+    # 添加电商平台商品记录
+    url('addPlatformGoodsInfo/', trade_views.AddPlatformGoodsInfo.as_view()),
     # 添加用户余额
     url('addUserBalance/', trade_views.AddUserBalance.as_view()),
 

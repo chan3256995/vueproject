@@ -508,67 +508,147 @@ class AddReturnPackages(APIView):
 
             for returnPackage in return_package_list:
                 pacakge_obj = trade_models.ReturnPackageInfo.objects.filter(return_logistics_number=returnPackage.get('return_logistics_number')).first()
-                if pacakge_obj is  None:
-                    new_return_package_list.append(returnPackage)
-                    return_logistics_name = returnPackage.get('return_logistics_name')
-                    return_logistics_number = returnPackage.get('return_logistics_number')
-                    data_source = returnPackage.get('data_source')
-                    logistics_info = returnPackage.get('logistics_info')
-                    account = returnPackage.get('account')
-                    logistics_status = returnPackage.get('logistics_status_type_desc')
-                    is_inbound = returnPackage.get('is_inbound')
-                    logistics_info2 = logistics_info
-                    if logistics_info2 is None:
-                        logistics_info2 = ""
-                    print(is_inbound)
-                    data = {
+                # 入库的包裹对应的平台订单属性更新为True
+                is_platformOrder_inbound = False
+                
+                with transaction.atomic():
+                    if pacakge_obj is None:
+                        new_return_package_list.append(returnPackage)
+                        return_logistics_name = returnPackage.get('return_logistics_name')
+                        return_logistics_number = returnPackage.get('return_logistics_number')
+                        data_source = returnPackage.get('data_source')
+                        logistics_info = returnPackage.get('logistics_info')
+                        account = returnPackage.get('account')
+                        logistics_status = returnPackage.get('logistics_status_type_desc')
+                        is_inbound = returnPackage.get('is_inbound')
+                        logistics_info2 = logistics_info
+                        if logistics_info2 is None:
+                            logistics_info2 = ""
+                        print(is_inbound)
+                        data = {
 
-                        "logistics_status": logistics_status,
-                        "account": account,
-                        "logistics_info":  mtime.stamp_to_time(time.time(),None) + " "+logistics_info2,
-                        "data_source": data_source,
-                        "return_logistics_name": return_logistics_name,
-                        "return_logistics_number": return_logistics_number,
-                        "add_time": time.time() * 1000,
+                            "logistics_status": logistics_status,
+                            "account": account,
+                            "logistics_info": mtime.stamp_to_time(time.time(), None) + " " + logistics_info2,
+                            "data_source": data_source,
+                            "return_logistics_name": return_logistics_name,
+                            "return_logistics_number": return_logistics_number,
+                            "add_time": time.time() * 1000,
 
-                    }
-                    if is_inbound is True:
-                        data['is_inbounded'] = True
-                        data['inbound_time'] = time.time() * 1000
-                    if logistics_status == back_utils.back_return_package_logistics_status_choise["已送达"]:
-                        data['update_time'] = time.time() * 1000
-                    obj = trade_models.ReturnPackageInfo.objects.create(**data)
-                    if obj is not None:
-                        with transaction.atomic():
-                            refund_apply = trade_models.RefundApply.objects.select_for_update().filter(return_logistics_number=return_logistics_number).first()
-                            if refund_apply is not None and refund_apply.refund_apply_progress == mcommon.refund_apply_progress_choices2['未处理']:
-                                refund_apply.refund_apply_progress = mcommon.refund_apply_progress_choices2['仓库已收到退件']
-                                refund_apply.save()
-                else:
-                    if returnPackage.get('logistics_info') != None and returnPackage.get('logistics_info') != "":
+                        }
+                        if is_inbound is True:
+                            data['is_inbounded'] = True
+                            data['inbound_time'] = time.time() * 1000
+                            is_platformOrder_inbound = True
+                        if logistics_status == back_utils.back_return_package_logistics_status_choise["已送达"]:
+                            data['update_time'] = time.time() * 1000
+                        obj = trade_models.ReturnPackageInfo.objects.create(**data)
+                        if obj is not None:
+                            with transaction.atomic():
+                                refund_apply = trade_models.RefundApply.objects.select_for_update().filter(return_logistics_number=return_logistics_number).first()
+                                if refund_apply is not None and refund_apply.refund_apply_progress == mcommon.refund_apply_progress_choices2['未处理']:
+                                    refund_apply.refund_apply_progress = mcommon.refund_apply_progress_choices2['仓库已收到退件']
+                                    refund_apply.save()
+                    else:
+                        is_exits_package = True
+                        if returnPackage.get('logistics_info') != None and returnPackage.get('logistics_info') != "":
+                            pacakge_obj.logistics_info = mtime.stamp_to_time(time.time(),None) + " " + returnPackage.get('logistics_info')
+                        if returnPackage.get('is_inbound') is True and pacakge_obj.is_inbounded is not True:
+                            pacakge_obj.is_inbounded = True
+                            pacakge_obj.inbound_time = time.time() * 1000
+                            is_platformOrder_inbound = True
+                            is_exits_package = False
+                        if pacakge_obj.logistics_status != back_utils.back_return_package_logistics_status_choise["已送达"] and returnPackage.get('logistics_status_type_desc') == back_utils.back_return_package_logistics_status_choise["已送达"]:
+                            # 记录未送达 最新为送达
+                            pacakge_obj.logistics_status = back_utils.back_return_package_logistics_status_choise["已送达"]
+                            pacakge_obj.update_time = time.time() * 1000
 
-                        pacakge_obj.logistics_info = mtime.stamp_to_time(time.time(),None) + " "+returnPackage.get('logistics_info')
-                    if returnPackage.get('is_inbound') is True and pacakge_obj.is_inbounded is not True:
-                        pacakge_obj.is_inbounded = True
-                        pacakge_obj.inbound_time = time.time() * 1000
-                    if pacakge_obj.logistics_status != back_utils.back_return_package_logistics_status_choise["已送达"] and returnPackage.get('logistics_status_type_desc')==back_utils.back_return_package_logistics_status_choise["已送达"]:
-                        #记录未送达 最新为送达
-                        pacakge_obj.logistics_status = back_utils.back_return_package_logistics_status_choise["已送达"]
-                        pacakge_obj.update_time = time.time()*1000
+                        pacakge_obj.save()
+                        if is_platformOrder_inbound is True:
+                            back_models.PlatformOrder.objects.filter(logistics_number=returnPackage.get('return_logistics_number')).update(logistics_is_inbounded=True)
 
-                    pacakge_obj.save()
-                    exits_return_package_list.append(returnPackage)
+                        if is_exits_package is True:
+                            exits_return_package_list.append(returnPackage)
 
-            # for new_return_package in new_return_package_list:
-            #     return_logistics_name = new_return_package.get('return_logistics_name')
-            #     return_logistics_number = new_return_package.get('return_logistics_number')
-            #     obj = trade_models.ReturnPackageInfo.objects.create(return_logistics_number=return_logistics_number,return_logistics_name=return_logistics_name,add_time=time.time()*1000)
-            #     if obj is not None:
-            #         refund_apply = trade_models.RefundApply.objects.select_for_update().filter(return_logistics_number=return_logistics_number).first()
-            #         if refund_apply is not None and refund_apply.refund_apply_progress == mcommon.refund_apply_progress_choices2['未处理']:
-            #             refund_apply.refund_apply_progress = mcommon.refund_apply_progress_choices2['仓库已收到退件']
-            #             refund_apply.save()
+
             ret['exits_list'] = exits_return_package_list
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "提交失败"+traceback.format_exc()
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return Response(ret)
+        return Response(ret)
+
+
+# 添加电商平台订单信息
+class AddPlatformOrderInfo(APIView):
+
+    # authentication_classes = [BackStageAuthentication, BackStageNahuoAuthentication]
+    authentication_classes = []
+    # permission_classes = [NahuoUserpermission]
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        try:
+
+            ret = {'code': "1000", 'message': ""}
+            order_list = json.loads(request.data.get("order_list"))
+            new_list = []
+            fail_list = []
+
+            for platformOrder in order_list:
+                try:
+                    order_obj = back_models.PlatformOrder.objects.filter(order_number=platformOrder.get('order_number')).first()
+                    if order_obj is None:
+                        with transaction.atomic():
+                            new_list.append(platformOrder)
+                            logistics_number = platformOrder.get('logistics_number')
+                            data_source = platformOrder.get('data_source')
+                            # logistics_info = platformOrder.get('logistics_info')
+                            shop_name = platformOrder.get('shop_name')
+                            shop_id = platformOrder.get('shop_id')
+                            order_number = platformOrder.get('order_number')
+                            account = platformOrder.get('account')
+
+                            order_data = {
+                                "logistics_number": logistics_number,
+                                "account": account,
+                                "shop_id": shop_id,
+                                "data_source": data_source,
+                                # "logistics_info": logistics_info,
+                                "shop_name": shop_name,
+                                "order_number": order_number,
+                                "add_time": time.time() * 1000,
+                            }
+                            # 该订单对应的包裹物流
+                            ret_package_obj = trade_models.ReturnPackageInfo.objects.filter(return_logistics_number=logistics_number).first()
+                            if ret_package_obj is not None and ret_package_obj.is_inbounded is True:
+                                # 该订单对应的包裹物流
+                                order_data['logistics_is_inbounded'] = True
+                            success_order = back_models.PlatformOrder.objects.create(**order_data)
+                            if success_order is not None:
+                                order_goods_list = platformOrder.get("order_goods_list")
+                                for order_goods in order_goods_list:
+                                    order_goods_data = {
+                                        "platformOrder" : success_order,
+                                        "goods_name": order_goods.get("goods_name"),
+                                        "goods_id": order_goods.get("goods_id"),
+                                        "image_src": order_goods.get("image_src"),
+                                        "color_size": order_goods.get("color_size"),
+                                        "goods_count": order_goods.get("goods_count"),
+                                        "goods_price": order_goods.get("goods_price"),
+                                        "add_time": time.time() * 1000,
+
+                                    }
+                                    obj = back_models.PlatformOrderGoods.objects.create(**order_goods_data)
+
+                except:
+                    fail_list.append(platformOrder)
+                    traceback.print_exc()
+
+                    logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            ret['fail_list'] = fail_list
         except:
             traceback.print_exc()
             ret['code'] = "1001"
@@ -578,7 +658,72 @@ class AddReturnPackages(APIView):
         return Response(ret)
 
 
+# 添加电商平商品记录
+class AddPlatformGoodsInfo(APIView):
+
+    # authentication_classes = [BackStageAuthentication, BackStageNahuoAuthentication]
+    authentication_classes = []
+    # permission_classes = [NahuoUserpermission]
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        try:
+
+            ret = {'code': "1000", 'message': ""}
+            goods_list = json.loads(request.data.get("goods_list"))
+            shop_unique_id =  request.data.get("shop_unique_id")
+            data_source =  request.data.get("data_source")
+            print("datasource:"+data_source)
+
+
+            new_list = []
+            fail_list = []
+
+            for platformGoods in goods_list:
+                try:
+                    data_source = data_source
+                    goods_name = platformGoods.get('goods_name')
+                    img_url = platformGoods.get('img_url')
+                    goods_id = platformGoods.get('goods_id')
+                    remarks = platformGoods.get('remarks')
+                    new_goods_data = {
+                        "data_source": data_source,
+                        "goods_name": goods_name,
+                        "image_src": img_url,
+                        "goods_id": goods_id,
+                        "shop_unique_id": shop_unique_id,
+                    }
+                    goods_obj = back_models.PlatformGoods.objects.filter(goods_id=platformGoods.get('goods_id')).first()
+                    if goods_obj is None:
+                            new_list.append(platformGoods)
+                            new_goods_data['add_time'] = time.time() * 1000
+                            new_goods_data['remarks'] = remarks
+                            success_goods = back_models.PlatformGoods.objects.create(**new_goods_data)
+                            success_goods.goods_code = success_goods.id
+                            success_goods.save()
+                    else:
+                        goods_obj.goods_name = goods_name
+                        goods_obj.image_src = img_url
+                        goods_obj.save()
+
+                except:
+                    fail_list.append(platformGoods)
+                    traceback.print_exc()
+
+                    logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            ret['fail_list'] = fail_list
+        except:
+            traceback.print_exc()
+            ret['code'] = "1001"
+            ret['message'] = "查询异常"+'%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method)
+            logger.info('%s url:%s method:%s' % (traceback.format_exc(), request.path, request.method))
+            return Response(ret)
+        return Response(ret)
+
+
     # 添加问题单跟单
+
+# 添加问题单跟单
 class AddTroubleOrderView(APIView):
 
     authentication_classes = [BackStageAuthentication]
